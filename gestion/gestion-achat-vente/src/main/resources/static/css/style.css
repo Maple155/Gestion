@@ -1,0 +1,97 @@
+/* Palette de couleurs Corporate ERP */
+:root {
+    --erp-primary: #1e293b;    /* Slate 800 - Navigation */
+    --erp-accent: #2563eb;     /* Blue 600 - Actions */
+    --erp-success: #059669;    /* Green 600 - Validations */
+    --erp-warning: #d97706;    /* Amber 600 - En attente */
+    --erp-danger: #dc2626;     /* Red 600 - Rejeté */
+    --erp-bg-light: #f8fafc;   /* Slate 50 - Background */
+    --erp-border: #e2e8f0;     /* Slate 200 - Tables & Divs */
+}
+
+/* Base */
+body {
+    background-color: var(--erp-bg-light);
+    color: var(--erp-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Styles pour les Tables de Gestion */
+.erp-table-container {
+    background: white;
+    border-radius: 0.5rem;
+    border: 1px solid var(--erp-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.erp-table thead {
+    background-color: #f1f5f9;
+    border-bottom: 2px solid var(--erp-border);
+}
+
+.erp-table th {
+    padding: 1rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.erp-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--erp-border);
+}
+
+/* Style "Document" (Pour BC et Factures) */
+.document-paper {
+    background: white;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    min-height: 29.7cm; /* Format A4 proportionnel */
+    padding: 3rem;
+    margin: 2rem auto;
+    border-top: 4px solid var(--erp-primary);
+}
+
+/* Badges de Statuts Professionnels */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+}
+
+.status-valid { background: #ecfdf5; color: var(--erp-success); border: 1px solid #10b981; }
+.status-pending { background: #fffbeb; color: var(--erp-warning); border: 1px solid #fbbf24; }
+.status-error { background: #fef2f2; color: var(--erp-danger); border: 1px solid #f87171; }
+
+/* Boutons ERP */
+.btn-primary {
+    background-color: var(--erp-accent);
+    color: white;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+/* Impression */
+@media print {
+    .sidebar, header, .no-print {
+        display: none !important;
+    }
+    .document-paper {
+        box-shadow: none;
+        border: none;
+        margin: 0;
+        padding: 0;
+    }
+}

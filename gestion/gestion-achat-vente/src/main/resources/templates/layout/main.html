@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion Achats - ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .sidebar-active { background-color: #334155; border-left: 4px solid #3b82f6; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-slate-800 text-white flex-shrink-0">
+            <div class="p-6 text-xl font-bold border-b border-slate-700 flex items-center">
+                <i data-lucide="package" class="mr-2"></i> CORE ERP
+            </div>
+            <nav class="mt-6">
+                <a href="/api/achats/demandes" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 sidebar-active">
+                    <i data-lucide="shopping-cart" class="mr-3 w-5"></i> Module Achats
+                </a>
+                <a href="#" class="flex items-center px-6 py-3 text-slate-400 hover:bg-slate-700">
+                    <i data-lucide="database" class="mr-3 w-5"></i> Stock
+                </a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto">
+            <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-slate-700">Système de Gestion des Achats</h2>
+                <div class="flex items-center space-x-4">
+                    <i data-lucide="bell" class="text-slate-400 cursor-pointer"></i>
+                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
+                </div>
+            </header>
+            
+            <div class="p-8" th:replace="${content}">
+                </div>
+        </main>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
