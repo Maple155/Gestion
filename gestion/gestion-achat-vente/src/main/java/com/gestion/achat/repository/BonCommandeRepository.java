@@ -16,4 +16,6 @@ public interface BonCommandeRepository extends JpaRepository<BonCommande, UUID> 
     
     @Query("SELECT b FROM BonCommande b WHERE b.statutFinance = 'EN_ATTENTE_VALIDATION'")
     List<BonCommande> findPendingValidations();
+
+    List<BonCommande> findAllByOrderByDateEmissionDesc();
 }

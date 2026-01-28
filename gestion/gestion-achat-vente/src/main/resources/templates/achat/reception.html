@@ -1,0 +1,93 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Enregistrement d'une Réception</h1>
+            <p class="text-slate-500 text-sm">Validez la conformité des articles reçus par rapport au Bon de Commande.</p>
+        </div>
+
+        <div class="max-w-3xl mx-auto">
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50">
+                    <h3 class="font-semibold text-slate-700 flex items-center">
+                        <i data-lucide="package-check" class="mr-2 w-5 text-blue-600"></i> 
+                        Détails de la réception
+                    </h3>
+                </div>
+                
+                <form id="receptionForm" class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2 font-bold uppercase tracking-wider">Bon de Commande (BC)</label>
+                        <select name="bcId" class="w-full p-3 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="">-- Sélectionner le BC à réceptionner --</option>
+                            <option th:each="bc : ${bonsValides}" 
+                                    th:value="${bc.id}" 
+                                    th:text="${bc.referenceBc + ' - ' + bc.proforma.fournisseur.nom}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-md border border-slate-200">
+                        <span class="block text-sm font-medium text-slate-700 mb-3 font-bold uppercase tracking-wider">État de la livraison</span>
+                        <div class="flex space-x-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="conforme" value="true" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-slate-700 font-medium">Conforme (Mise en stock automatique)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer text-red-600">
+                                <input type="radio" name="conforme" value="false" class="w-4 h-4 text-red-600 focus:ring-red-500">
+                                <span class="ml-2 text-sm font-medium">Non Conforme / Litige</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2 font-bold uppercase tracking-wider">Observations / Notes</label>
+                        <textarea name="obs" rows="4" class="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Ex: Palette endommagée, manque 2 articles, ou RAS..."></textarea>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex justify-end">
+                        <button type="button" onclick="submitReception()" class="bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-md shadow flex items-center font-semibold transition-all">
+                            <i data-lucide="save" class="mr-2 w-4"></i> Enregistrer la réception
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function submitReception() {
+        const form = document.getElementById('receptionForm');
+        const formData = new FormData(form);
+        const bcId = formData.get('bcId');
+
+        if(!bcId) {
+            alert('Veuillez sélectionner un Bon de Commande');
+            return;
+        }
+
+        // Construction propre des paramètres
+        const params = new URLSearchParams();
+        params.append('conforme', formData.get('conforme'));
+        params.append('obs', formData.get('obs') || '');
+
+        try {
+            // L'URL doit correspondre exactement à ton @PostMapping dans AchatController
+            const response = await fetch(`/api/achats/bons-commande/${bcId}/recevoir?${params.toString()}`, {
+                method: 'POST'
+            });
+
+            if(response.ok) {
+                alert('Réception enregistrée avec succès !');
+                window.location.href = '/achats/demandes';
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                alert('Erreur: ' + (errorData.message || 'Le serveur a refusé la réception. Vérifiez que le BC n\'est pas déjà reçu.'));
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur de connexion au serveur');
+        }
+    }
+</script>

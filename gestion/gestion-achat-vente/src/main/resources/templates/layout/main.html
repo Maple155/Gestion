@@ -1,44 +1,145 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion Achats - ERP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="stylesheet" th:href="@{/css/style.css}">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .sidebar-active { background-color: #334155; border-left: 4px solid #3b82f6; }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans">
-    <div class="flex h-screen">
-        <aside class="w-64 bg-slate-800 text-white flex-shrink-0">
-            <div class="p-6 text-xl font-bold border-b border-slate-700 flex items-center">
-                <i data-lucide="package" class="mr-2"></i> CORE ERP
+<body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside class="w-64 sidebar text-white flex-shrink-0 flex flex-col shadow-2xl">
+            <div class="sidebar-logo flex items-center space-x-3">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <i data-lucide="layers" class="text-white w-5 h-5"></i>
+                </div>
+                <span class="text-white font-bold tracking-tight text-lg">CORE <span class="text-blue-500">ERP</span></span>
             </div>
-            <nav class="mt-6">
-                <a href="/api/achats/demandes" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 sidebar-active">
-                    <i data-lucide="shopping-cart" class="mr-3 w-5"></i> Module Achats
-                </a>
-                <a href="#" class="flex items-center px-6 py-3 text-slate-400 hover:bg-slate-700">
-                    <i data-lucide="database" class="mr-3 w-5"></i> Stock
+            
+            <nav class="mt-4 flex-1 overflow-y-auto px-2">
+                <p class="nav-group-label">Menu Principal</p>
+                
+                <div class="mb-1">
+                    <button onclick="toggleDropdown('achat-menu', 'achat-arrow')" class="nav-link-main w-full group">
+                        <div class="flex items-center">
+                            <i data-lucide="shopping-bag" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                            <span class="font-medium text-sm">Gestion Achats</span>
+                        </div>
+                        <i data-lucide="chevron-down" id="achat-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+                    </button>
+                    
+                    <div id="achat-menu" class="dropdown-container">
+                        <a th:href="@{/achats/demandes}" class="nav-link-sub">
+                            <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Demandes
+                        </a>
+                        <a th:href="@{/achats/bons-commande/liste}" class="nav-link-sub">
+                            <i data-lucide="send" class="w-3 h-3 mr-2 opacity-50"></i> BC Envoyés
+                        </a>
+
+                        <div>
+                            <button onclick="toggleDropdown('br-menu', 'br-arrow')" class="nav-link-sub w-full justify-between pr-4 group">
+                                <span class="flex items-center">
+                                    <i data-lucide="truck" class="w-3 h-3 mr-2 opacity-50"></i> Réceptions
+                                </span>
+                                <i data-lucide="chevron-down" id="br-arrow" class="w-3 h-3 opacity-50 transition-transform"></i>
+                            </button>
+                            <div id="br-menu" class="dropdown-container inner-menu">
+                                <a th:href="@{/achats/reception/liste}" class="nav-link-sub !pl-4 py-1.5 text-xs">Liste des BR</a>
+                                <a th:href="@{/achats/reception/nouveau}" class="nav-link-sub !pl-4 py-1.5 text-xs">Nouveau BR</a>
+                            </div>
+                        </div>
+
+                        <a th:href="@{/achats/factures/liste}" class="nav-link-sub">
+                            <i data-lucide="credit-card" class="w-3 h-3 mr-2 opacity-50"></i> Factures
+                        </a>
+                        <a th:href="@{/achats/fournisseurs}" class="nav-link-sub">
+                            <i data-lucide="users" class="w-3 h-3 mr-2 opacity-50"></i> Fournisseurs
+                        </a>
+                    </div>
+                </div>
+
+                <a href="/stock" class="nav-link-main group">
+                    <div class="flex items-center">
+                        <i data-lucide="database" class="mr-3 w-5 h-5 group-hover:text-emerald-400"></i> 
+                        <span class="font-medium text-sm">Stock</span>
+                    </div>
                 </a>
             </nav>
+
+            <div class="p-4 border-t border-slate-800/50 bg-black/10">
+                <div class="flex items-center p-2">
+                    <div class="w-8 h-8 rounded bg-slate-700 flex items-center justify-center text-[10px] font-bold">AD</div>
+                    <div class="ml-3">
+                        <p class="text-[11px] font-bold text-white leading-none">Administrateur</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Connecté</p>
+                    </div>
+                </div>
+            </div>
         </aside>
 
-        <main class="flex-1 overflow-y-auto">
-            <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-                <h2 class="text-lg font-semibold text-slate-700">Système de Gestion des Achats</h2>
+        <main class="flex-1 overflow-y-auto flex flex-col">
+            <header class="top-header px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="home" class="w-4 h-4 text-slate-400"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">ERP System &bull; Achats</span>
+                </div>
                 <div class="flex items-center space-x-4">
-                    <i data-lucide="bell" class="text-slate-400 cursor-pointer"></i>
-                    <div class="w-8 h-8 rounded-full bg-slate-200 border border-slate-300"></div>
+                    <button class="text-slate-500 hover:text-blue-600 transition-colors">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                    </button>
+                    <div class="h-4 w-[1px] bg-slate-200"></div>
+                    <a href="/logout" class="text-xs font-bold text-rose-500 hover:text-rose-600 flex items-center">
+                        DÉCONNEXION <i data-lucide="log-out" class="ml-2 w-3 h-3"></i>
+                    </a>
                 </div>
             </header>
             
-            <div class="p-8" th:replace="${content}">
-                </div>
+            <div class="p-8 max-w-7xl mx-auto w-full">
+                <div th:replace="${content}"></div>
+            </div>
         </main>
     </div>
-    <script>lucide.createIcons();</script>
+
+    <script th:inline="javascript">
+        lucide.createIcons();
+
+        function toggleDropdown(menuId, arrowId) {
+            const menu = document.getElementById(menuId);
+            const arrow = document.getElementById(arrowId);
+
+            if (!menu.classList.contains('dropdown-open')) {
+                const openMenus = document.querySelectorAll('.dropdown-open');
+                openMenus.forEach(m => {
+                    // On ne ferme pas si c'est un parent du menu qu'on ouvre
+                    if (!m.contains(menu)) m.classList.remove('dropdown-open');
+                });
+            }
+
+            menu.classList.toggle('dropdown-open');
+            if(arrow) arrow.classList.toggle('rotate-icon');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const path = window.location.pathname;
+            // Ouverture auto basée sur l'URL
+            if (path.includes('/achats')) {
+                const menu = document.getElementById('achat-menu');
+                if(menu) menu.classList.add('dropdown-open');
+                const arrow = document.getElementById('achat-arrow');
+                if(arrow) arrow.classList.add('rotate-icon');
+            }
+            if (path.includes('/reception')) {
+                const brMenu = document.getElementById('br-menu');
+                if(brMenu) brMenu.classList.add('dropdown-open');
+                const brArrow = document.getElementById('br-arrow');
+                if(brArrow) brArrow.classList.add('rotate-icon');
+            }
+        });
+    </script>
 </body>
 </html>

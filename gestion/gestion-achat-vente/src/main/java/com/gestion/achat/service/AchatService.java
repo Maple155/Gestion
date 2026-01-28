@@ -2,7 +2,6 @@ package com.gestion.achat.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -19,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional
 public class AchatService {
 
-    private final DemandeAchatRepository demandeRepo;
     private final ProformaRepository proformaRepo;
     private final BonCommandeRepository bcRepo;
     private final BonReceptionRepository brRepo;

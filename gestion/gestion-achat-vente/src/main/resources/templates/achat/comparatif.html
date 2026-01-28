@@ -1,0 +1,156 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-8 flex items-center justify-between">
+            <a th:href="@{/achats/demandes}" class="text-slate-500 hover:text-slate-800 flex items-center text-sm transition-colors">
+                <i data-lucide="arrow-left" class="mr-2 w-4"></i> Retour aux demandes
+            </a>
+            <h1 class="text-xl font-bold text-slate-800">Comparaison des Offres Reçues</h1>
+            <div class="text-xs font-mono bg-slate-100 px-3 py-1 rounded text-slate-500" th:text="${'DA #' + demande.id.toString().substring(0,8)}"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div th:each="p : ${proformas}" class="bg-white rounded-xl border-2 transition-all overflow-hidden flex flex-col"
+                 th:classappend="${p.estSelectionne ? 'border-blue-500 shadow-md ring-4 ring-blue-50' : 'border-slate-200 shadow-sm'}">
+                
+                <div class="relative">
+                    <button type="button" 
+                            th:data-id="${p.id}"
+                            onclick="openModal(this.getAttribute('data-id'))"
+                            class="absolute top-2 right-2 p-1.5 bg-white/80 hover:bg-white rounded-full text-slate-400 hover:text-blue-600 shadow-sm transition-all z-10">
+                        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                    <span class="font-bold text-slate-700" th:text="${p.fournisseur.nom}">Fournisseur</span>
+                </div>
+
+                <div class="p-6 flex-1 space-y-4">
+                    <div class="flex justify-between items-baseline">
+                        <span class="text-slate-500 text-sm">Prix Unitaire HT</span>
+                        <span class="text-2xl font-black text-slate-900" th:text="${#numbers.formatDecimal(p.prixUnitaireHt, 1, 2) + ' €'}">0.00</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="text-slate-500 italic">Délai livraison:</div>
+                        <div class="text-slate-800 font-semibold text-right" th:text="${p.delaiLivraisonJours + ' jours'}">5 j</div>
+                        
+                        <div class="text-slate-500 italic">TVA:</div>
+                        <div class="text-slate-800 font-semibold text-right" th:text="${p.tvaPourcentage + '%'}">20%</div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-50">
+                        <p class="text-xs text-slate-400 mb-2 uppercase font-bold tracking-widest">Calcul Total (TTC)</p>
+                        <div class="text-lg font-bold text-blue-600" 
+                             th:text="${#numbers.formatDecimal(p.prixUnitaireHt * demande.quantiteDemandee * (1 + p.tvaPourcentage/100), 1, 2) + ' €'}">
+                        </div>
+                    </div>
+                </div>
+
+                <button th:data-id="${p.id}" 
+                        onclick="genererCommande(this.getAttribute('data-id'))"
+                        class="w-full py-4 font-bold text-sm uppercase tracking-widest transition-colors flex items-center justify-center"
+                        th:classappend="${p.estSelectionne ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-500 hover:text-white'}">
+                    <i data-lucide="shopping-cart" class="mr-2 w-4"></i>
+                    Choisir cette offre
+                </button>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(proformas)}" class="bg-white p-20 rounded-xl border-2 border-dashed border-slate-200 text-center">
+            <i data-lucide="file-warning" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+            <p class="text-slate-500 font-medium">Aucun proforma n'a été enregistré pour cette demande.</p>
+        </div>
+
+        <div id="proformaModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                        <i data-lucide="file-text" class="mr-2 text-blue-600"></i> Détails complets du Proforma
+                    </h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div class="p-8 grid grid-cols-2 gap-6" id="modalBody">
+                    <div class="col-span-2 flex justify-center py-10">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button onclick="closeModal()" class="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold hover:bg-slate-300 transition-all">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            async function genererCommande(proformaId) {
+                if(!confirm('Confirmez-vous le choix de ce fournisseur ? Un Bon de Commande sera généré.')) return;
+
+                try {
+                    const response = await fetch(`/api/achats/bons-commande/generer/${proformaId}`, { method: 'POST' });
+                    if(response.ok) {
+                        const bc = await response.json();
+                        alert('Bon de Commande généré avec succès : ' + bc.referenceBc);
+                        window.location.href = '/achats/demandes';
+                    } else {
+                        alert('Erreur lors de la génération du BC');
+                    }
+                } catch (e) {
+                    alert('Erreur réseau');
+                }
+            }
+
+            async function openModal(id) {
+                const modal = document.getElementById('proformaModal');
+                const body = document.getElementById('modalBody');
+                modal.classList.remove('hidden');
+                
+                try {
+                    const response = await fetch(`/api/achats/proformas/${id}`);
+                    if (!response.ok) throw new Error('Erreur chargement');
+                    const p = await response.json();
+                    
+                    body.innerHTML = `
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400">Fournisseur</label>
+                            <p class="text-lg font-bold text-slate-800">${p.fournisseur.nom}</p>
+                        </div>
+                        <div class="space-y-1 text-right">
+                            <label class="text-[10px] font-bold uppercase text-slate-400">Date Réception</label>
+                            <p class="text-sm font-semibold text-slate-700">${new Date(p.dateReception).toLocaleDateString()}</p>
+                        </div>
+                        <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                            <label class="text-[10px] font-bold uppercase text-blue-400">Prix Unitaire HT</label>
+                            <p class="text-xl font-black text-blue-700">${p.prixUnitaireHt.toFixed(2)} €</p>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                            <label class="text-[10px] font-bold uppercase text-slate-400">Délai</label>
+                            <p class="text-xl font-black text-slate-700">${p.delaiLivraisonJours} Jours</p>
+                        </div>
+                        <div class="col-span-2 space-y-2 pt-4">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 italic">Note technique</label>
+                            <p class="text-sm text-slate-600 bg-slate-50 p-3 rounded border">${p.notes || 'Aucune note particulière.'}</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                } catch (error) {
+                    body.innerHTML = `<p class="col-span-2 text-center text-red-500">Impossible de charger les détails.</p>`;
+                }
+            }
+
+            function closeModal() {
+                document.getElementById('proformaModal').classList.add('hidden');
+            }
+
+            window.onclick = function(event) {
+                const modal = document.getElementById('proformaModal');
+                if (event.target == modal) closeModal();
+            }
+        </script>
+    </div>
+</div>

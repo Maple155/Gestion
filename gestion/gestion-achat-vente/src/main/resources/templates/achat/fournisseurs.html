@@ -1,0 +1,82 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Répertoire Fournisseurs</h1>
+                <p class="text-slate-500 text-sm">Gérez vos partenaires et leurs coordonnées de contact.</p>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-bold flex items-center transition-all">
+                <i data-lucide="plus" class="mr-2 w-4"></i> Nouveau Fournisseur
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 text-sm font-medium">Total Fournisseurs</span>
+                    <i data-lucide="users" class="text-blue-500 w-5"></i>
+                </div>
+                <div class="text-2xl font-bold text-slate-800 mt-2" th:text="${#lists.size(fournisseurs)}">0</div>
+            </div>
+            </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase">Nom / Entreprise</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase">Contact</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase">Localisation</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase text-center">Statut</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr th:each="f : ${fournisseurs}" class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded bg-slate-100 flex items-center justify-center text-slate-500 font-bold mr-3" 
+                                     th:text="${#strings.substring(f.nom,0,1)}">T</div>
+                                <div>
+                                    <div class="font-semibold text-slate-800" th:text="${f.nom}">Nom</div>
+                                    <div class="text-xs text-slate-400" th:text="${'ID: ' + f.id.toString().substring(0,8)}">ID</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col space-y-1">
+                                <span class="text-sm text-slate-600 flex items-center">
+                                    <i data-lucide="mail" class="w-3 mr-2 opacity-50"></i>
+                                    <span th:text="${f.email}">email@test.com</span>
+                                </span>
+                                <span class="text-sm text-slate-600 flex items-center">
+                                    <i data-lucide="phone" class="w-3 mr-2 opacity-50"></i>
+                                    <span th:text="${f.telephone}">+261...</span>
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-slate-500 italic" th:text="${f.adresse}">Adresse...</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span th:if="${f.actif}" class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                Actif
+                            </span>
+                            <span th:unless="${f.actif}" class="px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                Inactif
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr th:if="${#lists.isEmpty(fournisseurs)}">
+                        <td colspan="5" class="px-6 py-16 text-center">
+                            <div class="flex flex-col items-center">
+                                <i data-lucide="layers" class="w-12 h-12 text-slate-200 mb-4"></i>
+                                <p class="text-slate-400">Aucun fournisseur enregistré pour le moment.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

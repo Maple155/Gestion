@@ -1,5 +1,6 @@
 package com.gestion.achat.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,4 +12,6 @@ import com.gestion.achat.entity.BonReception;
 @Repository
 public interface BonReceptionRepository extends JpaRepository<BonReception, UUID> {
     Optional<BonReception> findByBonCommandeId(UUID bcId);
+
+    List<BonReception> findAllByOrderByDateReceptionDesc();
 }
