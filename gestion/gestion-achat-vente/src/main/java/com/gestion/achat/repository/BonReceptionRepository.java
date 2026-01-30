@@ -1,10 +1,13 @@
 package com.gestion.achat.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.gestion.achat.entity.BonReception;
@@ -14,4 +17,28 @@ public interface BonReceptionRepository extends JpaRepository<BonReception, UUID
     Optional<BonReception> findByBonCommandeId(UUID bcId);
 
     List<BonReception> findAllByOrderByDateReceptionDesc();
+
+    List<BonReception> findAllByBonCommandeId(UUID bonCommandeId);
+
+    List<BonReception> findByConforme(boolean conforme);
+
+    @Query("SELECT br FROM BonReception br WHERE br.dateReception >= :dateDebut AND br.dateReception <= :dateFin")
+    List<BonReception> findByDateReceptionBetween(@Param("dateDebut") java.time.LocalDateTime dateDebut,
+            @Param("dateFin") java.time.LocalDateTime dateFin);
+
+    @Query("SELECT COUNT(br) FROM BonReception br WHERE br.bonCommande.id = :bonCommandeId")
+    long countByBonCommandeId(@Param("bonCommandeId") UUID bonCommandeId);
+
+    Optional<BonReception> findFirstByBonCommandeIdOrderByDateReceptionDesc(UUID bonCommandeId);
+
+    @Query("SELECT br FROM BonReception br " +
+            "JOIN FETCH br.bonCommande bc " +
+            "JOIN FETCH bc.proforma.fournisseur " +
+            "WHERE br.dateReception >= :dateLimite " +
+            "ORDER BY br.dateReception DESC")
+    List<BonReception> findBonsReceptionRecents(@Param("dateLimite") LocalDateTime dateLimite);
+
+    default List<BonReception> findBonsReceptionRecents() {
+        return findBonsReceptionRecents(LocalDateTime.now().minusDays(30));
+    }
 }

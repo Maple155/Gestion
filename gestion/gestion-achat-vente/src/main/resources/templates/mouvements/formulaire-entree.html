@@ -1,0 +1,456 @@
+<!-- templates/stock/mouvements/formulaire-entree.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">Entrée de Stock</title>
+    
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .mouvement-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .type-entree { border-left: 4px solid #28a745; }
+        .type-sortie { border-left: 4px solid #dc3545; }
+        .auto-complete {
+            max-height: 200px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
+    
+    <div class="container-fluid mt-4">
+        <!-- En-tête -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1>
+                    <i class="bi bi-box-arrow-in-down text-success"></i> Entrée de Stock
+                </h1>
+                <p class="text-muted">Enregistrer une réception, retour client ou ajustement positif</p>
+            </div>
+            <div class="col-auto">
+                <a href="/stock/mouvements/journal" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour journal
+                </a>
+            </div>
+        </div>
+        
+        <!-- Formulaire principal -->
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card mouvement-card type-entree">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-plus-circle"></i> Nouvelle Entrée de Stock
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="/stock/mouvements/creer-entree" id="formEntree">
+                            
+                            <!-- Type de mouvement -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Type d'entrée *</label>
+                                    <select class="form-select" name="typeMouvementId" required 
+                                            id="typeMouvement" onchange="changerTypeMouvement()">
+                                        <option value="">-- Sélectionner un type --</option>
+                                        <option th:each="type : ${typesEntree}"
+                                                th:value="${type.id}"
+                                                th:text="${type.libelle}">
+                                            Réception fournisseur
+                                        </option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Définit la nature de l'entrée
+                                    </small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Date du mouvement *</label>
+                                    <input type="date" class="form-control" name="dateMouvement" 
+                                           th:value="${aujourdhui}" required>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <!-- Article -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Article *</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" 
+                                               id="rechercheArticle" 
+                                               placeholder="Code, libellé ou code barre..."
+                                               autocomplete="off"
+                                               onkeyup="rechercherArticles(this.value)">
+                                        <button class="btn btn-outline-secondary" type="button"
+                                                onclick="ouvrirSelectionArticle()">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                    <div id="resultatsArticles" class="auto-complete"></div>
+                                    <input type="hidden" name="articleId" id="articleId" required>
+                                    <div id="articleSelectionne" class="mt-2 p-2 border rounded" 
+                                         style="display: none;">
+                                        <strong id="articleCode"></strong>
+                                        <br>
+                                        <small id="articleLibelle"></small>
+                                        <button type="button" class="btn btn-sm btn-outline-danger float-end"
+                                                onclick="effacerArticle()">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Dépôt *</label>
+                                    <select class="form-select" name="depotId" required>
+                                        <option value="">-- Sélectionner un dépôt --</option>
+                                        <option th:each="depot : ${depots}"
+                                                th:value="${depot.id}"
+                                                th:text="${depot.nom}">
+                                            Entrepôt Central
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Bon de réception (si type réception) -->
+                            <div id="sectionBonReception" style="display: none;">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Bon de Réception</label>
+                                        <input type="text" class="form-control" name="bonReceptionRef"
+                                               placeholder="Référence BR...">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Bon de Commande</label>
+                                        <input type="text" class="form-control" name="bonCommandeRef"
+                                               placeholder="Référence BC...">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Quantité et coût -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Quantité *</label>
+                                    <input type="number" class="form-control" name="quantite" 
+                                           min="1" required step="1" value="1">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Coût unitaire (HT) *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" name="coutUnitaire" 
+                                               step="0.01" min="0" required>
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Valeur totale</label>
+                                    <div class="form-control" id="valeurTotale" style="background-color: #f8f9fa;">
+                                        0.00 €
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Gestion des lots (si article géré par lot) -->
+                            <div id="sectionLot" style="display: none;">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Numéro de lot</label>
+                                        <input type="text" class="form-control" name="numeroLot"
+                                               placeholder="LOT-YYYY-MM-001">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date péremption</label>
+                                        <input type="date" class="form-control" name="datePeremption">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date fabrication</label>
+                                        <input type="date" class="form-control" name="dateFabrication">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Emplacement -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Emplacement (optionnel)</label>
+                                    <input type="text" class="form-control" name="emplacementCode"
+                                           placeholder="Ex: A01-02-03">
+                                </div>
+                            </div>
+                            
+                            <!-- Motif et observations -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Motif / Observations</label>
+                                    <textarea class="form-control" name="motif" rows="3"
+                                              placeholder="Description de l'entrée..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Pièces jointes -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Pièces jointes (optionnel)</label>
+                                    <input type="file" class="form-control" name="piecesJointes" multiple>
+                                    <small class="form-text text-muted">
+                                        Formats acceptés: PDF, JPG, PNG (max 5MB par fichier)
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Boutons -->
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-outline-secondary w-100"
+                                            onclick="previsualiser()">
+                                        <i class="bi bi-eye"></i> Prévisualiser
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-check-circle"></i> Enregistrer l'entrée
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Résumé prévisualisation -->
+                <div class="card mt-4" id="previsualisation" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-eye"></i> Prévisualisation
+                        </h5>
+                    </div>
+                    <div class="card-body" id="previewContent">
+                        <!-- Contenu généré par JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal sélection article -->
+    <div class="modal fade" id="modalArticles" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sélectionner un article</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Libellé</th>
+                                    <th>Catégorie</th>
+                                    <th>Stock actuel</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="article : ${articles}">
+                                    <td th:text="${article.codeArticle}">ART-001</td>
+                                    <td th:text="${article.libelle}">Yaourt Nature 125g</td>
+                                    <td>
+                                        <span class="badge bg-secondary" 
+                                              th:text="${article.categorieLibelle}">Alimentaire</span>
+                                    </td>
+                                    <td th:text="${article.stockDisponible} ?: 0">150</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary"
+                                                onclick="selectionnerArticle(
+                                                    '[[${article.id}]]', 
+                                                    '[[${article.codeArticle}]]', 
+                                                    '[[${article.libelle}]]',
+                                                    [[${article.gestionParLot}]]
+                                                )">
+                                            <i class="bi bi-check"></i> Sélectionner
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let articleGestionLot = false;
+        const modalArticles = new bootstrap.Modal(document.getElementById('modalArticles'));
+        
+        // Ouvrir modal sélection article
+        function ouvrirSelectionArticle() {
+            modalArticles.show();
+        }
+        
+        // Sélectionner un article
+        function selectionnerArticle(id, code, libelle, gestionParLot) {
+            document.getElementById('articleId').value = id;
+            document.getElementById('articleCode').textContent = code;
+            document.getElementById('articleLibelle').textContent = libelle;
+            document.getElementById('articleSelectionne').style.display = 'block';
+            document.getElementById('rechercheArticle').value = code + ' - ' + libelle;
+            
+            articleGestionLot = gestionParLot;
+            if (gestionParLot) {
+                document.getElementById('sectionLot').style.display = 'block';
+            } else {
+                document.getElementById('sectionLot').style.display = 'none';
+            }
+            
+            modalArticles.hide();
+        }
+        
+        // Effacer sélection article
+        function effacerArticle() {
+            document.getElementById('articleId').value = '';
+            document.getElementById('articleSelectionne').style.display = 'none';
+            document.getElementById('rechercheArticle').value = '';
+            document.getElementById('sectionLot').style.display = 'none';
+        }
+        
+        // Recherche articles en temps réel
+        function rechercherArticles(terme) {
+            if (terme.length < 2) {
+                document.getElementById('resultatsArticles').style.display = 'none';
+                return;
+            }
+            
+            // Simuler appel API (à remplacer par vrai appel)
+            const resultats = [
+                {id: '1', code: 'ART-001', libelle: 'Yaourt Nature 125g', gestionParLot: true},
+                {id: '2', code: 'ART-002', libelle: 'Laptop Pro', gestionParLot: false}
+            ];
+            
+            let html = '';
+            resultats.forEach(article => {
+                html += `
+                    <div class="p-2 border-bottom hover-bg-light" 
+                         style="cursor: pointer;"
+                         onclick="selectionnerArticle('${article.id}', '${article.code}', '${article.libelle}', ${article.gestionParLot})">
+                        <strong>${article.code}</strong><br>
+                        <small>${article.libelle}</small>
+                    </div>
+                `;
+            });
+            
+            const container = document.getElementById('resultatsArticles');
+            container.innerHTML = html;
+            container.style.display = 'block';
+            
+            // Positionner sous le champ
+            const input = document.getElementById('rechercheArticle');
+            container.style.top = (input.offsetTop + input.offsetHeight) + 'px';
+            container.style.left = input.offsetLeft + 'px';
+            container.style.width = input.offsetWidth + 'px';
+        }
+        
+        // Masquer résultats quand on clique ailleurs
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#rechercheArticle')) {
+                document.getElementById('resultatsArticles').style.display = 'none';
+            }
+        });
+        
+        // Calculer valeur totale
+        document.querySelector('input[name="quantite"]').addEventListener('input', calculerValeur);
+        document.querySelector('input[name="coutUnitaire"]').addEventListener('input', calculerValeur);
+        
+        function calculerValeur() {
+            const quantite = parseFloat(document.querySelector('input[name="quantite"]').value) || 0;
+            const cout = parseFloat(document.querySelector('input[name="coutUnitaire"]').value) || 0;
+            const valeur = quantite * cout;
+            document.getElementById('valeurTotale').textContent = valeur.toFixed(2) + ' €';
+        }
+        
+        // Changer type de mouvement
+        function changerTypeMouvement() {
+            const type = document.getElementById('typeMouvement').value;
+            const sectionBR = document.getElementById('sectionBonReception');
+            
+            // Afficher section bon réception seulement pour réception fournisseur
+            if (type === 'type_reception_fournisseur') { // À adapter selon vos IDs
+                sectionBR.style.display = 'block';
+            } else {
+                sectionBR.style.display = 'none';
+            }
+        }
+        
+        // Prévisualisation
+        function previsualiser() {
+            const form = document.getElementById('formEntree');
+            const formData = new FormData(form);
+            
+            let preview = `
+                <h6>Résumé de l'entrée</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Type:</strong></td>
+                        <td>${document.querySelector('select[name="typeMouvementId"] option:checked').textContent}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Article:</strong></td>
+                        <td>${document.getElementById('articleCode').textContent || 'Non sélectionné'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Quantité:</strong></td>
+                        <td>${formData.get('quantite')} unités</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valeur totale:</strong></td>
+                        <td>${document.getElementById('valeurTotale').textContent}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date:</strong></td>
+                        <td>${formData.get('dateMouvement')}</td>
+                    </tr>
+                </table>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Après validation, cette entrée sera immédiatement ajoutée au stock disponible.
+                </div>
+            `;
+            
+            document.getElementById('previewContent').innerHTML = preview;
+            document.getElementById('previsualisation').style.display = 'block';
+        }
+        
+        // Validation avant soumission
+        document.getElementById('formEntree').addEventListener('submit', function(e) {
+            if (!document.getElementById('articleId').value) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un article');
+                return;
+            }
+            
+            if (!confirm('Confirmer la création de cette entrée de stock ?')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

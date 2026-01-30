@@ -1,0 +1,106 @@
+<!-- templates/fragments/navbar.html -->
+<nav th:fragment="navbar(activePage)" class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+            <i class="bi bi-box-seam"></i> Gestion Stock
+        </a>
+        
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage == 'stock-dashboard'} ? 'active' : ''"
+                       href="/stock/dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                
+                <!-- Articles -->
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage == 'stock-articles'} ? 'active' : ''"
+                       href="/stock/articles">
+                        <i class="bi bi-box"></i> Articles
+                    </a>
+                </li>
+                
+                <!-- Mouvements -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="mouvementsDropdown" 
+                       role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-arrow-left-right"></i> Mouvements
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/stock/mouvements">
+                            <i class="bi bi-list"></i> Journal
+                        </a></li>
+                        <li><a class="dropdown-item" href="/stock/mouvements/entree">
+                            <i class="bi bi-box-arrow-in-down text-success"></i> Entrée
+                        </a></li>
+                        <li><a class="dropdown-item" href="/stock/mouvements/sortie">
+                            <i class="bi bi-box-arrow-up text-danger"></i> Sortie
+                        </a></li>
+                    </ul>
+                </li>
+                
+                <!-- Valorisation -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="valorisationDropdown"
+                       th:classappend="${activePage == 'stock-valorisation'} ? 'active' : ''"
+                       role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-calculator"></i> Valorisation
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/stock/dashboard/valorisation">
+                            <i class="bi bi-graph-up"></i> Dashboard
+                        </a></li>
+                        <li><a class="dropdown-item" href="/stock/valorisation/fifo">
+                            <i class="bi bi-sort-numeric-down text-success"></i> FIFO
+                        </a></li>
+                        <li><a class="dropdown-item" href="/stock/valorisation/fefo">
+                            <i class="bi bi-calendar-x text-warning"></i> FEFO
+                        </a></li>
+                        <li><a class="dropdown-item" href="/stock/valorisation/comparaison">
+                            <i class="bi bi-bar-chart"></i> Comparaison
+                        </a></li>
+                    </ul>
+                </li>
+                
+                <!-- Inventaires -->
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage == 'stock-inventaires'} ? 'active' : ''"
+                       href="/stock/inventaires">
+                        <i class="bi bi-clipboard-check"></i> Inventaires
+                    </a>
+                </li>
+                
+                <!-- Reporting -->
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage == 'stock-reporting'} ? 'active' : ''"
+                       href="/stock/reporting">
+                        <i class="bi bi-graph-up"></i> Reporting
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Utilisateur -->
+            <div class="navbar-nav">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
+                       role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i>
+                        <span th:text="${session.username}">Utilisateur</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/profil">
+                            <i class="bi bi-person"></i> Profil
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout">
+                            <i class="bi bi-box-arrow-right"></i> Déconnexion
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

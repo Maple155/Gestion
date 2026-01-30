@@ -1,0 +1,326 @@
+<!-- templates/stock/dashboard/valorisation.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Valorisation</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .kpi-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+        }
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .kpi-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .alert-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+        }
+        .valorisation-methode {
+            border-left: 4px solid;
+            padding-left: 15px;
+        }
+        .valorisation-fifo { border-color: #28a745; }
+        .valorisation-fefo { border-color: #ffc107; }
+        .valorisation-cump { border-color: #17a2b8; }
+        .movement-entree { color: #28a745; }
+        .movement-sortie { color: #dc3545; }
+        .badge-lot { font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
+    
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1><i class="bi bi-calculator"></i> Dashboard Valorisation</h1>
+                <p class="text-muted">Analyse détaillée des méthodes FIFO, FEFO et CUMP</p>
+            </div>
+        </div>
+        
+        <!-- KPI Valorisation -->
+        <div class="row mb-4">
+            <!-- FIFO -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-sort-numeric-down"></i> FIFO</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 th:text="${#numbers.formatCurrency(detailFifo.valeurTotale)}">
+                            1.250.000 €
+                        </h3>
+                        <p class="text-muted">
+                            <span th:text="${detailFifo.nombreArticles}">45</span> articles
+                            <br>
+                            <span th:text="${detailFifo.nombreLots}">120</span> lots actifs
+                            <br>
+                            Coût moyen: 
+                            <span th:text="${#numbers.formatCurrency(detailFifo.coutMoyen)}">
+                                25,50 €
+                            </span>
+                        </p>
+                        <a href="/stock/valorisation/fifo" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-arrow-right"></i> Détails FIFO
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FEFO -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-calendar-x"></i> FEFO</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 th:text="${#numbers.formatCurrency(detailFefo.valeurTotale)}">
+                            50.000 €
+                        </h3>
+                        <p class="text-muted">
+                            <span th:text="${detailFefo.nombreArticles}">12</span> articles périssables
+                            <br>
+                            <span th:text="${detailFefo.lotsProchePeremption}">8</span> lots < 30 jours
+                            <br>
+                            Risque péremption: 
+                            <span th:text="${#numbers.formatCurrency(detailFefo.valeurRisque)}">
+                                4.500 €
+                            </span>
+                        </p>
+                        <a href="/stock/valorisation/fefo/alertes" class="btn btn-outline-warning btn-sm">
+                            <i class="bi bi-exclamation-triangle"></i> Alertes FEFO
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CUMP -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> CUMP</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 th:text="${#numbers.formatCurrency(detailCump.valeurTotale)}">
+                            1.200.000 €
+                        </h3>
+                        <p class="text-muted">
+                            <span th:text="${detailCump.nombreArticles}">1.177</span> articles
+                            <br>
+                            Écart moyen: 
+                            <span th:text="${detailCump.ecartMoyen}">1,2</span>%
+                            <br>
+                            Dernière mise à jour: 
+                            <span th:text="${#dates.format(detailCump.dateMaj, 'dd/MM HH:mm')}">
+                                15/03 14:30
+                            </span>
+                        </p>
+                        <a href="/stock/valorisation/cump" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-calculator"></i> Calculer CUMP
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Comparaison Graphique -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-bar-chart"></i> Comparaison des Méthodes
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <canvas id="comparaisonChart" height="100"></canvas>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Impact sur la Marge</h6>
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr>
+                                            <td>Coût Moyen Sorties FIFO</td>
+                                            <td class="text-end" 
+                                                th:text="${#numbers.formatCurrency(valorisation.coutSortiesFifo)}">
+                                                22,50 €
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Coût Moyen Sorties FEFO</td>
+                                            <td class="text-end" 
+                                                th:text="${#numbers.formatCurrency(valorisation.coutSortiesFefo)}">
+                                                24,30 €
+                                            </td>
+                                        </tr>
+                                        <tr class="table-primary">
+                                            <td><strong>Différence</strong></td>
+                                            <td class="text-end">
+                                                <strong th:class="${valorisation.differenceCout > 0} ? 'text-danger' : 'text-success'"
+                                                        th:text="${#numbers.formatCurrency(valorisation.differenceCout)}">
+                                                    +1,80 €
+                                                </strong>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tableau détaillé -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-table"></i> Détail par Article
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Article</th>
+                                    <th>Méthode</th>
+                                    <th>Quantité</th>
+                                    <th>Valorisation FIFO</th>
+                                    <th>Valorisation FEFO</th>
+                                    <th>Valorisation CUMP</th>
+                                    <th>Différence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Les données seront chargées via AJAX -->
+                                <tr id="loadingRow">
+                                    <td colspan="7" class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Chargement...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Graphique de comparaison
+        const comparaisonData = {
+            labels: ['FIFO', 'FEFO', 'CUMP'],
+            datasets: [{
+                label: 'Valeur Stock',
+                data: [
+                    [[${valorisation.valeurFifo}]],
+                    [[${valorisation.valeurFefo}]],
+                    [[${valorisation.valeurCump}]]
+                ],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.5)',
+                    'rgba(255, 193, 7, 0.5)',
+                    'rgba(23, 162, 184, 0.5)'
+                ],
+                borderColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#17a2b8'
+                ],
+                borderWidth: 1
+            }]
+        };
+        
+        window.onload = function() {
+            // Graphique comparatif
+            const ctx = document.getElementById('comparaisonChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: comparaisonData,
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('fr-FR', {
+                                        style: 'currency',
+                                        currency: 'EUR',
+                                        notation: 'compact'
+                                    }).format(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Charger le tableau détaillé
+            chargerTableauDetail();
+        };
+        
+        function chargerTableauDetail() {
+            fetch('/stock/dashboard/api/valorisation/detail')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.querySelector('tbody');
+                    tbody.innerHTML = '';
+                    
+                    data.forEach(item => {
+                        const diff = (item.valorisationFifo - item.valorisationCump) / item.valorisationCump * 100;
+                        
+                        const row = `
+                            <tr>
+                                <td>
+                                    <strong>${item.codeArticle}</strong><br>
+                                    <small class="text-muted">${item.libelle}</small>
+                                </td>
+                                <td>
+                                    <span class="badge ${item.methode === 'FIFO' ? 'bg-success' : item.methode === 'FEFO' ? 'bg-warning' : 'bg-info'}">
+                                        ${item.methode}
+                                    </span>
+                                </td>
+                                <td>${item.quantite}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationFifo)}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationFefo)}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationCump)}</td>
+                                <td class="${diff > 0 ? 'text-danger' : 'text-success'}">
+                                    ${diff.toFixed(2)}%
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
