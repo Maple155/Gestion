@@ -1,0 +1,105 @@
+package com.gestion.stock.repository;
+
+import com.gestion.stock.entity.Stock;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface StockRepository extends JpaRepository<Stock, UUID> {
+
+       Optional<Stock> findByArticleIdAndDepotId(UUID articleId, UUID depotId);
+
+       List<Stock> findByArticleId(UUID articleId);
+
+       List<Stock> findByDepotId(UUID depotId);
+
+       @Query("SELECT s FROM Stock s WHERE s.quantiteTheorique - s.quantiteReservee = 0")
+       List<Stock> findArticlesEnRupture();
+
+       @Query("SELECT s FROM Stock s WHERE (s.quantiteTheorique - s.quantiteReservee) < s.article.stockMinimum")
+       List<Stock> findArticlesSousStockMinimum();
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE Stock s SET s.quantiteTheorique = s.quantiteTheorique + :quantite, " +
+                     "s.dateDernierMouvement = CURRENT_TIMESTAMP, s.updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE s.article.id = :articleId AND s.depot.id = :depotId")
+       void incrementerQuantiteTheorique(@Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("quantite") Integer quantite);
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE Stock s SET s.quantiteTheorique = s.quantiteTheorique - :quantite, " +
+                     "s.dateDernierMouvement = CURRENT_TIMESTAMP, s.updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE s.article.id = :articleId AND s.depot.id = :depotId")
+       void decrementerQuantiteTheorique(@Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("quantite") Integer quantite);
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE Stock s SET s.quantiteReservee = s.quantiteReservee + :quantite, " +
+                     "s.updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE s.article.id = :articleId AND s.depot.id = :depotId")
+       void incrementerQuantiteReservee(@Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("quantite") Integer quantite);
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE Stock s SET s.quantiteReservee = s.quantiteReservee - :quantite, " +
+                     "s.updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE s.article.id = :articleId AND s.depot.id = :depotId")
+       void decrementerQuantiteReservee(@Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("quantite") Integer quantite);
+
+       @Modifying
+       @Transactional
+       @Query("UPDATE Stock s SET s.valeurStockCump = :nouvelleValeur, " +
+                     "s.updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE s.article.id = :articleId AND s.depot.id = :depotId")
+       void mettreAJourValeurStock(@Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("nouvelleValeur") BigDecimal nouvelleValeur);
+
+       // NEW: Method to find stocks by article method
+       @Query("SELECT s FROM Stock s WHERE s.article.methodeValorisation = :methode")
+       List<Stock> findByArticleMethodeValorisation(@Param("methode") String methode);
+
+       // NEW: Method to find all stocks ordered by value descending
+       @Query("SELECT s FROM Stock s WHERE s.valeurStockCump IS NOT NULL ORDER BY s.valeurStockCump DESC")
+       List<Stock> findAllByOrderByValeurStockCumpDesc();
+
+       @Query("SELECT " +
+                     "COALESCE(SUM(s.quantiteTheorique), 0) as totalStock, " +
+                     "COALESCE(SUM(s.quantiteReservee), 0) as totalReserve, " +
+                     "COALESCE(SUM(s.quantiteTheorique - s.quantiteReservee), 0) as totalDisponible, " +
+                     "COUNT(DISTINCT s.depot.id) as nbDepots, " +
+                     "COALESCE(AVG(s.quantiteTheorique), 0) as stockMoyen " +
+                     "FROM Stock s WHERE s.article.id = :articleId")
+       Map<String, Object> getStatistiquesStockArticle(@Param("articleId") UUID articleId);
+
+       @Query("SELECT " +
+                     "COALESCE(SUM(s.quantiteTheorique), 0), " + // [0] totalStock
+                     "COALESCE(SUM(s.quantiteTheorique - s.quantiteReservee), 0), " + // [1] totalDisponible
+                     "COALESCE(SUM(s.valeurStockCump), 0), " + // [2] valeurStock
+                     "COALESCE(SUM(s.quantiteReservee), 0), " + // [3] totalReserve
+                     "COUNT(DISTINCT s.depot.id) " + // [4] nbDepots
+                     "FROM Stock s WHERE s.article.id = :articleId")
+       List<Object[]> getStatistiquesStockArticleAsArray(@Param("articleId") UUID articleId);
+
+       // NEW: Get average stock for an article
+       @Query("SELECT COALESCE(AVG(s.quantiteTheorique), 0) FROM Stock s WHERE s.article.id = :articleId")
+       BigDecimal getStockMoyenArticle(@Param("articleId") UUID articleId);
+}

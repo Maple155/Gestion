@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - ERP Gestion Stock</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .error-message {
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container w-full max-w-md mx-4">
+        <!-- Logo -->
+        <div class="text-center p-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6">
+                <i data-lucide="layers" class="text-white w-8 h-8"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">CORE ERP</h1>
+            <p class="text-gray-600 text-sm">Système de Gestion Stock</p>
+        </div>
+        
+        <!-- Messages d'erreur -->
+        <div th:if="${error}" class="mx-8 mb-6 p-4 bg-red-50 border border-red-200 rounded-lg error-message">
+            <div class="flex items-start">
+                <i data-lucide="alert-circle" class="text-red-500 w-5 h-5 mr-2 flex-shrink-0"></i>
+                <div>
+                    <p class="text-red-700 font-medium text-sm" th:text="${error}"></p>
+                </div>
+            </div>
+        </div>
+        
+        <div th:if="${logout}" class="mx-8 mb-6 p-4 bg-green-50 border border-green-200 rounded-lg error-message">
+            <div class="flex items-start">
+                <i data-lucide="check-circle" class="text-green-500 w-5 h-5 mr-2 flex-shrink-0"></i>
+                <div>
+                    <p class="text-green-700 font-medium text-sm">Déconnexion réussie</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulaire -->
+        <form th:action="@{/login}" method="post" class="px-8 pb-8" id="loginForm">
+            <!-- Username -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="flex items-center">
+                        <i data-lucide="user" class="w-4 h-4 mr-1 text-gray-400"></i>
+                        Nom d'utilisateur
+                    </div>
+                </label>
+                <div class="relative">
+                    <input type="text" 
+                           name="username" 
+                           required
+                           class="w-full px-4 py-3 pl-11 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                           placeholder="Votre identifiant"
+                           autocomplete="username"
+                           th:value="${username}">
+                    <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Password -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <div class="flex items-center">
+                        <i data-lucide="lock" class="w-4 h-4 mr-1 text-gray-400"></i>
+                        Mot de passe
+                    </div>
+                </label>
+                <div class="relative">
+                    <input type="password" 
+                           name="password" 
+                           id="password"
+                           required
+                           class="w-full px-4 py-3 pl-11 pr-11 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                           placeholder="Votre mot de passe"
+                           autocomplete="current-password">
+                    <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <button type="button" 
+                            onclick="togglePassword()" 
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Remember me -->
+            <div class="mb-8 flex items-center">
+                <input type="checkbox" 
+                       id="remember" 
+                       name="remember" 
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="remember" class="ml-2 block text-sm text-gray-700">
+                    Se souvenir de moi
+                </label>
+            </div>
+            
+            <!-- Submit button -->
+            <button type="submit" 
+                    class="btn-login w-full py-3 px-4 text-white font-semibold rounded-lg shadow-lg transition-all duration-300 flex items-center justify-center">
+                <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
+                <span id="submitText">Se connecter</span>
+            </button>
+            
+            <!-- Footer -->
+            <div class="mt-8 pt-6 border-t border-gray-200 text-center">
+                <p class="text-xs text-gray-500">
+                    © 2024 CORE ERP System - Version 2.5.1
+                </p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Initialiser les icônes
+        lucide.createIcons();
+        
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+        
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitText = document.getElementById('submitText');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.innerHTML = '<div class="loading-spinner mr-2"></div>Connexion...';
+            
+            // Simple validation
+            const username = this.username.value.trim();
+            const password = this.password.value.trim();
+            
+            if (!username || !password) {
+                e.preventDefault();
+                alert('Veuillez remplir tous les champs');
+                submitBtn.disabled = false;
+                submitText.textContent = 'Se connecter';
+                return false;
+            }
+            
+            // Store remember me in localStorage
+            if (document.getElementById('remember').checked) {
+                localStorage.setItem('rememberedUser', username);
+            } else {
+                localStorage.removeItem('rememberedUser');
+            }
+            
+            return true;
+        });
+        
+        // Auto-fill remembered user
+        window.addEventListener('load', function() {
+            const rememberedUser = localStorage.getItem('rememberedUser');
+            if (rememberedUser) {
+                document.querySelector('input[name="username"]').value = rememberedUser;
+                document.getElementById('remember').checked = true;
+            }
+            
+            // Auto-focus on username field
+            document.querySelector('input[name="username"]').focus();
+        });
+        
+        // Enter key to submit
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                document.getElementById('loginForm').requestSubmit();
+            }
+        });
+    </script>
+</body>
+</html>
