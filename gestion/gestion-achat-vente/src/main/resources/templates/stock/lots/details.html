@@ -157,7 +157,7 @@
                         <small class="text-muted">Jours avant péremption</small>
                         <div class="mt-2">
                             <small th:if="${lot.datePeremption}"
-                                   th:text="'Jusqu''au ' + ${#dates.format(lot.datePeremption, 'dd/MM/yyyy')}">
+                                   th:text="'Jusqu''au ' + ${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">
                                 Jusqu'au 01/04/2024
                             </small>
                         </div>
@@ -235,20 +235,20 @@
                     <dl class="row">
                         <dt class="col-sm-4">Date réception</dt>
                         <dd class="col-sm-8" 
-                            th:text="${#dates.format(lot.dateReception, 'dd/MM/yyyy')}">
+                            th:text="${#temporals.format(lot.dateReception, 'dd/MM/yyyy')}">
                             01/03/2024
                         </dd>
                         
                         <dt class="col-sm-4">Date fabrication</dt>
                         <dd class="col-sm-8" 
-                            th:text="${lot.dateFabrication} ? #dates.format(lot.dateFabrication, 'dd/MM/yyyy') : 'Non spécifiée'">
+                            th:text="${lot.dateFabrication} ? #temporals.format(lot.dateFabrication, 'dd/MM/yyyy') : 'Non spécifiée'">
                             28/02/2024
                         </dd>
                         
                         <dt class="col-sm-4">Date péremption</dt>
                         <dd class="col-sm-8">
                             <span th:if="${lot.datePeremption}"
-                                  th:text="${#dates.format(lot.datePeremption, 'dd/MM/yyyy')}">
+                                  th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">
                                 01/04/2024
                             </span>
                             <span th:if="${!lot.datePeremption}" class="text-muted">
@@ -258,13 +258,13 @@
                         
                         <dt class="col-sm-4">DLUO</dt>
                         <dd class="col-sm-8" 
-                            th:text="${lot.dluo} ? #dates.format(lot.dluo, 'dd/MM/yyyy') : 'Non spécifiée'">
+                            th:text="${lot.dluo} ? #temporals.format(lot.dluo, 'dd/MM/yyyy') : 'Non spécifiée'">
                             15/04/2024
                         </dd>
                         
                         <dt class="col-sm-4">Créé le</dt>
                         <dd class="col-sm-8" 
-                            th:text="${#dates.format(lot.createdAt, 'dd/MM/yyyy HH:mm')}">
+                            th:text="${#temporals.format(lot.createdAt, 'dd/MM/yyyy HH:mm')}">
                             01/03/2024 10:30
                         </dd>
                     </dl>
@@ -391,7 +391,7 @@
                                   th:class="${mvt.sens == 'ENTREE'} ? 'bg-success' : 'bg-danger'"
                                   th:text="${mvt.type}">Réception</span>
                             <small class="text-muted" 
-                                   th:text="${#dates.format(mvt.date, 'dd/MM/yyyy HH:mm')}">
+                                   th:text="${#temporals.format(mvt.date, 'dd/MM/yyyy HH:mm')}">
                                 15/03/2024 14:30
                             </small>
                         </div>

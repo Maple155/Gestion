@@ -261,13 +261,13 @@
                                 <td>
                                     <small>
                                         Réception: 
-                                        <span th:text="${#dates.format(lot.dateReception, 'dd/MM/yy')}">
+                                        <span th:text="${#temporals.format(lot.dateReception, 'dd/MM/yy')}">
                                             01/03/24
                                         </span>
                                         <br>
                                         <span th:if="${lot.dateFabrication}">
                                             Fabrication: 
-                                            <span th:text="${#dates.format(lot.dateFabrication, 'dd/MM/yy')}">
+                                            <span th:text="${#temporals.format(lot.dateFabrication, 'dd/MM/yy')}">
                                                 28/02/24
                                             </span>
                                         </span>
@@ -275,7 +275,7 @@
                                 </td>
                                 <td>
                                     <div th:if="${lot.datePeremption}">
-                                        <span th:text="${#dates.format(lot.datePeremption, 'dd/MM/yyyy')}">
+                                        <span th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">
                                             01/04/2024
                                         </span>
                                         <br>
@@ -289,7 +289,7 @@
                                             <br>
                                             <small class="text-muted">
                                                 DLUO: 
-                                                <span th:text="${#dates.format(lot.dluo, 'dd/MM/yy')}">
+                                                <span th:text="${#temporals.format(lot.dluo, 'dd/MM/yy')}">
                                                     15/04/24
                                                 </span>
                                             </small>

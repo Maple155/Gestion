@@ -23,7 +23,8 @@ public class BonReception {
     @CreationTimestamp
     private LocalDateTime dateReception;
 
-    private boolean conforme = true; // Permet de bloquer le stock si non conforme
+    @Column(name = "est_conforme")
+    private boolean conforme = true; 
     
     private String observations;
 }
