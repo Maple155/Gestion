@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Détails Mouvement</title>
+    
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fc;
+            padding-top: 0;
+        }
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .card-header {
+            border-bottom: 1px solid #e3e6f0;
+            background-color: #fff;
+        }
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .timeline-marker {
+            position: absolute;
+            left: -30px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .timeline-content {
+            padding-left: 10px;
+        }
+        .btn-group .dropdown-toggle::after {
+            margin-left: 0.5rem;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .card {
+                box-shadow: none !important;
+                border: 1px solid #dee2e6 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation (si vous avez une navbar fragment) -->
+    <div th:if="${#ctx.containsVariable('navbarFragmentExists')}" 
+         th:replace="~{fragments/navbar :: navbar(activePage='stock-mouvements')}">
+    </div>
+
+    <div class="container-fluid py-4">
+        <!-- En-tête avec navigation -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/stock}">Stock</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/stock/mouvements/journal}">Mouvements</a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">
+                            Détails: <span th:text="${mouvement['reference']}"></span>
+                        </li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-file-invoice me-2"></i>Détails du mouvement
+                </h1>
+                <p class="text-muted mb-0" th:text="${mouvement['reference']} + ' - ' + ${mouvement['typeMouvement']}"></p>
+            </div>
+            <div>
+                <a th:href="@{/stock/mouvements/journal}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i>Retour au journal
+                </a>
+            </div>
+        </div>
+
+        <!-- Alertes -->
+        <div th:if="${#ctx.containsVariable('success')}" 
+             class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${#ctx.containsVariable('error')}" 
+             class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- DEBUG: Afficher les clés de la Map (à supprimer après vérification) -->
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <h6>Debug - Clés disponibles:</h6>
+            <ul>
+                <li th:each="entry : ${mouvement}" th:text="${entry.key} + ' = ' + ${entry.value}"></li>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="row">
+            <!-- Informations principales -->
+            <div class="col-lg-8">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-info-circle me-2"></i>Informations du mouvement
+                        </h6>
+                        <span th:class="${mouvement['statut'] == 'VALIDE' ? 'badge bg-success' : 
+                                         mouvement['statut'] == 'BROUILLON' ? 'badge bg-secondary' : 
+                                         'badge bg-danger'}">
+                            <span th:text="${mouvement['statut']}"></span>
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Colonne gauche -->
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Référence:</dt>
+                                    <dd class="col-sm-8">
+                                        <strong th:text="${mouvement['reference']}"></strong>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Type:</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${mouvement['typeMouvement'] != null and (mouvement['typeMouvement'].contains('Entrée') or mouvement['typeMouvement'].contains('Réception'))}" 
+                                              class="badge bg-success" th:text="${mouvement['typeMouvement']}"></span>
+                                        <span th:if="${mouvement['typeMouvement'] != null and (mouvement['typeMouvement'].contains('Sortie') or mouvement['typeMouvement'].contains('Livraison'))}" 
+                                              class="badge bg-warning text-dark" th:text="${mouvement['typeMouvement']}"></span>
+                                        <span th:if="${mouvement['typeMouvement'] != null and !mouvement['typeMouvement'].contains('Entrée') and !mouvement['typeMouvement'].contains('Réception') and 
+                                                       !mouvement['typeMouvement'].contains('Sortie') and !mouvement['typeMouvement'].contains('Livraison')}" 
+                                              class="badge bg-secondary" th:text="${mouvement['typeMouvement']}"></span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Date mouvement:</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${mouvement['dateMouvement'] != null}" 
+                                              th:text="${#temporals.format(mouvement['dateMouvement'], 'dd/MM/yyyy HH:mm:ss')}"></span>
+                                        <span th:unless="${mouvement['dateMouvement'] != null}" class="text-muted">Non spécifié</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Date comptable:</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${mouvement['dateComptable'] != null}" 
+                                              th:text="${#temporals.format(mouvement['dateComptable'], 'dd/MM/yyyy')}"></span>
+                                        <span th:unless="${mouvement['dateComptable'] != null}" class="text-muted">Non spécifié</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Crée le:</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${mouvement['createdAt'] != null}" 
+                                              th:text="${#temporals.format(mouvement['createdAt'], 'dd/MM/yyyy HH:mm')}"></span>
+                                        <span th:unless="${mouvement['createdAt'] != null}" class="text-muted">Non spécifié</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                            
+                            <!-- Colonne droite -->
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Article:</dt>
+                                    <dd class="col-sm-8">
+                                        <strong th:text="${mouvement['articleCode']}"></strong><br>
+                                        <small class="text-muted" th:text="${mouvement['article']}"></small>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Dépôt:</dt>
+                                    <dd class="col-sm-8" th:text="${mouvement['depot']}"></dd>
+                                    
+                                    <dt class="col-sm-4">Lot:</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${mouvement['lot'] != null and mouvement['lot'] != ''}" class="badge bg-info" th:text="${mouvement['lot']}"></span>
+                                        <span th:unless="${mouvement['lot'] != null and mouvement['lot'] != ''}" class="text-muted">-</span>
+                                    </dd>
+                                    
+                                    <dt class="col-sm-4">Utilisateur:</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge bg-secondary" th:text="${mouvement['utilisateurId']}"></span>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                        
+                        <!-- Informations sur le lot (si disponible) -->
+                        <div th:if="${mouvement['lotDetails'] != null}" class="mt-4 pt-4 border-top">
+                            <h6 class="font-weight-bold text-primary mb-3">
+                                <i class="fas fa-box me-2"></i>Informations sur le lot
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-4">Numéro lot:</dt>
+                                        <dd class="col-sm-8" th:text="${mouvement['lotDetails']['numeroLot']}"></dd>
+                                        
+                                        <dt class="col-sm-4">Date péremption:</dt>
+                                        <dd class="col-sm-8">
+                                            <span th:if="${mouvement['lotDetails']['datePeremption'] != null}">
+                                                <span th:text="${#temporals.format(mouvement['lotDetails']['datePeremption'], 'dd/MM/yyyy')}"></span>
+                                            </span>
+                                            <span th:unless="${mouvement['lotDetails']['datePeremption'] != null}" class="text-muted">-</span>
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section quantités et valeurs -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-calculator me-2"></i>Quantités et valorisation
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded">
+                                    <div class="text-muted mb-1">Quantité</div>
+                                    <div th:class="${mouvement['typeMouvement'] != null and (mouvement['typeMouvement'].contains('Entree') or mouvement['typeMouvement'].contains('Reception')) ? 
+                                                    'h3 text-success' : 'h3 text-danger'}">
+                                        <!-- <span th:text="${mouvement['typeMouvement'] != null and (mouvement['typeMouvement'].contains('Entree') or mouvement['typeMouvement'].contains('Reception')) ? '+' : '-'}"></span> -->
+                                        <span th:text="${mouvement['quantite'] != null ? #numbers.formatInteger(mouvement['quantite'], 0, 'POINT') : 0}"></span>
+                                    </div>
+                                    <small class="text-muted">unités</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded">
+                                    <div class="text-muted mb-1">Coût unitaire</div>
+                                    <div class="h3 text-primary">
+                                        <span th:text="${mouvement['coutUnitaire'] != null ? #numbers.formatDecimal(mouvement['coutUnitaire'], 0, 4) : '0.0000'}"></span>
+                                    </div>
+                                    <small class="text-muted">€ / unité</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded bg-light">
+                                    <div class="text-muted mb-1">Valeur totale</div>
+                                    <div class="h3 text-dark">
+                                        <span th:text="${mouvement['valeurMouvement'] != null ? #numbers.formatDecimal(mouvement['valeurMouvement'], 0, 2) : '0.00'}"></span> €
+                                    </div>
+                                    <small class="text-muted">Montant HT</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notes et motif -->
+                        <div th:if="${mouvement['motif'] != null and mouvement['motif'] != ''}" class="mt-4 pt-4 border-top">
+                            <h6 class="font-weight-bold text-primary mb-3">
+                                <i class="fas fa-sticky-note me-2"></i>Motif / Notes
+                            </h6>
+                            <div class="alert alert-light">
+                                <span th:text="${mouvement['motif']}"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions et documents liés -->
+            <div class="col-lg-4">
+                <!-- Actions -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-cogs me-2"></i>Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/stock/mouvements/journal}" class="btn btn-outline-secondary">
+                                <i class="fas fa-history me-1"></i>Retour au journal
+                            </a>
+                            
+                            <!-- Bouton annuler (si mouvement valide) -->
+                            <button th:if="${mouvement['statut'] == 'VALIDE'}"
+                                    type="button" class="btn btn-outline-danger" 
+                                    data-bs-toggle="modal" data-bs-target="#annulerModal">
+                                <i class="fas fa-ban me-1"></i>Annuler ce mouvement
+                            </button>
+                            
+                            <!-- Bouton voir l'article -->
+                            <a th:href="@{/stock/articles/details/{id}(id=${mouvement['articleId']})}" 
+                               th:if="${mouvement['articleId'] != null}"
+                               class="btn btn-outline-info">
+                                <i class="fas fa-box me-1"></i>Voir l'article
+                            </a>
+                            
+                            <!-- Bouton imprimer -->
+                            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                                <i class="fas fa-print me-1"></i>Imprimer
+                            </button>
+                            
+                            <!-- Bouton exporter -->
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-success dropdown-toggle" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-download me-1"></i>Exporter
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" th:href="@{/stock/mouvements/{id}/export/pdf(id=${mouvement['id']})}">
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>PDF
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" th:href="@{/stock/mouvements/{id}/export/excel(id=${mouvement['id']})}">
+                                            <i class="fas fa-file-excel text-success me-2"></i>Excel
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documents liés -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-paperclip me-2"></i>Documents liés
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li th:if="${mouvement['bonReceptionReference'] != null}" class="list-group-item d-flex justify-content-between align-items-center">
+                                Bon de réception
+                                <a th:href="@{/achat/bons-reception/details/{id}(id=${mouvement['bonReceptionId']})}" 
+                                   th:if="${mouvement['bonReceptionId'] != null}"
+                                   class="badge bg-primary rounded-pill">
+                                    <span th:text="${mouvement['bonReceptionReference']}"></span>
+                                </a>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Journal des mouvements
+                                <a th:href="@{/stock/mouvements/journal}" class="badge bg-secondary rounded-pill">
+                                    Voir
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Statut et historique -->
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-info-circle me-2"></i>Statut
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            <!-- Étape 1: Création -->
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Créé</h6>
+                                    <p class="text-muted mb-0">
+                                        <span th:if="${mouvement['createdAt'] != null}" 
+                                              th:text="${#temporals.format(mouvement['createdAt'], 'dd/MM/yyyy HH:mm')}"></span>
+                                        <span th:unless="${mouvement['createdAt'] != null}" class="text-muted">Date inconnue</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Étape 2: Validation -->
+                            <div th:if="${mouvement['statut'] == 'VALIDE'}" class="timeline-item">
+                                <div class="timeline-marker bg-primary"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Validé</h6>
+                                    <p class="text-muted mb-0">
+                                        <span th:if="${mouvement['dateMouvement'] != null}" 
+                                              th:text="${#temporals.format(mouvement['dateMouvement'], 'dd/MM/yyyy HH:mm')}"></span>
+                                        <span th:unless="${mouvement['dateMouvement'] != null}" class="text-muted">En attente</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <!-- Étape 3: Annulation (si applicable) -->
+                            <div th:if="${mouvement['statut'] == 'ANNULE'}" class="timeline-item">
+                                <div class="timeline-marker bg-danger"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">Annulé</h6>
+                                    <p class="text-muted mb-0">
+                                        <span th:text="${mouvement['motif']}"></span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'annulation -->
+    <div class="modal fade" id="annulerModal" tabindex="-1" aria-labelledby="annulerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="annulerModalLabel">Annuler le mouvement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/stock/mouvements/annuler/{id}(id=${mouvement['id']})}" method="post">
+                    <div class="modal-body">
+                        <p>Êtes-vous sûr de vouloir annuler le mouvement <strong th:text="${mouvement['reference']}"></strong> ?</p>
+                        <p class="text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Cette action est irréversible et créera un mouvement inverse.
+                        </p>
+                        <div class="mb-3">
+                            <label for="motif" class="form-label">Motif d'annulation *</label>
+                            <textarea class="form-control" id="motif" name="motif" 
+                                      rows="3" required placeholder="Raison de l'annulation..."></textarea>
+                            <small class="text-muted">Ce motif sera enregistré dans l'historique.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Supprimer les messages flash après 5 secondes
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Confirmation pour l'annulation
+            var annulerForm = document.querySelector('#annulerModal form');
+            if (annulerForm) {
+                annulerForm.addEventListener('submit', function(e) {
+                    var motif = document.getElementById('motif').value;
+                    if (!motif.trim()) {
+                        e.preventDefault();
+                        alert('Veuillez saisir un motif d\'annulation.');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

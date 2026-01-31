@@ -24,9 +24,10 @@ public class Article {
     @Column(name = "code_barre")
     private String codeBarre;
     
-    @Column(nullable = false)
+    @Column(nullable = false, name = "libelle")
     private String libelle;
     
+    @Column(columnDefinition = "TEXT", name= "description")
     private String description;
     
     @ManyToOne
@@ -90,4 +91,23 @@ public class Article {
     
     @Column(name = "updated_by")
     private UUID updatedBy;
+
+    @Transient
+    private Integer quantiteDisponible = 0;
+    
+    @Transient
+    private Integer quantiteTheorique = 0;
+    
+    @Transient
+    private LocalDateTime dateDernierMouvement;
+    
+    // Méthodes pour initialiser les champs transients
+    public void setQuantites(Integer disponible, Integer theorique) {
+        this.quantiteDisponible = disponible != null ? disponible : 0;
+        this.quantiteTheorique = theorique != null ? theorique : 0;
+    }
+    
+    public void setDateDernierMouvement(LocalDateTime date) {
+        this.dateDernierMouvement = date;
+    }
 }

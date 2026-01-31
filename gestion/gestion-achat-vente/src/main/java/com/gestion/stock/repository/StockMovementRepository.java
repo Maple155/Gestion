@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
+import java.util.Optional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -149,23 +149,6 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, UU
        // Trouver par statut
        List<StockMovement> findByStatut(StockMovement.MovementStatus statut);
 
-       // Recherche avancée avec pagination
-       @Query("SELECT m FROM StockMovement m WHERE " +
-                     "(:typeId IS NULL OR m.type.id = :typeId) AND " +
-                     "(:articleId IS NULL OR m.article.id = :articleId) AND " +
-                     "(:depotId IS NULL OR m.depot.id = :depotId) AND " +
-                     "(:dateDebut IS NULL OR m.dateMouvement >= :dateDebut) AND " +
-                     "(:dateFin IS NULL OR m.dateMouvement <= :dateFin) AND " +
-                     "(:statut IS NULL OR m.statut = :statut)")
-       Page<StockMovement> rechercherMouvements(
-                     @Param("typeId") UUID typeId,
-                     @Param("articleId") UUID articleId,
-                     @Param("depotId") UUID depotId,
-                     @Param("dateDebut") LocalDateTime dateDebut,
-                     @Param("dateFin") LocalDateTime dateFin,
-                     @Param("statut") StockMovement.MovementStatus statut,
-                     Pageable pageable);
-
        // Derniers mouvements pour un article
        @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId " +
                      "ORDER BY m.dateMouvement DESC")
@@ -213,4 +196,54 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, UU
                      "GROUP BY m.type")
        List<Object[]> countByTypeBetweenDates(@Param("debut") LocalDate debut,
                      @Param("fin") LocalDate fin);
+
+       Optional<StockMovement> findTopByArticleIdOrderByDateMouvementDesc(UUID articleId);
+
+       // Méthode 2: Pour l'historique (avec pagination)
+       List<StockMovement> findByArticleIdOrderByDateMouvementDesc(UUID articleId,
+                     org.springframework.data.domain.Pageable pageable);
+
+       // Méthode 3: Récupérer les mouvements récents
+       @Query("SELECT sm FROM StockMovement sm WHERE sm.article.id = :articleId AND sm.dateMouvement > :since ORDER BY sm.dateMouvement DESC")
+       List<StockMovement> findRecentMovementsByArticleId(@Param("articleId") UUID articleId,
+                     @Param("since") LocalDateTime since);
+
+       // Méthode 4: Compteur de mouvements
+       @Query("SELECT COUNT(sm) FROM StockMovement sm WHERE sm.article.id = :articleId")
+       Long countByArticleId(@Param("articleId") UUID articleId);
+
+       // StockMovementRepository.java
+       // Recherche avancée avec pagination
+       @Query("SELECT m FROM StockMovement m WHERE " +
+                     "(:typeId IS NULL OR m.type.id = :typeId) AND " +
+                     "(:articleId IS NULL OR m.article.id = :articleId) AND " +
+                     "(:depotId IS NULL OR m.depot.id = :depotId) AND " +
+                     "(:dateDebut IS NULL OR m.dateMouvement >= :dateDebut) AND " +
+                     "(:dateFin IS NULL OR m.dateMouvement <= :dateFin) AND " +
+                     "(:statut IS NULL OR m.statut = :statut)")
+       Page<StockMovement> rechercherMouvements(
+                     @Param("typeId") UUID typeId,
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("dateDebut") LocalDateTime dateDebut,
+                     @Param("dateFin") LocalDateTime dateFin,
+                     @Param("statut") StockMovement.MovementStatus statut,
+                     Pageable pageable);
+
+       // AJOUTEZ CETTE NOUVELLE MÉTHODE AVEC STRING POUR LE STATUT :
+       @Query("SELECT m FROM StockMovement m WHERE " +
+                     "(:typeId IS NULL OR m.type.id = :typeId) AND " +
+                     "(:articleId IS NULL OR m.article.id = :articleId) AND " +
+                     "(:depotId IS NULL OR m.depot.id = :depotId) AND " +
+                     "(:dateDebut IS NULL OR m.dateMouvement >= :dateDebut) AND " +
+                     "(:dateFin IS NULL OR m.dateMouvement <= :dateFin) AND " +
+                     "(:statut IS NULL OR m.statut = CAST(:statut AS string))")
+       Page<StockMovement> rechercherMouvementsWithStringStatut(
+                     @Param("typeId") UUID typeId,
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("dateDebut") LocalDateTime dateDebut,
+                     @Param("dateFin") LocalDateTime dateFin,
+                     @Param("statut") String statut,
+                     Pageable pageable);
 }

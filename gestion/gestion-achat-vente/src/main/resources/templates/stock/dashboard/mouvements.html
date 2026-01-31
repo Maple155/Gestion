@@ -81,13 +81,12 @@
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-body text-center">
-                        <h3 class="text-success" th:text="${stats.totalEntrees}">1.250</h3>
+<h3 class="text-success" th:text="${stats.totalEntrees}">0</h3>
                         <p class="text-muted">Entrées</p>
+                        <!-- Entrées -->
                         <small>
-                            <i class="bi bi-box-arrow-in-down"></i>
-                            <span th:text="${stats.valeurEntrees} ? ${#numbers.formatCurrency(stats.valeurEntrees)} : 'N/A'">
-                                125.000 €
-                            </span>
+                        <i class="bi bi-box-arrow-in-down"></i>
+                        <span th:text="${stats.valeurEntrees != null ? #numbers.formatCurrency(stats.valeurEntrees) : 'N/A'}">N/A</span>
                         </small>
                     </div>
                 </div>
@@ -203,55 +202,46 @@
                             </thead>
                             <tbody id="mouvementsTable">
                                 <tr th:each="mvt : ${mouvements}" 
-                                th:data-sens="${mvt.type.sens}"
-                                th:class="${mvt.type.sens == 'ENTREE'} ? 'table-success' : 'table-danger'">
-                                    <td>
-                                        <a th:href="@{'/stock/mouvements/' + ${mvt.id}}"
-                                           th:text="${mvt.reference}">
-                                            MVT-2024-000123
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <span th:text="${mvt.type}">Réception</span>
-                                        <br>
-                                        <small class="text-muted">
-                                            <span th:if="${mvt.bonReception != null}" th:text="${mvt.bonReception.reference}">BR-2024-001</span>
-                                            <span th:if="${mvt.bonCommande != null}" th:text="${mvt.bonCommande.reference}">BC-2024-001</span>
-                                            <span th:if="${mvt.transfert != null}" th:text="${mvt.transfert.reference}">TRF-2024-001</span>
-                                            <span th:if="${mvt.inventaire != null}" th:text="${mvt.inventaire.reference}">INV-2024-001</span>
-                                            <span th:if="${mvt.bonReception == null and mvt.bonCommande == null and mvt.transfert == null and mvt.inventaire == null}">-</span>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <a th:href="@{'/stock/articles/' + ${mvt.article.id}}">
-                                            <span th:text="${mvt.article.codeArticle}">ART-001</span>
-                                        </a>
-                                        <br>
-                                        <small class="text-muted" th:text="${mvt.article.libelle}">
-                                            Laptop Pro
-                                        </small>
-                                        <span th:if="${mvt.lot != null}" 
-                                                class="badge bg-secondary badge-lot">
-                                            <i class="bi bi-tag"></i>
-                                            <span th:text="${mvt.lot.numeroLot}">LOT-001</span>
-                                        </span>
-                                    </td>
-                                    <td th:text="${mvt.quantite}">100</td>
-                                    <td th:text="${#numbers.formatCurrency(mvt.valeur)}">
-                                        2.500 €
-                                    </td>
-                                    <td th:text="${mvt.depot.code}">DEP-CENTRAL</td>
-                                    <td>
-                                        <small th:text="${#dates.format(mvt.date, 'dd/MM HH:mm')}">
-                                            15/03 14:30
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <small th:text="${mvt.utilisateur}">
-                                            J. Dupont
-                                        </small>
-                                    </td>
-                                </tr>
+                                th:data-sens="${mvt.type != null ? mvt.type.sens : ''}"
+                                th:class="${mvt.type != null && mvt.type.sens == 'ENTREE'} ? 'table-success' : 'table-danger'">
+                                <td>
+                                    <a th:href="@{'/stock/mouvements/details/' + ${mvt.id}}"
+                                       th:text="${mvt.reference}">MVT-2024-000123</a>
+                                </td>
+                                <td>
+                                    <span th:text="${mvt.type != null ? mvt.type.libelle : ''}">Réception</span>
+                                    <br>
+                                    <small class="text-muted">
+                                        <span th:if="${mvt.bonReception != null}" th:text="${mvt.bonReception.reference}">BR-2024-001</span>
+                                        <span th:if="${mvt.bonCommande != null}" th:text="${mvt.bonCommande.reference}">BC-2024-001</span>
+                                        <span th:if="${mvt.transfert != null}" th:text="${mvt.transfert.reference}">TRF-2024-001</span>
+                                        <span th:if="${mvt.inventaire != null}" th:text="${mvt.inventaire.reference}">INV-2024-001</span>
+                                        <span th:if="${mvt.bonReception == null and mvt.bonCommande == null and mvt.transfert == null and mvt.inventaire == null}">-</span>
+                                    </small>
+                                </td>
+                                <td>
+                                    <a th:href="@{'/stock/articles/' + ${mvt.article.id}}">
+                                        <span th:text="${mvt.article.codeArticle}">ART-001</span>
+                                    </a>
+                                    <br>
+                                    <small class="text-muted" th:text="${mvt.article.libelle}">Laptop Pro</small>
+                                    <span th:if="${mvt.lot != null}" class="badge bg-secondary badge-lot">
+                                        <i class="bi bi-tag"></i>
+                                        <span th:text="${mvt.lot.numeroLot}">LOT-001</span>
+                                    </span>
+                                </td>
+                                <td th:text="${mvt.quantite}">100</td>
+                                <td th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : '-'}">2.500 €</td>
+                                <td th:text="${mvt.depot != null ? mvt.depot.code : ''}">DEP-CENTRAL</td>
+                                <td>
+                                    <small th:text="${mvt.dateMouvement != null ? #temporals.format(mvt.dateMouvement, 'dd/MM HH:mm') : ''}">
+                                        15/03 14:30
+                                    </small>
+                                </td>
+                                <td>
+                                    <small th:text="${mvt.utilisateurId}">3333...3333</small>
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
@@ -330,7 +320,7 @@
         };
         
         function chargerDonneesJournalieres() {
-            fetch('/stock/dashboard/api/mouvements/journalier?jours=' + [[${jours}]])
+            fetch('/main/dashboard/api/mouvements/journalier?jours=' + [[${jours}]])
                 .then(response => response.json())
                 .then(data => {
                     evolutionData.labels = data.labels;

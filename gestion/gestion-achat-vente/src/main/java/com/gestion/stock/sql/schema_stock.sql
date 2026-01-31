@@ -295,15 +295,15 @@ CREATE SEQUENCE IF NOT EXISTS seq_inventaire START 1;
 
 -- Insertion des types de mouvement initiaux
 INSERT INTO types_mouvement (id, code, libelle, sens, impact_valorisation) VALUES
-(gen_random_uuid(), 'RECEPTION_FOURNISSEUR', 'Réception fournisseur', 'ENTREE', TRUE),
+(gen_random_uuid(), 'RECEPTION_FOURNISSEUR', 'Reception fournisseur', 'ENTREE', TRUE),
 (gen_random_uuid(), 'RETOUR_CLIENT', 'Retour client', 'ENTREE', TRUE),
 (gen_random_uuid(), 'AJUSTEMENT_POSITIF', 'Ajustement inventaire positif', 'ENTREE', TRUE),
 (gen_random_uuid(), 'TRANSFERT_ENTRANT', 'Transfert entrant', 'ENTREE', TRUE),
-(gen_random_uuid(), 'PRODUCTION', 'Entrée production', 'ENTREE', TRUE),
+(gen_random_uuid(), 'PRODUCTION', 'Entree production', 'ENTREE', TRUE),
 (gen_random_uuid(), 'LIVRAISON_CLIENT', 'Livraison client', 'SORTIE', TRUE),
 (gen_random_uuid(), 'CONSOMMATION_INTERNE', 'Consommation interne', 'SORTIE', TRUE),
 (gen_random_uuid(), 'REBUT', 'Mise au rebut', 'SORTIE', TRUE),
-(gen_random_uuid(), 'AJUSTEMENT_NEGATIF', 'Ajustement inventaire négatif', 'SORTIE', TRUE),
+(gen_random_uuid(), 'AJUSTEMENT_NEGATIF', 'Ajustement inventaire negatif', 'SORTIE', TRUE),
 (gen_random_uuid(), 'TRANSFERT_SORTANT', 'Transfert sortant', 'SORTIE', TRUE),
 (gen_random_uuid(), 'PERTE', 'Perte/Vol', 'SORTIE', TRUE)
 ON CONFLICT (code) DO NOTHING;
@@ -721,3 +721,12 @@ CREATE INDEX idx_inventaires_depot ON inventaires(depot_id);
 
 -- ALTER TABLE mouvements_stock 
 -- ALTER COLUMN inventaire_id TYPE UUID USING NULLIF(inventaire_id, '')::uuid;
+
+-- Remplacer les '' par NULL puis caster vers uuid
+-- ALTER TABLE articles
+--   ALTER COLUMN created_by TYPE uuid
+--   USING NULLIF(created_by, '')::uuid;
+
+-- ALTER TABLE articles
+--   ALTER COLUMN updated_by TYPE uuid
+--   USING NULLIF(updated_by, '')::uuid;
