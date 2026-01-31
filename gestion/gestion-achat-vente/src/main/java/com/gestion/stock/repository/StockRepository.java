@@ -102,4 +102,7 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
        // NEW: Get average stock for an article
        @Query("SELECT COALESCE(AVG(s.quantiteTheorique), 0) FROM Stock s WHERE s.article.id = :articleId")
        BigDecimal getStockMoyenArticle(@Param("articleId") UUID articleId);
+
+       @Query("SELECT s FROM Stock s WHERE s.article.id IN :articleIds")
+       List<Stock> findByArticleIdIn(@Param("articleIds") List<UUID> articleIds);
 }

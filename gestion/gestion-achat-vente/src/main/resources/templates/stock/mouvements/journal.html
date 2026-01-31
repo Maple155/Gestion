@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/main}">
+<head>
+    <title th:text="${title}">Journal des Mouvements</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- En-tête de page -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-history me-2"></i>Journal des Mouvements
+                </h1>
+                <div>
+                    <a href="/stock/mouvements/entree" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i>Nouvelle Entrée
+                    </a>
+                    <a href="/stock/mouvements/sortie" class="btn btn-warning btn-sm ms-2">
+                        <i class="fas fa-minus me-1"></i>Nouvelle Sortie
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filtres de recherche -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter me-2"></i>Filtres de recherche
+                    </h6>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#filtersCollapse">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="filtersCollapse">
+                    <div class="card-body">
+                        <form th:action="@{/stock/mouvements/journal}" method="get" class="row g-3">
+                            <!-- Type de mouvement -->
+                            <div class="col-md-3">
+                                <label class="form-label">Type de mouvement</label>
+                                <select name="typeMouvement" class="form-select form-select-sm">
+                                    <option value="">Tous les types</option>
+                                    <option th:each="type : ${typesMouvement}"
+                                            th:value="${type.id}"
+                                            th:text="${type.libelle}"
+                                            th:selected="${typeMouvement == type.id}"></option>
+                                </select>
+                            </div>
+
+                            <!-- Article -->
+                            <div class="col-md-3">
+                                <label class="form-label">Article</label>
+                                <select name="articleId" class="form-select form-select-sm">
+                                    <option value="">Tous les articles</option>
+                                    <option th:each="article : ${articles}"
+                                            th:value="${article.id}"
+                                            th:text="${article.codeArticle + ' - ' + article.libelle}"
+                                            th:selected="${articleId == article.id}"></option>
+                                </select>
+                            </div>
+
+                            <!-- Dépôt -->
+                            <div class="col-md-3">
+                                <label class="form-label">Dépôt</label>
+                                <select name="depotId" class="form-select form-select-sm">
+                                    <option value="">Tous les dépôts</option>
+                                    <option th:each="depot : ${depots}"
+                                            th:value="${depot.id}"
+                                            th:text="${depot.nom}"
+                                            th:selected="${depotId == depot.id}"></option>
+                                </select>
+                            </div>
+
+                            <!-- Période -->
+                            <div class="col-md-6">
+                                <label class="form-label">Période</label>
+                                <div class="row g-2">
+                                    <div class="col">
+                                        <input type="date" name="dateDebut" class="form-control form-control-sm"
+                                               th:value="${dateDebut}">
+                                    </div>
+                                    <div class="col-auto align-self-center">
+                                        <span class="text-muted">au</span>
+                                    </div>
+                                    <div class="col">
+                                        <input type="date" name="dateFin" class="form-control form-control-sm"
+                                               th:value="${dateFin}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Boutons -->
+                            <div class="col-md-12">
+                                <div class="d-flex gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-search me-1"></i>Rechercher
+                                    </button>
+                                    <a th:href="@{/stock/mouvements/journal}" class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-redo me-1"></i>Réinitialiser
+                                    </a>
+                                    <button type="button" class="btn btn-outline-info btn-sm ms-auto" 
+                                            data-bs-toggle="modal" data-bs-target="#exportModal">
+                                        <i class="fas fa-file-export me-1"></i>Exporter
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistiques -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Total Mouvements
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        [[${stats.totalMouvements}]]
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Entrées
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        [[${stats.totalEntrees}]]
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-arrow-down fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Sorties
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        [[${stats.totalSorties}]]
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-arrow-up fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Solde Valeur
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                        [[${#numbers.formatDecimal(stats.soldeValeur, 0, 2)}]] €
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-euro-sign fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau des mouvements -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-table me-2"></i>Liste des mouvements
+                        <small class="text-muted ms-2">([[${totalElements}]])</small>
+                    </h6>
+                    
+                    <!-- Tri -->
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">Trier par:</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a th:href="@{/stock/mouvements/journal(size=${size}, page=${page}, 
+                                typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                tri='dateMouvement', ordre=(ordre == 'desc' ? 'asc' : 'desc'))}"
+                               class="btn btn-outline-secondary">
+                                Date
+                                <i th:class="${tri == 'dateMouvement' ? (ordre == 'desc' ? 'fas fa-sort-down' : 'fas fa-sort-up') : 'fas fa-sort'}"></i>
+                            </a>
+                            <a th:href="@{/stock/mouvements/journal(size=${size}, page=${page}, 
+                                typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                tri='quantite', ordre=(ordre == 'desc' ? 'asc' : 'desc'))}"
+                               class="btn btn-outline-secondary">
+                                Quantité
+                                <i th:class="${tri == 'quantite' ? (ordre == 'desc' ? 'fas fa-sort-down' : 'fas fa-sort-up') : 'fas fa-sort'}"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-sm" id="dataTable" width="100%" cellspacing="0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Référence</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Article</th>
+                                    <th>Dépôt</th>
+                                    <th class="text-end">Quantité</th>
+                                    <th class="text-end">Coût unitaire</th>
+                                    <th class="text-end">Valeur</th>
+                                    <th>Lot</th>
+                                    <th>Statut</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="mvt : ${mouvements.content}" 
+                                    th:class="${mvt.statut == 'ANNULE' ? 'table-danger' : ''}">
+                                    <td>
+                                        <strong>[[${mvt.reference}]]</strong>
+                                    </td>
+                                    <td>
+                                        [[${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}]]
+                                    </td>
+                                    <td>
+                                        <span th:if="${mvt.typeMouvement == 'Réception fournisseur'}" 
+                                              class="badge bg-success">[[${mvt.typeMouvement}]]</span>
+                                        <span th:if="${mvt.typeMouvement == 'Livraison client'}" 
+                                              class="badge bg-warning text-dark">[[${mvt.typeMouvement}]]</span>
+                                        <span th:if="${mvt.typeMouvement != 'Réception fournisseur' && mvt.typeMouvement != 'Livraison client'}" 
+                                              class="badge bg-secondary">[[${mvt.typeMouvement}]]</span>
+                                    </td>
+                                    <td>
+                                        <div><strong>[[${mvt.articleCode}]]</strong></div>
+                                        <small class="text-muted">[[${mvt.article}]]</small>
+                                    </td>
+                                    <td>[[${mvt.depot}]]</td>
+                                    <td class="text-end">
+                                        <span th:class="${mvt.typeMouvement.contains('Entrée') || mvt.typeMouvement.contains('Réception') ? 'text-success' : 'text-danger'}">
+                                            [[${mvt.typeMouvement.contains('Entrée') || mvt.typeMouvement.contains('Réception') ? '+' : '-'}]]
+                                            [[${#numbers.formatInteger(mvt.quantite, 0, 'POINT')}]]
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        [[${#numbers.formatDecimal(mvt.coutUnitaire, 0, 4)}]] €
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>[[${#numbers.formatDecimal(mvt.valeurMouvement, 0, 2)}]] €</strong>
+                                    </td>
+                                    <td>
+                                        <span th:if="${mvt.lot}" class="badge bg-info">[[${mvt.lot}]]</span>
+                                        <span th:unless="${mvt.lot}" class="text-muted">-</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${mvt.statut == 'VALIDE'}" class="badge bg-success">Validé</span>
+                                        <span th:if="${mvt.statut == 'BROUILLON'}" class="badge bg-secondary">Brouillon</span>
+                                        <span th:if="${mvt.statut == 'ANNULE'}" class="badge bg-danger">Annulé</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a th:href="@{/stock/mouvements/details/{id}(id=${mvt.id})}" 
+                                               class="btn btn-outline-primary" title="Voir détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <button th:if="${mvt.statut == 'VALIDE'}"
+                                                    type="button" class="btn btn-outline-danger" 
+                                                    title="Annuler" data-bs-toggle="modal" 
+                                                    data-bs-target="#annulerModal"
+                                                    th:attr="data-mvt-id=${mvt.id}, 
+                                                            data-mvt-ref=${mvt.reference}">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <tr th:if="${mouvements.empty}">
+                                    <td colspan="11" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox fa-2x mb-3"></i>
+                                        <p class="mb-0">Aucun mouvement trouvé</p>
+                                        <small>Essayez de modifier vos critères de recherche</small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div th:if="${totalPages > 1}" class="d-flex justify-content-between align-items-center mt-4">
+                        <div class="text-muted">
+                            Affichage de <strong>[[${mouvements.number * mouvements.size + 1}]]</strong> à 
+                            <strong>[[${mouvements.number * mouvements.size + mouvements.numberOfElements}]]</strong>
+                            sur <strong>[[${totalElements}]]</strong> mouvements
+                        </div>
+                        
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0">
+                                <!-- Premier -->
+                                <li class="page-item" th:classappend="${mouvements.first ? 'disabled' : ''}">
+                                    <a class="page-link" th:href="@{/stock/mouvements/journal(page=0, size=${size},
+                                        typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                        depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                        tri=${tri}, ordre=${ordre})}">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                
+                                <!-- Précédent -->
+                                <li class="page-item" th:classappend="${mouvements.first ? 'disabled' : ''}">
+                                    <a class="page-link" th:href="@{/stock/mouvements/journal(page=${mouvements.number - 1}, size=${size},
+                                        typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                        depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                        tri=${tri}, ordre=${ordre})}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                
+                                <!-- Pages -->
+                                <li th:each="page : ${#numbers.sequence(0, totalPages - 1)}" 
+                                    th:if="${page >= mouvements.number - 2 and page <= mouvements.number + 2}"
+                                    class="page-item" th:classappend="${page == mouvements.number ? 'active' : ''}">
+                                    <a class="page-link" th:href="@{/stock/mouvements/journal(page=${page}, size=${size},
+                                        typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                        depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                        tri=${tri}, ordre=${ordre})}">
+                                        [[${page + 1}]]
+                                    </a>
+                                </li>
+                                
+                                <!-- Suivant -->
+                                <li class="page-item" th:classappend="${mouvements.last ? 'disabled' : ''}">
+                                    <a class="page-link" th:href="@{/stock/mouvements/journal(page=${mouvements.number + 1}, size=${size},
+                                        typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                        depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                        tri=${tri}, ordre=${ordre})}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                
+                                <!-- Dernier -->
+                                <li class="page-item" th:classappend="${mouvements.last ? 'disabled' : ''}">
+                                    <a class="page-link" th:href="@{/stock/mouvements/journal(page=${totalPages - 1}, size=${size},
+                                        typeMouvement=${typeMouvement}, articleId=${articleId}, 
+                                        depotId=${depotId}, dateDebut=${dateDebut}, dateFin=${dateFin},
+                                        tri=${tri}, ordre=${ordre})}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        
+                        <div class="form-group mb-0">
+                            <select class="form-select form-select-sm" style="width: auto;"
+                                    onchange="window.location.href = this.value">
+                                <option th:each="sizeOpt : ${[10, 25, 50, 100]}"
+                                        th:value="${'/stock/mouvements/journal?size=' + sizeOpt + '&page=0' +
+                                            (typeMouvement ? '&typeMouvement=' + typeMouvement : '') +
+                                            (articleId ? '&articleId=' + articleId : '') +
+                                            (depotId ? '&depotId=' + depotId : '') +
+                                            (dateDebut ? '&dateDebut=' + dateDebut : '') +
+                                            (dateFin ? '&dateFin=' + dateFin : '') +
+                                            '&tri=' + tri + '&ordre=' + ordre}"
+                                        th:selected="${size == sizeOpt}">
+                                    [[${sizeOpt}]] par page
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal d'annulation -->
+        <div class="modal fade" id="annulerModal" tabindex="-1" aria-labelledby="annulerModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="annulerModalLabel">Annuler un mouvement</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form th:action="@{/stock/mouvements/annuler/{id}(id='__ID__')}" method="post" id="annulerForm">
+                        <div class="modal-body">
+                            <p>Êtes-vous sûr de vouloir annuler le mouvement <strong id="mvtRef"></strong> ?</p>
+                            <div class="mb-3">
+                                <label for="motifAnnulation" class="form-label">Motif d'annulation *</label>
+                                <textarea class="form-control" id="motifAnnulation" name="motif" 
+                                          rows="3" required placeholder="Raison de l'annulation..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal d'export -->
+        <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exportModalLabel">Exporter les mouvements</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Format d'export</label>
+                            <div class="d-grid gap-2">
+                                <a th:href="@{/stock/mouvements/export/excel(typeMouvement=${typeMouvement}, 
+                                    articleId=${articleId}, depotId=${depotId}, 
+                                    dateDebut=${dateDebut}, dateFin=${dateFin})}" 
+                                   class="btn btn-success">
+                                    <i class="fas fa-file-excel me-2"></i>Excel (.xlsx)
+                                </a>
+                                <a th:href="@{/stock/mouvements/export/pdf(typeMouvement=${typeMouvement}, 
+                                    articleId=${articleId}, depotId=${depotId}, 
+                                    dateDebut=${dateDebut}, dateFin=${dateFin})}" 
+                                   class="btn btn-danger">
+                                    <i class="fas fa-file-pdf me-2"></i>PDF (.pdf)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Script pour la modal d'annulation -->
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                var annulerModal = document.getElementById('annulerModal');
+                if (annulerModal) {
+                    annulerModal.addEventListener('show.bs.modal', function(event) {
+                        var button = event.relatedTarget;
+                        var mvtId = button.getAttribute('data-mvt-id');
+                        var mvtRef = button.getAttribute('data-mvt-ref');
+                        
+                        document.getElementById('mvtRef').textContent = mvtRef;
+                        
+                        var form = document.getElementById('annulerForm');
+                        var action = form.getAttribute('action');
+                        form.setAttribute('action', action.replace('__ID__', mvtId));
+                    });
+                }
+                
+                // Auto-submit des filtres sur changement
+                var filters = ['typeMouvement', 'articleId', 'depotId'];
+                filters.forEach(function(filter) {
+                    var element = document.querySelector('[name="' + filter + '"]');
+                    if (element) {
+                        element.addEventListener('change', function() {
+                            this.form.submit();
+                        });
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+</html>

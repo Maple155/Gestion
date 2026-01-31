@@ -1,4 +1,3 @@
-<!-- templates/stock/dashboard/valorisation.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -68,16 +67,16 @@
                         <h5 class="mb-0"><i class="bi bi-sort-numeric-down"></i> FIFO</h5>
                     </div>
                     <div class="card-body">
-                        <h3 th:text="${#numbers.formatCurrency(detailFifo.valeurTotale)}">
+                        <h3 th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 €'}">
                             1.250.000 €
                         </h3>
                         <p class="text-muted">
-                            <span th:text="${detailFifo.nombreArticles}">45</span> articles
+                            <span th:text="${detailFifo != null ? detailFifo['nombreArticles'] : 0}">45</span> articles
                             <br>
-                            <span th:text="${detailFifo.nombreLots}">120</span> lots actifs
+                            <span th:text="${detailFifo != null ? detailFifo['nombreLots'] : 0}">120</span> lots actifs
                             <br>
                             Coût moyen: 
-                            <span th:text="${#numbers.formatCurrency(detailFifo.coutMoyen)}">
+                            <span th:text="${detailFifo != null && detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
                                 25,50 €
                             </span>
                         </p>
@@ -95,16 +94,16 @@
                         <h5 class="mb-0"><i class="bi bi-calendar-x"></i> FEFO</h5>
                     </div>
                     <div class="card-body">
-                        <h3 th:text="${#numbers.formatCurrency(detailFefo.valeurTotale)}">
+                        <h3 th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 €'}">
                             50.000 €
                         </h3>
                         <p class="text-muted">
-                            <span th:text="${detailFefo.nombreArticles}">12</span> articles périssables
+                            <span th:text="${detailFefo != null ? detailFefo['nombreArticles'] : 0}">12</span> articles périssables
                             <br>
-                            <span th:text="${detailFefo.lotsProchePeremption}">8</span> lots < 30 jours
+                            <span th:text="${detailFefo != null ? detailFefo['lotsProchePeremption'] : 0}">8</span> lots < 30 jours
                             <br>
                             Risque péremption: 
-                            <span th:text="${#numbers.formatCurrency(detailFefo.valeurRisque)}">
+                            <span th:text="${detailFefo != null && detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
                                 4.500 €
                             </span>
                         </p>
@@ -122,17 +121,17 @@
                         <h5 class="mb-0"><i class="bi bi-graph-up"></i> CUMP</h5>
                     </div>
                     <div class="card-body">
-                        <h3 th:text="${#numbers.formatCurrency(detailCump.valeurTotale)}">
+                        <h3 th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 €'}">
                             1.200.000 €
                         </h3>
                         <p class="text-muted">
-                            <span th:text="${detailCump.nombreArticles}">1.177</span> articles
+                            <span th:text="${detailCump != null ? detailCump['nombreArticles'] : 0}">1.177</span> articles
                             <br>
                             Écart moyen: 
-                            <span th:text="${detailCump.ecartMoyen}">1,2</span>%
+                            <span th:text="${detailCump != null && detailCump['ecartMoyen'] != null ? detailCump['ecartMoyen'] + '%' : 'N/A'}">1,2</span>
                             <br>
                             Dernière mise à jour: 
-                            <span th:text="${#dates.format(detailCump.dateMaj, 'dd/MM HH:mm')}">
+                            <span th:text="${detailCump != null && detailCump['dateMaj'] != null ? #temporals.format(detailCump['dateMaj'], 'dd/MM HH:mm') : 'N/A'}">
                                 15/03 14:30
                             </span>
                         </p>
@@ -165,22 +164,22 @@
                                         <tr>
                                             <td>Coût Moyen Sorties FIFO</td>
                                             <td class="text-end" 
-                                                th:text="${#numbers.formatCurrency(valorisation.coutSortiesFifo)}">
+                                                th:text="${valorisation != null && valorisation['coutSortiesFifo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFifo']) : 'N/A'}">
                                                 22,50 €
                                             </td>
                                         </tr>
                                         <tr>
                                             <td>Coût Moyen Sorties FEFO</td>
                                             <td class="text-end" 
-                                                th:text="${#numbers.formatCurrency(valorisation.coutSortiesFefo)}">
+                                                th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
                                                 24,30 €
                                             </td>
                                         </tr>
                                         <tr class="table-primary">
                                             <td><strong>Différence</strong></td>
                                             <td class="text-end">
-                                                <strong th:class="${valorisation.differenceCout > 0} ? 'text-danger' : 'text-success'"
-                                                        th:text="${#numbers.formatCurrency(valorisation.differenceCout)}">
+                                                <strong th:class="${valorisation != null && valorisation['differenceCout'] != null ? (valorisation['differenceCout'].compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'text-danger' : 'text-success') : ''}"
+                                                        th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
                                                     +1,80 €
                                                 </strong>
                                             </td>
@@ -233,16 +232,17 @@
         </div>
     </div>
     
-    <script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
         // Graphique de comparaison
         const comparaisonData = {
             labels: ['FIFO', 'FEFO', 'CUMP'],
             datasets: [{
                 label: 'Valeur Stock',
                 data: [
-                    [[${valorisation.valeurFifo}]],
-                    [[${valorisation.valeurFefo}]],
-                    [[${valorisation.valeurCump}]]
+                    /*[[${valorisation != null && valorisation['valeurFifo'] != null ? valorisation['valeurFifo'] : 0}]]*/,
+                    /*[[${valorisation != null && valorisation['valeurFefo'] != null ? valorisation['valeurFefo'] : 0}]]*/,
+                    /*[[${valorisation != null && valorisation['valeurCump'] != null ? valorisation['valeurCump'] : 0}]]*/
                 ],
                 backgroundColor: [
                     'rgba(40, 167, 69, 0.5)',
@@ -288,14 +288,17 @@
         };
         
         function chargerTableauDetail() {
-            fetch('/stock/dashboard/api/valorisation/detail')
+            fetch('/main/dashboard/api/valorisation/detail')
                 .then(response => response.json())
                 .then(data => {
                     const tbody = document.querySelector('tbody');
                     tbody.innerHTML = '';
                     
                     data.forEach(item => {
-                        const diff = (item.valorisationFifo - item.valorisationCump) / item.valorisationCump * 100;
+                        const valorisationFifo = item.valorisationFifo || 0;
+                        const valorisationFefo = item.valorisationFefo || 0;
+                        const valorisationCump = item.valorisationCump || 0;
+                        const diff = valorisationCump !== 0 ? (valorisationFifo - valorisationCump) / valorisationCump * 100 : 0;
                         
                         const row = `
                             <tr>
@@ -309,9 +312,9 @@
                                     </span>
                                 </td>
                                 <td>${item.quantite}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationFifo)}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationFefo)}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(item.valorisationCump)}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationFifo)}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationFefo)}</td>
+                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationCump)}</td>
                                 <td class="${diff > 0 ? 'text-danger' : 'text-success'}">
                                     ${diff.toFixed(2)}%
                                 </td>
@@ -319,8 +322,10 @@
                         `;
                         tbody.innerHTML += row;
                     });
-                });
+                })
+                .catch(err => console.error('Erreur chargement détail valorisation', err));
         }
+        /*]]>*/
     </script>
 </body>
 </html>
