@@ -1,681 +1,1700 @@
 <!-- templates/stock/mouvements/formulaire-sortie.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title th:text="${title}">Sortie de Stock</title>
-    
+
     <!-- Bootstrap 5 + Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
     <style>
-        .mouvement-card {
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      .mouvement-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .type-entree {
+        border-left: 4px solid #28a745;
+      }
+      .type-sortie {
+        border-left: 4px solid #dc3545;
+      }
+      .stock-disponible {
+        color: #28a745;
+        font-weight: bold;
+      }
+      .stock-insuffisant {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .lot-selectionne {
+        background-color: #e7f1ff;
+        border: 2px solid #0d6efd;
+      }
+
+      /* static/css/autocomplete.css */
+      .auto-complete {
+        max-height: 250px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: absolute;
+        z-index: 1050;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        display: none;
+        width: calc(100% - 2px);
+        margin-top: 1px;
+      }
+
+      .auto-complete div {
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        border-bottom: 1px solid #f8f9fa;
+      }
+
+      .auto-complete div:hover {
+        background-color: #f8f9fa;
+      }
+
+      .auto-complete div:last-child {
+        border-bottom: none;
+      }
+
+      .auto-complete .hover-bg:hover {
+        background-color: #e9ecef;
+      }
+
+      /* Styles pour les résultats de recherche */
+      .search-result-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+      }
+
+      .search-result-item:hover {
+        background-color: #f5f5f5;
+      }
+
+      .search-result-item.selected {
+        background-color: #e3f2fd;
+        border-left: 3px solid #2196f3;
+      }
+
+      /* Badges pour les statuts */
+      .badge-stock {
+        font-size: 0.75em;
+        padding: 2px 6px;
+        border-radius: 10px;
+      }
+
+      /* Animations */
+      .fade-in {
+        animation: fadeIn 0.3s;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
         }
-        .type-entree { border-left: 4px solid #28a745; }
-        .type-sortie { border-left: 4px solid #dc3545; }
-        .stock-disponible { color: #28a745; font-weight: bold; }
-        .stock-insuffisant { color: #dc3545; font-weight: bold; }
-        .lot-selectionne {
-            background-color: #e7f1ff;
-            border: 2px solid #0d6efd;
+        to {
+          opacity: 1;
         }
-        .auto-complete {
-            max-height: 200px;
-            overflow-y: auto;
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            display: none;
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation -->
-    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
-    
+    <nav
+      th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"
+    ></nav>
+
     <div class="container-fluid mt-4">
-        <!-- En-tête -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1>
-                    <i class="bi bi-box-arrow-up text-danger"></i> Sortie de Stock
-                </h1>
-                <p class="text-muted">Enregistrer une livraison client, consommation interne ou ajustement négatif</p>
-            </div>
-            <div class="col-auto">
-                <a href="/stock/mouvements/journal" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Retour journal
-                </a>
-                <a href="/stock/mouvements/entree" class="btn btn-outline-success ms-2">
-                    <i class="bi bi-box-arrow-in-down"></i> Entrée
-                </a>
-            </div>
+      <!-- En-tête -->
+      <div class="row mb-4">
+        <div class="col">
+          <h1>
+            <i class="bi bi-box-arrow-up text-danger"></i> Sortie de Stock
+          </h1>
+          <p class="text-muted">
+            Enregistrer une livraison client, consommation interne ou ajustement
+            négatif
+          </p>
         </div>
-        
-        <!-- Formulaire principal -->
-        <div class="row">
-            <div class="col-lg-8 mx-auto">
-                <div class="card mouvement-card type-sortie">
-                    <div class="card-header bg-danger text-white">
-                        <h5 class="mb-0">
-                            <i class="bi bi-dash-circle"></i> Nouvelle Sortie de Stock
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <form method="post" action="/stock/mouvements/creer-sortie" id="formSortie">
-                            
-                            <!-- Type de mouvement -->
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Type de sortie *</label>
-                                    <select class="form-select" name="typeMouvementId" required 
-                                            id="typeSortie" onchange="changerTypeSortie()">
-                                        <option value="">-- Sélectionner un type --</option>
-                                        <option th:each="type : ${typesSortie}"
-                                                th:value="${type.id}"
-                                                th:text="${type.libelle}">
-                                            Livraison client
-                                        </option>
-                                    </select>
-                                    <small class="form-text text-muted">
-                                        Définit la nature de la sortie
-                                    </small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Date du mouvement *</label>
-                                    <input type="date" class="form-control" name="dateMouvement" 
-                                           th:value="${aujourdhui}" required>
-                                </div>
-                            </div>
-                            
-                            <hr>
-                            
-                            <!-- Source de la sortie -->
-                            <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" 
-                                               name="sourceType" id="sourceArticle" 
-                                               value="article" checked onclick="changerSource('article')">
-                                        <label class="form-check-label" for="sourceArticle">
-                                            Par article
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" 
-                                               name="sourceType" id="sourceLot" 
-                                               value="lot" onclick="changerSource('lot')">
-                                        <label class="form-check-label" for="sourceLot">
-                                            Par lot spécifique
-                                        </label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" 
-                                               name="sourceType" id="sourceReservation" 
-                                               value="reservation" onclick="changerSource('reservation')">
-                                        <label class="form-check-label" for="sourceReservation">
-                                            Depuis réservation
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Source : Article -->
-                            <div id="sectionArticle" class="source-section">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Article *</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" 
-                                                   id="rechercheArticleSortie" 
-                                                   placeholder="Code, libellé ou code barre..."
-                                                   autocomplete="off"
-                                                   onkeyup="rechercherArticlesSortie(this.value)">
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                    onclick="ouvrirSelectionArticleSortie()">
-                                                <i class="bi bi-search"></i>
-                                            </button>
-                                        </div>
-                                        <div id="resultatsArticlesSortie" class="auto-complete"></div>
-                                        <input type="hidden" name="articleId" id="articleIdSortie">
-                                        <div id="articleSelectionneSortie" class="mt-2 p-2 border rounded" 
-                                             style="display: none;">
-                                            <strong id="articleCodeSortie"></strong>
-                                            <br>
-                                            <small id="articleLibelleSortie"></small>
-                                            <button type="button" class="btn btn-sm btn-outline-danger float-end"
-                                                    onclick="effacerArticleSortie()">
-                                                <i class="bi bi-x"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Dépôt source *</label>
-                                        <select class="form-select" name="depotId" id="depotSortie"
-                                                onchange="verifierStockDisponible()" required>
-                                            <option value="">-- Sélectionner un dépôt --</option>
-                                            <option th:each="depot : ${depots}"
-                                                    th:value="${depot.id}"
-                                                    th:text="${depot.nom}">
-                                                Entrepôt Central
-                                            </option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <!-- Informations stock -->
-                                <div class="row mb-3" id="infoStock" style="display: none;">
-                                    <div class="col-md-12">
-                                        <div class="alert" id="alertStock">
-                                            <i class="bi bi-info-circle"></i>
-                                            <span id="texteStock"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Lots disponibles (si article géré par lot) -->
-                                <div id="sectionLotsDisponibles" style="display: none;">
-                                    <div class="row mb-3">
-                                        <div class="col-md-12">
-                                            <label class="form-label">Sélectionner un lot (optionnel)</label>
-                                            <div id="listeLots" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
-                                                <!-- Liste des lots générée par JavaScript -->
-                                            </div>
-                                            <small class="form-text text-muted">
-                                                Si aucun lot sélectionné, allocation automatique FIFO/FEFO
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Source : Lot spécifique -->
-                            <div id="sectionLotSpecifique" class="source-section" style="display: none;">
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label class="form-label">Numéro de lot *</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" 
-                                                   id="rechercheLot" 
-                                                   placeholder="Numéro de lot..."
-                                                   autocomplete="off"
-                                                   onkeyup="rechercherLots(this.value)">
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                    onclick="ouvrirSelectionLot()">
-                                                <i class="bi bi-search"></i>
-                                            </button>
-                                        </div>
-                                        <div id="resultatsLots" class="auto-complete"></div>
-                                        <input type="hidden" name="lotId" id="lotId">
-                                        <div id="lotSelectionne" class="mt-2 p-2 border rounded" 
-                                             style="display: none;">
-                                            <div class="row">
-                                                <div class="col">
-                                                    <strong id="lotNumero"></strong>
-                                                    <br>
-                                                    <small>
-                                                        Article: <span id="lotArticle"></span>
-                                                        | Quantité: <span id="lotQuantite"></span>
-                                                        | Péremption: <span id="lotPeremption"></span>
-                                                    </small>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                                            onclick="effacerLot()">
-                                                        <i class="bi bi-x"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Source : Réservation -->
-                            <div id="sectionReservation" class="source-section" style="display: none;">
-                                <div class="row mb-3">
-                                    <div class="col-md-12">
-                                        <label class="form-label">Référence réservation *</label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" 
-                                                   id="rechercheReservation" 
-                                                   placeholder="Référence réservation..."
-                                                   autocomplete="off"
-                                                   onkeyup="rechercherReservations(this.value)">
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                    onclick="ouvrirSelectionReservation()">
-                                                <i class="bi bi-search"></i>
-                                            </button>
-                                        </div>
-                                        <div id="resultatsReservations" class="auto-complete"></div>
-                                        <input type="hidden" name="reservationId" id="reservationId">
-                                        <div id="reservationSelectionnee" class="mt-2 p-2 border rounded" 
-                                             style="display: none;">
-                                            <div class="row">
-                                                <div class="col">
-                                                    <strong id="reservationReference"></strong>
-                                                    <br>
-                                                    <small>
-                                                        Article: <span id="reservationArticle"></span>
-                                                        | Quantité: <span id="reservationQuantite"></span>
-                                                        | Commande: <span id="reservationCommande"></span>
-                                                    </small>
-                                                </div>
-                                                <div class="col-auto">
-                                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                                            onclick="effacerReservation()">
-                                                        <i class="bi bi-x"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Quantité -->
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Quantité *</label>
-                                    <input type="number" class="form-control" name="quantite" 
-                                           id="quantiteSortie"
-                                           min="1" required step="1" value="1"
-                                           onchange="verifierQuantite()">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Document référence</label>
-                                    <input type="text" class="form-control" name="documentRef"
-                                           placeholder="Ex: BL-2024-001, Commande CMD-123...">
-                                </div>
-                            </div>
-                            
-                            <!-- Destinataire (pour livraison client) -->
-                            <div id="sectionDestinataire" style="display: none;">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Client / Destinataire</label>
-                                        <input type="text" class="form-control" name="destinataire"
-                                               placeholder="Nom du client...">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Commande client</label>
-                                        <input type="text" class="form-control" name="commandeClientRef"
-                                               placeholder="Référence commande...">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Motif et observations -->
-                            <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <label class="form-label">Motif / Observations *</label>
-                                    <textarea class="form-control" name="motif" rows="3"
-                                              placeholder="Raison de la sortie..." required></textarea>
-                                </div>
-                            </div>
-                            
-                            <!-- Validation -->
-                            <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" 
-                                               id="validationDouble" name="validationDouble">
-                                        <label class="form-check-label" for="validationDouble">
-                                            <i class="bi bi-shield-check"></i>
-                                            Requiert validation double (pour sorties importantes)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Boutons -->
-                            <div class="row mt-4">
-                                <div class="col-md-6">
-                                    <button type="button" class="btn btn-outline-secondary w-100"
-                                            onclick="previsualiserSortie()">
-                                        <i class="bi bi-eye"></i> Prévisualiser
-                                    </button>
-                                </div>
-                                <div class="col-md-6">
-                                    <button type="submit" class="btn btn-danger w-100" id="btnSubmit">
-                                        <i class="bi bi-check-circle"></i> Enregistrer la sortie
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- Résumé prévisualisation -->
-                <div class="card mt-4" id="previsualisationSortie" style="display: none;">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-eye"></i> Prévisualisation
-                        </h5>
-                    </div>
-                    <div class="card-body" id="previewContentSortie">
-                        <!-- Contenu généré par JavaScript -->
-                    </div>
-                </div>
-            </div>
+        <div class="col-auto">
+          <a href="/stock/mouvements/journal" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Retour journal
+          </a>
+          <a
+            href="/stock/mouvements/entree"
+            class="btn btn-outline-success ms-2"
+          >
+            <i class="bi bi-box-arrow-in-down"></i> Entrée
+          </a>
         </div>
+      </div>
+
+      <!-- Formulaire principal -->
+      <div class="row">
+        <div class="col-lg-8 mx-auto">
+          <div class="card mouvement-card type-sortie">
+            <div class="card-header bg-danger text-white">
+              <h5 class="mb-0">
+                <i class="bi bi-dash-circle"></i> Nouvelle Sortie de Stock
+              </h5>
+            </div>
+            <div class="card-body">
+              <form
+                method="post"
+                action="/stock/mouvements/creer-sortie"
+                id="formSortie"
+              >
+                <!-- Type de mouvement -->
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Type de sortie *</label>
+                    <select
+                      class="form-select"
+                      name="typeMouvementId"
+                      required
+                      id="typeSortie"
+                      onchange="changerTypeSortie()"
+                    >
+                      <option value="">-- Sélectionner un type --</option>
+                      <option
+                        th:each="type : ${typesSortie}"
+                        th:value="${type.id}"
+                        th:text="${type.libelle}"
+                      >
+                        Livraison client
+                      </option>
+                    </select>
+                    <small class="form-text text-muted">
+                      Définit la nature de la sortie
+                    </small>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Date du mouvement *</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      name="dateMouvement"
+                      th:value="${aujourdhui}"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <hr />
+
+                <!-- Source de la sortie -->
+                <!-- Source de la sortie -->
+                <div class="row mb-3">
+                  <div class="col-md-12">
+                    <div class="form-check form-check-inline">
+                      <input
+                        class="form-check-input"
+                        type="radio"
+                        name="sourceType"
+                        id="sourceArticle"
+                        value="article"
+                        checked
+                      />
+                      <label class="form-check-label" for="sourceArticle">
+                        Par article
+                      </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input
+                        class="form-check-input"
+                        type="radio"
+                        name="sourceType"
+                        id="sourceLot"
+                        value="lot"
+                      />
+                      <label class="form-check-label" for="sourceLot">
+                        Par lot spécifique
+                      </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input
+                        class="form-check-input"
+                        type="radio"
+                        name="sourceType"
+                        id="sourceReservation"
+                        value="reservation"
+                      />
+                      <label class="form-check-label" for="sourceReservation">
+                        Depuis réservation
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Source : Article -->
+                <div id="sectionArticle" class="source-section">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Article *</label>
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="rechercheArticleSortie"
+                          placeholder="Code, libellé ou code barre..."
+                          autocomplete="off"
+                          onkeyup="rechercherArticlesSortie(this.value)"
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          onclick="ouvrirSelectionArticleSortie()"
+                        >
+                          <i class="bi bi-search"></i>
+                        </button>
+                      </div>
+                      <div
+                        id="resultatsArticlesSortie"
+                        class="auto-complete"
+                      ></div>
+                      <input
+                        type="hidden"
+                        name="articleId"
+                        id="articleIdSortie"
+                      />
+                      <div
+                        id="articleSelectionneSortie"
+                        class="mt-2 p-2 border rounded"
+                        style="display: none"
+                      >
+                        <strong id="articleCodeSortie"></strong>
+                        <br />
+                        <small id="articleLibelleSortie"></small>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-danger float-end"
+                          onclick="effacerArticleSortie()"
+                        >
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Dépôt source *</label>
+                      <select
+                        class="form-select"
+                        name="depotId"
+                        id="depotSortie"
+                        onchange="verifierStockDisponible()"
+                        required
+                      >
+                        <option value="">-- Sélectionner un dépôt --</option>
+                        <option
+                          th:each="depot : ${depots}"
+                          th:value="${depot.id}"
+                          th:text="${depot.nom}"
+                        >
+                          Entrepôt Central
+                        </option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Informations stock -->
+                  <div class="row mb-3" id="infoStock" style="display: none">
+                    <div class="col-md-12">
+                      <div class="alert" id="alertStock">
+                        <i class="bi bi-info-circle"></i>
+                        <span id="texteStock"></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Lots disponibles (si article géré par lot) -->
+                  <div id="sectionLotsDisponibles" style="display: none">
+                    <div class="row mb-3">
+                      <div class="col-md-12">
+                        <label class="form-label"
+                          >Sélectionner un lot (optionnel)</label
+                        >
+                        <div
+                          id="listeLots"
+                          class="border rounded p-2"
+                          style="max-height: 150px; overflow-y: auto"
+                        >
+                          <!-- Liste des lots générée par JavaScript -->
+                        </div>
+                        <small class="form-text text-muted">
+                          Si aucun lot sélectionné, allocation automatique
+                          FIFO/FEFO
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Source : Lot spécifique -->
+                <div
+                  id="sectionLotSpecifique"
+                  class="source-section"
+                  style="display: none"
+                >
+                  <div class="row mb-3">
+                    <div class="col-md-12">
+                      <label class="form-label">Numéro de lot *</label>
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="rechercheLot"
+                          placeholder="Numéro de lot..."
+                          autocomplete="off"
+                          onkeyup="rechercherLots(this.value)"
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          onclick="ouvrirSelectionLot()"
+                        >
+                          <i class="bi bi-search"></i>
+                        </button>
+                      </div>
+                      <div id="resultatsLots" class="auto-complete"></div>
+                      <input type="hidden" name="lotId" id="lotId" />
+                      <div
+                        id="lotSelectionne"
+                        class="mt-2 p-2 border rounded"
+                        style="display: none"
+                      >
+                        <div class="row">
+                          <div class="col">
+                            <strong id="lotNumero"></strong>
+                            <br />
+                            <small>
+                              Article: <span id="lotArticle"></span> | Quantité:
+                              <span id="lotQuantite"></span> | Péremption:
+                              <span id="lotPeremption"></span>
+                            </small>
+                          </div>
+                          <div class="col-auto">
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="effacerLot()"
+                            >
+                              <i class="bi bi-x"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Source : Réservation -->
+                <div
+                  id="sectionReservation"
+                  class="source-section"
+                  style="display: none"
+                >
+                  <div class="row mb-3">
+                    <div class="col-md-12">
+                      <label class="form-label">Référence réservation *</label>
+                      <div class="input-group">
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="rechercheReservation"
+                          placeholder="Référence réservation..."
+                          autocomplete="off"
+                          onkeyup="rechercherReservations(this.value)"
+                        />
+                        <button
+                          class="btn btn-outline-secondary"
+                          type="button"
+                          onclick="ouvrirSelectionReservation()"
+                        >
+                          <i class="bi bi-search"></i>
+                        </button>
+                      </div>
+                      <div
+                        id="resultatsReservations"
+                        class="auto-complete"
+                      ></div>
+                      <input
+                        type="hidden"
+                        name="reservationId"
+                        id="reservationId"
+                      />
+                      <div
+                        id="reservationSelectionnee"
+                        class="mt-2 p-2 border rounded"
+                        style="display: none"
+                      >
+                        <div class="row">
+                          <div class="col">
+                            <strong id="reservationReference"></strong>
+                            <br />
+                            <small>
+                              Article: <span id="reservationArticle"></span> |
+                              Quantité: <span id="reservationQuantite"></span> |
+                              Commande: <span id="reservationCommande"></span>
+                            </small>
+                          </div>
+                          <div class="col-auto">
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="effacerReservation()"
+                            >
+                              <i class="bi bi-x"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Quantité -->
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Quantité *</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      name="quantite"
+                      id="quantiteSortie"
+                      min="1"
+                      required
+                      step="1"
+                      value="1"
+                      onchange="verifierQuantite()"
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Document référence</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="documentRef"
+                      placeholder="Ex: BL-2024-001, Commande CMD-123..."
+                    />
+                  </div>
+                </div>
+
+                <!-- Destinataire (pour livraison client) -->
+                <div id="sectionDestinataire" style="display: none">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Client / Destinataire</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        name="destinataire"
+                        placeholder="Nom du client..."
+                      />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Commande client</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        name="commandeClientRef"
+                        placeholder="Référence commande..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Motif et observations -->
+                <div class="row mb-3">
+                  <div class="col-md-12">
+                    <label class="form-label">Motif / Observations *</label>
+                    <textarea
+                      class="form-control"
+                      name="motif"
+                      rows="3"
+                      placeholder="Raison de la sortie..."
+                      required
+                    ></textarea>
+                  </div>
+                </div>
+
+                <!-- Validation -->
+                <div class="row mb-3">
+                  <div class="col-md-12">
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="validationDouble"
+                        name="validationDouble"
+                      />
+                      <label class="form-check-label" for="validationDouble">
+                        <i class="bi bi-shield-check"></i>
+                        Requiert validation double (pour sorties importantes)
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Boutons -->
+                <div class="row mt-4">
+                  <div class="col-md-6">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary w-100"
+                      onclick="previsualiserSortie()"
+                    >
+                      <i class="bi bi-eye"></i> Prévisualiser
+                    </button>
+                  </div>
+                  <div class="col-md-6">
+                    <button
+                      type="submit"
+                      class="btn btn-danger w-100"
+                      id="btnSubmit"
+                    >
+                      <i class="bi bi-check-circle"></i> Enregistrer la sortie
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Résumé prévisualisation -->
+          <div
+            class="card mt-4"
+            id="previsualisationSortie"
+            style="display: none"
+          >
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-eye"></i> Prévisualisation</h5>
+            </div>
+            <div class="card-body" id="previewContentSortie">
+              <!-- Contenu généré par JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    
+
     <!-- Modals de sélection -->
     <div th:replace="~{stock/mouvements/modals :: modals}"></div>
-    
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Variables globales
-        let stockDisponible = 0;
-        let articleGestionLot = false;
-        let articleId = '';
-        let depotId = '';
-        let lotSelectionneId = '';
-        
-        // Changer source (article/lot/réservation)
-        function changerSource(source) {
-            // Masquer toutes les sections
-            document.querySelectorAll('.source-section').forEach(section => {
-                section.style.display = 'none';
-            });
-            
-            // Afficher la section sélectionnée
-            document.getElementById('section' + source.charAt(0).toUpperCase() + source.slice(1)).style.display = 'block';
-            
-            // Réinitialiser les champs cachés
-            if (source !== 'article') {
-                document.getElementById('articleIdSortie').value = '';
-            }
-            if (source !== 'lot') {
-                document.getElementById('lotId').value = '';
-            }
-            if (source !== 'reservation') {
-                document.getElementById('reservationId').value = '';
-            }
+      // Variables globales
+      let stockDisponible = 0;
+      let articleGestionLot = false;
+      let articleId = "";
+      let depotId = "";
+      let lotSelectionneId = "";
+
+      // ============================================
+      // FONCTIONS PRINCIPALES
+      // ============================================
+
+      // Changer source (article/lot/réservation)
+      function changerSource(source) {
+        console.log("Changer source vers:", source);
+
+        // Masquer toutes les sections
+        document.querySelectorAll(".source-section").forEach((section) => {
+          if (section) section.style.display = "none";
+        });
+
+        // Afficher la section sélectionnée
+        const sectionId =
+          "section" + source.charAt(0).toUpperCase() + source.slice(1);
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.style.display = "block";
         }
-        
-        // Changer type de sortie
-        function changerTypeSortie() {
-            const type = document.getElementById('typeSortie').value;
-            const sectionDestinataire = document.getElementById('sectionDestinataire');
-            
-            // Afficher section destinataire seulement pour livraison client
-            if (type === 'type_livraison_client') { // À adapter selon vos IDs
-                sectionDestinataire.style.display = 'block';
+
+        // Réinitialiser les champs cachés
+        if (source !== "article") {
+          const articleInput = document.getElementById("articleIdSortie");
+          if (articleInput) articleInput.value = "";
+        }
+        if (source !== "lot") {
+          const lotInput = document.getElementById("lotId");
+          if (lotInput) lotInput.value = "";
+        }
+        if (source !== "reservation") {
+          const reservationInput = document.getElementById("reservationId");
+          if (reservationInput) reservationInput.value = "";
+        }
+
+        // Gérer la validation du formulaire
+        gererValidationFormulaire();
+
+        // Masquer les résultats d'auto-complétion
+        masquerAutoComplete();
+      }
+
+      // Masquer toutes les zones d'auto-complétion
+      function masquerAutoComplete() {
+        const autoCompletes = document.querySelectorAll(".auto-complete");
+        autoCompletes.forEach((div) => {
+          if (div) div.style.display = "none";
+        });
+      }
+
+      // Gérer la validation du formulaire en fonction de la source
+      function gererValidationFormulaire() {
+        const sourceArticle = document.getElementById("sourceArticle");
+        const sourceLot = document.getElementById("sourceLot");
+        const sourceReservation = document.getElementById("sourceReservation");
+
+        const depotSelect = document.getElementById("depotSortie");
+
+        if (depotSelect) {
+          if (sourceArticle && sourceArticle.checked) {
+            // Pour "Par article", le dépôt est requis
+            depotSelect.required = true;
+            depotSelect.disabled = false;
+          } else if (sourceLot && sourceLot.checked) {
+            // Pour "Par lot", le dépôt n'est pas requis (déjà dans le lot)
+            depotSelect.required = false;
+            depotSelect.disabled = true;
+            depotSelect.value = "";
+          } else if (sourceReservation && sourceReservation.checked) {
+            // Pour "Réservation", le dépôt n'est pas requis (déjà dans la réservation)
+            depotSelect.required = false;
+            depotSelect.disabled = true;
+            depotSelect.value = "";
+          }
+        }
+      }
+
+      // Changer type de sortie
+      function changerTypeSortie() {
+        const typeSelect = document.getElementById("typeSortie");
+        const sectionDestinataire = document.getElementById(
+          "sectionDestinataire"
+        );
+
+        if (!typeSelect || !sectionDestinataire) return;
+
+        const type = typeSelect.value;
+
+        // Afficher section destinataire seulement pour livraison client
+        // Vous devez adapter cette logique selon vos IDs de type
+        if (type.includes("LIVRAISON") || type === "type_livraison_client") {
+          sectionDestinataire.style.display = "block";
+        } else {
+          sectionDestinataire.style.display = "none";
+        }
+      }
+
+      // ============================================
+      // GESTION ARTICLES - AVEC VRAIS APPELS API
+      // ============================================
+
+      function ouvrirSelectionArticleSortie() {
+        // Charger les articles via votre API
+        if (typeof chargerArticlesModal === "function") {
+          chargerArticlesModal(0);
+        }
+
+        // Afficher la modal via Bootstrap
+        const modalElement = document.getElementById(
+          "modalSelectionArticleSortie"
+        );
+        if (modalElement) {
+          const modal = new bootstrap.Modal(modalElement);
+          modal.show();
+        }
+      }
+
+      // Auto-complétion des articles - VRAI APPEL API
+      function rechercherArticlesSortie(terme) {
+        if (terme.length < 2) {
+          const container = document.getElementById("resultatsArticlesSortie");
+          if (container) container.style.display = "none";
+          return;
+        }
+
+        // VRAI APPEL API vers votre endpoint
+        fetch(
+          `/stock/mouvements/api/articles/autocomplete?search=${encodeURIComponent(
+            terme
+          )}`
+        )
+          .then((response) => {
+            if (!response.ok) throw new Error("Erreur réseau");
+            return response.json();
+          })
+          .then((articles) => {
+            const container = document.getElementById(
+              "resultatsArticlesSortie"
+            );
+            if (!container) return;
+
+            if (!articles || articles.length === 0) {
+              container.innerHTML =
+                '<div class="p-2 text-muted">Aucun article trouvé</div>';
+              container.style.display = "block";
+              return;
+            }
+
+            let html = "";
+            articles.forEach((article) => {
+              const stockClass =
+                article.stockDisponible > 0 ? "text-success" : "text-danger";
+              const stockText =
+                article.stockDisponible > 0
+                  ? `Stock: ${article.stockDisponible}`
+                  : "Stock insuffisant";
+
+              html += `
+                  <div class="p-2 border-bottom hover-bg" 
+                       style="cursor: pointer;"
+                       onclick="selectionnerArticleSortie('${article.id}', '${
+                article.code
+              }', '${article.libelle.replace(/'/g, "\\'")}', ${
+                article.gestionParLot
+              })">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <strong>${article.code}</strong> - ${article.libelle}
+                        <br>
+                        <small class="text-muted">
+                          Catégorie: ${article.categorie || "N/A"}
+                        </small>
+                      </div>
+                      <div class="text-end">
+                        <small class="${stockClass}">${stockText}</small>
+                      </div>
+                    </div>
+                  </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            container.style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Erreur recherche articles:", error);
+            const container = document.getElementById(
+              "resultatsArticlesSortie"
+            );
+            if (container) {
+              container.innerHTML =
+                '<div class="p-2 text-danger">Erreur lors de la recherche</div>';
+              container.style.display = "block";
+            }
+          });
+      }
+
+      function selectionnerArticleSortie(id, code, libelle, gestionParLot) {
+        articleId = id;
+        articleGestionLot = gestionParLot;
+
+        const articleIdInput = document.getElementById("articleIdSortie");
+        const articleCodeSpan = document.getElementById("articleCodeSortie");
+        const articleLibelleSpan = document.getElementById(
+          "articleLibelleSortie"
+        );
+        const articleSelectionDiv = document.getElementById(
+          "articleSelectionneSortie"
+        );
+
+        if (articleIdInput) articleIdInput.value = id;
+        if (articleCodeSpan) articleCodeSpan.textContent = code;
+        if (articleLibelleSpan) articleLibelleSpan.textContent = libelle;
+        if (articleSelectionDiv) articleSelectionDiv.style.display = "block";
+
+        // Masquer les résultats
+        const resultatsDiv = document.getElementById("resultatsArticlesSortie");
+        if (resultatsDiv) resultatsDiv.style.display = "none";
+
+        // Vérifier le stock si dépôt déjà sélectionné - VRAI APPEL API
+        if (depotId) {
+          verifierStockDisponible();
+        }
+
+        // Charger les lots si article géré par lot - VRAI APPEL API
+        if (gestionParLot && depotId) {
+          chargerLotsDisponibles();
+        }
+      }
+
+      function effacerArticleSortie() {
+        articleId = "";
+        articleGestionLot = false;
+
+        const articleIdInput = document.getElementById("articleIdSortie");
+        const articleSelectionDiv = document.getElementById(
+          "articleSelectionneSortie"
+        );
+        const infoStock = document.getElementById("infoStock");
+        const sectionLots = document.getElementById("sectionLotsDisponibles");
+        const rechercheInput = document.getElementById(
+          "rechercheArticleSortie"
+        );
+
+        if (articleIdInput) articleIdInput.value = "";
+        if (articleSelectionDiv) articleSelectionDiv.style.display = "none";
+        if (infoStock) infoStock.style.display = "none";
+        if (sectionLots) sectionLots.style.display = "none";
+        if (rechercheInput) rechercheInput.value = "";
+
+        const btnSubmit = document.getElementById("btnSubmit");
+        if (btnSubmit) btnSubmit.disabled = false;
+      }
+
+      // ============================================
+      // GESTION LOTS - AVEC VRAIS APPELS API
+      // ============================================
+
+      function ouvrirSelectionLot() {
+        if (typeof chargerLotsModal === "function") {
+          chargerLotsModal();
+        }
+
+        const modalElement = document.getElementById("modalSelectionLot");
+        if (modalElement) {
+          const modal = new bootstrap.Modal(modalElement);
+          modal.show();
+        }
+      }
+
+      // Recherche de lots - VRAI APPEL API
+      function rechercherLots(terme) {
+        if (terme.length < 2) {
+          const container = document.getElementById("resultatsLots");
+          if (container) container.style.display = "none";
+          return;
+        }
+
+        // VRAI APPEL API vers votre endpoint
+        fetch(
+          `/stock/mouvements/api/lots/rechercher?numeroLot=${encodeURIComponent(
+            terme
+          )}`
+        )
+          .then((response) => {
+            if (!response.ok) throw new Error("Erreur réseau");
+            return response.json();
+          })
+          .then((lots) => {
+            const container = document.getElementById("resultatsLots");
+            if (!container) return;
+
+            let html = "";
+            if (lots && lots.length > 0) {
+              lots.forEach((lot) => {
+                html += `
+                    <div class="p-2 border-bottom hover-bg" 
+                         style="cursor: pointer;"
+                         onclick="selectionnerLotModal('${lot.id}', '${
+                  lot.numeroLot
+                }', '${lot.articleLibelle || lot.articleCode}', ${
+                  lot.quantiteActuelle
+                }, '${lot.datePeremption}')">
+                      <div class="d-flex justify-content-between">
+                        <div>
+                          <strong>${lot.numeroLot}</strong>
+                          <br>
+                          <small class="text-muted">
+                            Article: ${
+                              lot.articleLibelle || lot.articleCode || "N/A"
+                            } | Quantité: ${lot.quantiteActuelle}
+                          </small>
+                        </div>
+                        <div class="text-end">
+                          <small>${
+                            lot.datePeremption
+                              ? new Date(lot.datePeremption).toLocaleDateString(
+                                  "fr-FR"
+                                )
+                              : "N/A"
+                          }</small>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+              });
             } else {
-                sectionDestinataire.style.display = 'none';
+              html = '<div class="p-2 text-muted">Aucun lot trouvé</div>';
             }
-        }
-        
-        // Gestion articles
-        function ouvrirSelectionArticleSortie() {
-            // Implémenter l'ouverture de modal (similaire à formulaire entrée)
-            alert('Modal de sélection article');
-        }
-        
-        function rechercherArticlesSortie(terme) {
-            // Simuler recherche AJAX
-            if (terme.length < 2) return;
-            
-            // Code similaire à formulaire entrée
-        }
-        
-        function selectionnerArticleSortie(id, code, libelle, gestionParLot) {
-            articleId = id;
-            articleGestionLot = gestionParLot;
-            
-            document.getElementById('articleIdSortie').value = id;
-            document.getElementById('articleCodeSortie').textContent = code;
-            document.getElementById('articleLibelleSortie').textContent = libelle;
-            document.getElementById('articleSelectionneSortie').style.display = 'block';
-            
-            // Vérifier le stock si dépôt déjà sélectionné
-            if (depotId) {
-                verifierStockDisponible();
+
+            container.innerHTML = html;
+            container.style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Erreur recherche lots:", error);
+            const container = document.getElementById("resultatsLots");
+            if (container) {
+              container.innerHTML =
+                '<div class="p-2 text-danger">Erreur lors de la recherche</div>';
+              container.style.display = "block";
             }
-            
-            // Charger les lots si article géré par lot
-            if (gestionParLot && depotId) {
-                chargerLotsDisponibles();
-            }
+          });
+      }
+
+      function selectionnerLotModal(id, numero, article, quantite, peremption) {
+        lotSelectionneId = id;
+
+        const lotIdInput = document.getElementById("lotId");
+        const lotNumeroSpan = document.getElementById("lotNumero");
+        const lotArticleSpan = document.getElementById("lotArticle");
+        const lotQuantiteSpan = document.getElementById("lotQuantite");
+        const lotPeremptionSpan = document.getElementById("lotPeremption");
+        const lotSelectionDiv = document.getElementById("lotSelectionne");
+
+        if (lotIdInput) lotIdInput.value = id;
+        if (lotNumeroSpan) lotNumeroSpan.textContent = numero;
+        if (lotArticleSpan) lotArticleSpan.textContent = article;
+        if (lotQuantiteSpan) lotQuantiteSpan.textContent = quantite;
+        if (lotPeremptionSpan) {
+          lotPeremptionSpan.textContent = peremption
+            ? new Date(peremption).toLocaleDateString("fr-FR")
+            : "N/A";
         }
-        
-        function effacerArticleSortie() {
-            articleId = '';
-            articleGestionLot = false;
-            document.getElementById('articleIdSortie').value = '';
-            document.getElementById('articleSelectionneSortie').style.display = 'none';
-            document.getElementById('infoStock').style.display = 'none';
-            document.getElementById('sectionLotsDisponibles').style.display = 'none';
+        if (lotSelectionDiv) lotSelectionDiv.style.display = "block";
+
+        // Masquer les résultats
+        const resultatsDiv = document.getElementById("resultatsLots");
+        if (resultatsDiv) resultatsDiv.style.display = "none";
+
+        // Mettre à jour la quantité max
+        const inputQuantite = document.getElementById("quantiteSortie");
+        if (inputQuantite) {
+          inputQuantite.max = quantite;
+          if (parseInt(inputQuantite.value) > quantite) {
+            inputQuantite.value = quantite;
+            verifierQuantite();
+          }
         }
-        
-        // Vérifier stock disponible
-        function verifierStockDisponible() {
-            depotId = document.getElementById('depotSortie').value;
-            
-            if (!articleId || !depotId) {
-                return;
-            }
-            
-            // Simuler appel API
-            fetch(`/api/stock/disponible?articleId=${articleId}&depotId=${depotId}`)
-                .then(response => response.json())
-                .then(data => {
-                    stockDisponible = data.quantiteDisponible || 0;
-                    const quantiteDemandee = parseInt(document.getElementById('quantiteSortie').value) || 1;
-                    
-                    const infoStock = document.getElementById('infoStock');
-                    const alertStock = document.getElementById('alertStock');
-                    const texteStock = document.getElementById('texteStock');
-                    
-                    infoStock.style.display = 'block';
-                    
-                    if (stockDisponible >= quantiteDemandee) {
-                        alertStock.className = 'alert alert-success';
-                        texteStock.innerHTML = `
-                            <i class="bi bi-check-circle"></i>
-                            Stock disponible: <span class="stock-disponible">${stockDisponible}</span> unités
-                            <br>
-                            <small>La sortie peut être effectuée</small>
-                        `;
-                        document.getElementById('btnSubmit').disabled = false;
-                    } else {
-                        alertStock.className = 'alert alert-danger';
-                        texteStock.innerHTML = `
-                            <i class="bi bi-exclamation-triangle"></i>
-                            Stock insuffisant! Disponible: <span class="stock-insuffisant">${stockDisponible}</span> unités
-                            <br>
-                            <small>Quantité demandée: ${quantiteDemandee}</small>
-                        `;
-                        document.getElementById('btnSubmit').disabled = true;
-                    }
-                    
-                    // Afficher section lots si article géré par lot
-                    if (articleGestionLot && stockDisponible > 0) {
-                        document.getElementById('sectionLotsDisponibles').style.display = 'block';
-                        chargerLotsDisponibles();
-                    }
-                });
+      }
+
+      function effacerLot() {
+        lotSelectionneId = "";
+
+        const lotIdInput = document.getElementById("lotId");
+        const lotSelectionDiv = document.getElementById("lotSelectionne");
+        const rechercheInput = document.getElementById("rechercheLot");
+
+        if (lotIdInput) lotIdInput.value = "";
+        if (lotSelectionDiv) lotSelectionDiv.style.display = "none";
+        if (rechercheInput) rechercheInput.value = "";
+
+        const inputQuantite = document.getElementById("quantiteSortie");
+        if (inputQuantite) {
+          inputQuantite.max = "";
         }
-        
-        // Charger lots disponibles
-        function chargerLotsDisponibles() {
-            if (!articleId || !depotId) return;
-            
-            // Simuler appel API
-            fetch(`/api/lots/disponibles?articleId=${articleId}&depotId=${depotId}`)
-                .then(response => response.json())
-                .then(lots => {
-                    const container = document.getElementById('listeLots');
-                    let html = '';
-                    
-                    if (lots.length === 0) {
-                        html = '<div class="text-center text-muted p-3">Aucun lot disponible</div>';
-                    } else {
-                        lots.forEach(lot => {
-                            const estSelectionne = lot.id === lotSelectionneId;
-                            html += `
-                                <div class="p-2 mb-1 border rounded ${estSelectionne ? 'lot-selectionne' : ''}" 
-                                     style="cursor: pointer;"
-                                     onclick="selectionnerLot('${lot.id}', '${lot.numero}', ${lot.quantite}, '${lot.datePeremption}')">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <strong>${lot.numero}</strong>
-                                            <br>
-                                            <small>
-                                                Quantité: ${lot.quantite} | 
-                                                Péremption: ${lot.datePeremption || 'N/A'}
-                                            </small>
-                                        </div>
-                                        ${estSelectionne ? '<i class="bi bi-check-circle text-success"></i>' : ''}
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    }
-                    
-                    container.innerHTML = html;
-                });
+      }
+
+      // ============================================
+      // GESTION RÉSERVATIONS - AVEC VRAIS APPELS API
+      // ============================================
+
+      function ouvrirSelectionReservation() {
+        if (typeof chargerReservationsModal === "function") {
+          chargerReservationsModal();
         }
-        
-        // Sélectionner un lot
-        function selectionnerLot(id, numero, quantite, peremption) {
-            lotSelectionneId = id;
-            document.querySelector('input[name="lotId"]').value = id;
-            
-            // Mettre en évidence visuellement
-            document.querySelectorAll('#listeLots > div').forEach(div => {
-                div.classList.remove('lot-selectionne');
-            });
-            event.currentTarget.classList.add('lot-selectionne');
-            
-            // Mettre à jour la quantité max
-            const inputQuantite = document.getElementById('quantiteSortie');
-            inputQuantite.max = quantite;
-            
-            if (parseInt(inputQuantite.value) > quantite) {
-                inputQuantite.value = quantite;
-                verifierQuantite();
-            }
-            
-            // Recharger la liste pour afficher la sélection
-            chargerLotsDisponibles();
+
+        const modalElement = document.getElementById(
+          "modalSelectionReservation"
+        );
+        if (modalElement) {
+          const modal = new bootstrap.Modal(modalElement);
+          modal.show();
         }
-        
-        // Vérifier quantité
-        function verifierQuantite() {
-            const quantite = parseInt(document.getElementById('quantiteSortie').value) || 0;
-            
-            if (lotSelectionneId) {
-                // Si lot spécifique sélectionné, vérifier quantité du lot
-                const lotDiv = document.querySelector('.lot-selectionne');
-                if (lotDiv) {
-                    const lotQuantite = parseInt(lotDiv.querySelector('small').textContent.match(/Quantité: (\d+)/)[1]);
-                    if (quantite > lotQuantite) {
-                        alert(`Quantité maximale pour ce lot: ${lotQuantite}`);
-                        document.getElementById('quantiteSortie').value = lotQuantite;
-                    }
+      }
+
+      // Recherche de réservations - VRAI APPEL API
+      function rechercherReservations(terme) {
+        if (terme.length < 2) {
+          const container = document.getElementById("resultatsReservations");
+          if (container) container.style.display = "none";
+          return;
+        }
+
+        // VRAI APPEL API vers votre endpoint
+        fetch(
+          `/stock/mouvements/api/reservations/rechercher?reference=${encodeURIComponent(
+            terme
+          )}&statut=ACTIVE`
+        )
+          .then((response) => {
+            if (!response.ok) throw new Error("Erreur réseau");
+            return response.json();
+          })
+          .then((reservations) => {
+            const container = document.getElementById("resultatsReservations");
+            if (!container) return;
+
+            let html = "";
+            if (reservations && reservations.length > 0) {
+              reservations.forEach((res) => {
+                const quantiteRestante =
+                  res.quantiteReservee - (res.quantitePrelevee || 0);
+
+                html += `
+                    <div class="p-2 border-bottom hover-bg" 
+                         style="cursor: pointer;"
+                         onclick="selectionnerReservationModal('${res.id}', '${
+                  res.reference
+                }', '${
+                  res.articleLibelle || res.articleCode
+                }', ${quantiteRestante}, '${res.commandeClientRef}')">
+                      <div class="d-flex justify-content-between">
+                        <div>
+                          <strong>${res.reference}</strong>
+                          <br>
+                          <small class="text-muted">
+                            Article: ${
+                              res.articleLibelle || res.articleCode || "N/A"
+                            } | Restant: ${quantiteRestante}/${
+                  res.quantiteReservee
                 }
-            } else if (stockDisponible > 0 && quantite > stockDisponible) {
-                alert(`Stock disponible insuffisant. Maximum: ${stockDisponible}`);
-                document.getElementById('quantiteSortie').value = stockDisponible;
+                          </small>
+                        </div>
+                        <div class="text-end">
+                          <small>${res.commandeClientRef || "N/A"}</small>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+              });
+            } else {
+              html =
+                '<div class="p-2 text-muted">Aucune réservation trouvée</div>';
             }
+
+            container.innerHTML = html;
+            container.style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Erreur recherche réservations:", error);
+            const container = document.getElementById("resultatsReservations");
+            if (container) {
+              container.innerHTML =
+                '<div class="p-2 text-danger">Erreur lors de la recherche</div>';
+              container.style.display = "block";
+            }
+          });
+      }
+
+      function selectionnerReservationModal(
+        id,
+        reference,
+        article,
+        quantiteRestante,
+        commande
+      ) {
+        const reservationIdInput = document.getElementById("reservationId");
+        const reservationReferenceSpan = document.getElementById(
+          "reservationReference"
+        );
+        const reservationArticleSpan =
+          document.getElementById("reservationArticle");
+        const reservationQuantiteSpan = document.getElementById(
+          "reservationQuantite"
+        );
+        const reservationCommandeSpan = document.getElementById(
+          "reservationCommande"
+        );
+        const reservationSelectionDiv = document.getElementById(
+          "reservationSelectionnee"
+        );
+
+        if (reservationIdInput) reservationIdInput.value = id;
+        if (reservationReferenceSpan)
+          reservationReferenceSpan.textContent = reference;
+        if (reservationArticleSpan)
+          reservationArticleSpan.textContent = article;
+        if (reservationQuantiteSpan)
+          reservationQuantiteSpan.textContent = quantiteRestante;
+        if (reservationCommandeSpan)
+          reservationCommandeSpan.textContent = commande || "N/A";
+        if (reservationSelectionDiv)
+          reservationSelectionDiv.style.display = "block";
+
+        // Masquer les résultats
+        const resultatsDiv = document.getElementById("resultatsReservations");
+        if (resultatsDiv) resultatsDiv.style.display = "none";
+
+        // Pré-remplir la quantité
+        const inputQuantite = document.getElementById("quantiteSortie");
+        if (inputQuantite) {
+          inputQuantite.value = quantiteRestante;
+          inputQuantite.max = quantiteRestante;
         }
-        
-        // Prévisualisation
-        function previsualiserSortie() {
-            const form = document.getElementById('formSortie');
-            const formData = new FormData(form);
-            
-            let sourceText = '';
-            if (document.getElementById('sourceArticle').checked) {
-                sourceText = `Article: ${document.getElementById('articleCodeSortie').textContent}`;
-            } else if (document.getElementById('sourceLot').checked) {
-                sourceText = `Lot: ${document.getElementById('lotNumero').textContent}`;
-            } else if (document.getElementById('sourceReservation').checked) {
-                sourceText = `Réservation: ${document.getElementById('reservationReference').textContent}`;
-            }
-            
-            let preview = `
-                <h6>Résumé de la sortie</h6>
-                <table class="table table-sm">
-                    <tr>
-                        <td><strong>Type:</strong></td>
-                        <td>${document.querySelector('select[name="typeMouvementId"] option:checked').textContent}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Source:</strong></td>
-                        <td>${sourceText}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Quantité:</strong></td>
-                        <td>${formData.get('quantite')} unités</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Stock disponible:</strong></td>
-                        <td>${stockDisponible} unités</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Date:</strong></td>
-                        <td>${formData.get('dateMouvement')}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Motif:</strong></td>
-                        <td>${formData.get('motif')}</td>
-                    </tr>
-                </table>
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    Cette sortie réduira immédiatement le stock disponible.
-                </div>
+      }
+
+      function effacerReservation() {
+        const reservationIdInput = document.getElementById("reservationId");
+        const reservationSelectionDiv = document.getElementById(
+          "reservationSelectionnee"
+        );
+        const rechercheInput = document.getElementById("rechercheReservation");
+
+        if (reservationIdInput) reservationIdInput.value = "";
+        if (reservationSelectionDiv)
+          reservationSelectionDiv.style.display = "none";
+        if (rechercheInput) rechercheInput.value = "";
+
+        const inputQuantite = document.getElementById("quantiteSortie");
+        if (inputQuantite) {
+          inputQuantite.value = 1;
+          inputQuantite.max = "";
+        }
+      }
+
+      // ============================================
+      // GESTION STOCK ET QUANTITÉ - AVEC VRAIS APPELS API
+      // ============================================
+
+      // Vérifier stock disponible - VRAI APPEL API
+      function verifierStockDisponible() {
+        const depotSelect = document.getElementById("depotSortie");
+        const articleInput = document.getElementById("articleIdSortie");
+
+        if (!depotSelect || !articleInput) return;
+
+        depotId = depotSelect.value;
+        articleId = articleInput.value;
+
+        if (!articleId || !depotId) {
+          return;
+        }
+
+        // Afficher indicateur de chargement
+        const infoStock = document.getElementById("infoStock");
+        if (infoStock) {
+          infoStock.style.display = "block";
+          infoStock.innerHTML = `
+              <div class="alert alert-info">
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                Vérification du stock en cours...
+              </div>
             `;
-            
-            document.getElementById('previewContentSortie').innerHTML = preview;
-            document.getElementById('previsualisationSortie').style.display = 'block';
         }
-        
-        // Validation avant soumission
-        document.getElementById('formSortie').addEventListener('submit', function(e) {
-            // Vérifier source sélectionnée
-            let sourceValide = false;
-            if (document.getElementById('sourceArticle').checked && document.getElementById('articleIdSortie').value) {
-                sourceValide = true;
-            } else if (document.getElementById('sourceLot').checked && document.getElementById('lotId').value) {
-                sourceValide = true;
-            } else if (document.getElementById('sourceReservation').checked && document.getElementById('reservationId').value) {
-                sourceValide = true;
+
+        // VRAI APPEL API vers votre endpoint
+        fetch(
+          `/stock/mouvements/api/stock/disponible?articleId=${articleId}&depotId=${depotId}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            stockDisponible = data.quantiteDisponible || 0;
+            const quantiteInput = document.getElementById("quantiteSortie");
+            const quantiteDemandee = quantiteInput
+              ? parseInt(quantiteInput.value) || 1
+              : 1;
+
+            if (infoStock) {
+              let alertHtml = "";
+
+              if (data.success) {
+                if (stockDisponible >= quantiteDemandee) {
+                  alertHtml = `
+                      <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        <strong>Stock disponible:</strong> <span class="stock-disponible">${stockDisponible}</span> unités
+                        <br>
+                        <small>La sortie peut être effectuée</small>
+                      </div>
+                    `;
+
+                  const btnSubmit = document.getElementById("btnSubmit");
+                  if (btnSubmit) btnSubmit.disabled = false;
+                } else {
+                  alertHtml = `
+                      <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Stock insuffisant!</strong> Disponible: <span class="stock-insuffisant">${stockDisponible}</span> unités
+                        <br>
+                        <small>Quantité demandée: ${quantiteDemandee}</small>
+                      </div>
+                    `;
+
+                  const btnSubmit = document.getElementById("btnSubmit");
+                  if (btnSubmit) btnSubmit.disabled = true;
+                }
+              } else {
+                alertHtml = `
+                    <div class="alert alert-warning">
+                      <i class="bi bi-exclamation-triangle"></i>
+                      <strong>Erreur de vérification:</strong> ${
+                        data.error || "Impossible de vérifier le stock"
+                      }
+                    </div>
+                  `;
+              }
+
+              infoStock.innerHTML = alertHtml;
             }
-            
-            if (!sourceValide) {
-                e.preventDefault();
-                alert('Veuillez sélectionner une source valide (article, lot ou réservation)');
-                return;
+
+            // Charger les lots disponibles si article géré par lot - VRAI APPEL API
+            if (articleGestionLot && stockDisponible > 0) {
+              chargerLotsDisponibles();
+            } else {
+              const sectionLots = document.getElementById(
+                "sectionLotsDisponibles"
+              );
+              if (sectionLots) sectionLots.style.display = "none";
             }
-            
-            // Vérifier stock disponible
-            const quantite = parseInt(document.getElementById('quantiteSortie').value) || 0;
-            if (stockDisponible < quantite && !document.getElementById('sourceReservation').checked) {
-                e.preventDefault();
-                alert('Stock insuffisant pour effectuer cette sortie');
-                return;
+          })
+          .catch((error) => {
+            console.error("Erreur vérification stock:", error);
+            if (infoStock) {
+              infoStock.innerHTML = `
+                  <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Erreur lors de la vérification du stock
+                  </div>
+                `;
             }
-            
-            if (!confirm('Confirmer la création de cette sortie de stock ?')) {
-                e.preventDefault();
+          });
+      }
+
+      // Charger lots disponibles - VRAI APPEL API
+      function chargerLotsDisponibles() {
+        if (!articleId || !depotId) return;
+
+        const container = document.getElementById("listeLots");
+        if (!container) return;
+
+        // Afficher indicateur de chargement
+        container.innerHTML = `
+            <div class="text-center p-3">
+              <div class="spinner-border spinner-border-sm" role="status"></div>
+              Chargement des lots...
+            </div>
+          `;
+
+        // VRAI APPEL API vers votre endpoint
+        fetch(
+          `/stock/mouvements/api/lots/disponibles?articleId=${articleId}&depotId=${depotId}`
+        )
+          .then((response) => response.json())
+          .then((lots) => {
+            let html = "";
+
+            if (!lots || lots.length === 0) {
+              html =
+                '<div class="text-center text-muted p-3">Aucun lot disponible</div>';
+            } else {
+              lots.forEach((lot) => {
+                const estSelectionne = lot.id === lotSelectionneId;
+                html += `
+                    <div class="p-2 mb-1 border rounded ${
+                      estSelectionne ? "lot-selectionne" : ""
+                    }" 
+                         style="cursor: pointer;"
+                         onclick="selectionnerLotDirect('${lot.id}', '${
+                  lot.numeroLot || lot.numero
+                }', ${lot.quantiteActuelle || lot.quantite}, '${
+                  lot.datePeremption
+                }')">
+                      <div class="d-flex justify-content-between">
+                        <div>
+                          <strong>${lot.numeroLot || lot.numero}</strong>
+                          <br>
+                          <small>
+                            Quantité: ${lot.quantiteActuelle || lot.quantite} | 
+                            Péremption: ${
+                              lot.datePeremption
+                                ? new Date(
+                                    lot.datePeremption
+                                  ).toLocaleDateString("fr-FR")
+                                : "N/A"
+                            }
+                          </small>
+                        </div>
+                        ${
+                          estSelectionne
+                            ? '<i class="bi bi-check-circle text-success"></i>'
+                            : ""
+                        }
+                      </div>
+                    </div>
+                  `;
+              });
             }
+
+            container.innerHTML = html;
+
+            // Afficher la section
+            const sectionLots = document.getElementById(
+              "sectionLotsDisponibles"
+            );
+            if (sectionLots) sectionLots.style.display = "block";
+          })
+          .catch((error) => {
+            console.error("Erreur chargement lots:", error);
+            container.innerHTML = `
+                <div class="text-center text-danger p-3">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  Erreur lors du chargement des lots
+                </div>
+              `;
+          });
+      }
+
+      // Sélectionner un lot directement depuis la liste
+      function selectionnerLotDirect(id, numero, quantite, peremption) {
+        lotSelectionneId = id;
+
+        const lotIdInput = document.getElementById("lotId");
+        if (lotIdInput) lotIdInput.value = id;
+
+        // Mettre à jour la quantité max
+        const inputQuantite = document.getElementById("quantiteSortie");
+        if (inputQuantite) {
+          inputQuantite.max = quantite;
+          if (parseInt(inputQuantite.value) > quantite) {
+            inputQuantite.value = quantite;
+            verifierQuantite();
+          }
+        }
+
+        // Recharger la liste pour afficher la sélection
+        chargerLotsDisponibles();
+      }
+
+      // Vérifier quantité
+      function verifierQuantite() {
+        const quantiteInput = document.getElementById("quantiteSortie");
+        if (!quantiteInput) return;
+
+        const quantite = parseInt(quantiteInput.value) || 0;
+
+        if (quantite <= 0) {
+          quantiteInput.value = 1;
+          return;
+        }
+
+        if (lotSelectionneId) {
+          // Si lot spécifique sélectionné, vérifier quantité du lot
+          const lotSelectionne = document.querySelector(".lot-selectionne");
+          if (lotSelectionne) {
+            const lotText = lotSelectionne.querySelector("small").textContent;
+            const match = lotText.match(/Quantité: (\d+)/);
+            if (match) {
+              const lotQuantite = parseInt(match[1]);
+              if (quantite > lotQuantite) {
+                alert(`Quantité maximale pour ce lot: ${lotQuantite}`);
+                quantiteInput.value = lotQuantite;
+              }
+            }
+          }
+        } else if (stockDisponible > 0 && quantite > stockDisponible) {
+          alert(`Stock disponible insuffisant. Maximum: ${stockDisponible}`);
+          quantiteInput.value = stockDisponible;
+        }
+      }
+
+      // ============================================
+      // PRÉVISUALISATION
+      // ============================================
+
+      function previsualiserSortie() {
+        const form = document.getElementById("formSortie");
+        if (!form) return;
+
+        const formData = new FormData(form);
+
+        let sourceText = "";
+        const sourceArticle = document.getElementById("sourceArticle");
+        const sourceLot = document.getElementById("sourceLot");
+        const sourceReservation = document.getElementById("sourceReservation");
+
+        if (sourceArticle && sourceArticle.checked) {
+          const articleCode = document.getElementById("articleCodeSortie");
+          sourceText = `Article: ${
+            articleCode ? articleCode.textContent : "Non sélectionné"
+          }`;
+        } else if (sourceLot && sourceLot.checked) {
+          const lotNumero = document.getElementById("lotNumero");
+          sourceText = `Lot: ${
+            lotNumero ? lotNumero.textContent : "Non sélectionné"
+          }`;
+        } else if (sourceReservation && sourceReservation.checked) {
+          const reservationRef = document.getElementById(
+            "reservationReference"
+          );
+          sourceText = `Réservation: ${
+            reservationRef ? reservationRef.textContent : "Non sélectionnée"
+          }`;
+        }
+
+        const typeSelect = document.querySelector(
+          'select[name="typeMouvementId"]'
+        );
+        const typeText = typeSelect
+          ? typeSelect.options[typeSelect.selectedIndex].text
+          : "Non sélectionné";
+
+        let preview = `
+            <h6>Résumé de la sortie</h6>
+            <table class="table table-sm">
+              <tr>
+                <td><strong>Type:</strong></td>
+                <td>${typeText}</td>
+              </tr>
+              <tr>
+                <td><strong>Source:</strong></td>
+                <td>${sourceText}</td>
+              </tr>
+              <tr>
+                <td><strong>Quantité:</strong></td>
+                <td>${formData.get("quantite") || 1} unités</td>
+              </tr>
+              <tr>
+                <td><strong>Stock disponible:</strong></td>
+                <td>${stockDisponible} unités</td>
+              </tr>
+              <tr>
+                <td><strong>Date:</strong></td>
+                <td>${
+                  formData.get("dateMouvement") ||
+                  new Date().toLocaleDateString("fr-FR")
+                }</td>
+              </tr>
+              <tr>
+                <td><strong>Motif:</strong></td>
+                <td>${formData.get("motif") || "Non spécifié"}</td>
+              </tr>
+            </table>
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle"></i>
+              Cette sortie réduira immédiatement le stock disponible.
+            </div>
+          `;
+
+        const previewContent = document.getElementById("previewContentSortie");
+        const previewDiv = document.getElementById("previsualisationSortie");
+
+        if (previewContent) previewContent.innerHTML = preview;
+        if (previewDiv) previewDiv.style.display = "block";
+      }
+
+      // ============================================
+      // VALIDATION FORMULAIRE
+      // ============================================
+
+      function validerFormulaire(e) {
+        e.preventDefault();
+
+        // Vérifier source sélectionnée
+        let sourceValide = false;
+        const sourceArticle = document.getElementById("sourceArticle");
+        const sourceLot = document.getElementById("sourceLot");
+        const sourceReservation = document.getElementById("sourceReservation");
+
+        if (sourceArticle && sourceArticle.checked) {
+          const articleId = document.getElementById("articleIdSortie");
+          if (articleId && articleId.value) {
+            sourceValide = true;
+          }
+        } else if (sourceLot && sourceLot.checked) {
+          const lotId = document.getElementById("lotId");
+          if (lotId && lotId.value) {
+            sourceValide = true;
+          }
+        } else if (sourceReservation && sourceReservation.checked) {
+          const reservationId = document.getElementById("reservationId");
+          if (reservationId && reservationId.value) {
+            sourceValide = true;
+          }
+        }
+
+        if (!sourceValide) {
+          alert(
+            "Veuillez sélectionner une source valide (article, lot ou réservation)"
+          );
+          return false;
+        }
+
+        // Vérifier stock disponible pour les articles (pas pour les réservations)
+        if (sourceArticle && sourceArticle.checked) {
+          const quantite =
+            parseInt(document.getElementById("quantiteSortie")?.value) || 0;
+          if (stockDisponible < quantite) {
+            alert("Stock insuffisant pour effectuer cette sortie");
+            return false;
+          }
+        }
+
+        // Demander confirmation
+        if (confirm("Confirmer la création de cette sortie de stock ?")) {
+          this.submit();
+        }
+      }
+
+      // ============================================
+      // INITIALISATION
+      // ============================================
+
+      // Initialiser les événements
+      function initialiserEvenements() {
+        console.log("Initialisation des événements...");
+
+        // Boutons radio source
+        const sourceArticle = document.getElementById("sourceArticle");
+        const sourceLot = document.getElementById("sourceLot");
+        const sourceReservation = document.getElementById("sourceReservation");
+
+        if (sourceArticle) {
+          sourceArticle.addEventListener("change", function () {
+            if (this.checked) changerSource("article");
+          });
+        }
+
+        if (sourceLot) {
+          sourceLot.addEventListener("change", function () {
+            if (this.checked) changerSource("lot");
+          });
+        }
+
+        if (sourceReservation) {
+          sourceReservation.addEventListener("change", function () {
+            if (this.checked) changerSource("reservation");
+          });
+        }
+
+        // Type de sortie
+        const typeSortieSelect = document.getElementById("typeSortie");
+        if (typeSortieSelect) {
+          typeSortieSelect.addEventListener("change", changerTypeSortie);
+        }
+
+        // Bouton recherche article
+        const btnRechercheArticle = document.querySelector(
+          'button[onclick*="ouvrirSelectionArticleSortie"]'
+        );
+        if (btnRechercheArticle) {
+          btnRechercheArticle.addEventListener(
+            "click",
+            ouvrirSelectionArticleSortie
+          );
+          btnRechercheArticle.removeAttribute("onclick");
+        }
+
+        // Input recherche article
+        const rechercheArticleInput = document.getElementById(
+          "rechercheArticleSortie"
+        );
+        if (rechercheArticleInput) {
+          rechercheArticleInput.addEventListener("keyup", function (e) {
+            rechercherArticlesSortie(this.value);
+          });
+        }
+
+        // Input recherche lot
+        const rechercheLotInput = document.getElementById("rechercheLot");
+        if (rechercheLotInput) {
+          rechercheLotInput.addEventListener("keyup", function (e) {
+            rechercherLots(this.value);
+          });
+        }
+
+        // Input recherche réservation
+        const rechercheReservationInput = document.getElementById(
+          "rechercheReservation"
+        );
+        if (rechercheReservationInput) {
+          rechercheReservationInput.addEventListener("keyup", function (e) {
+            rechercherReservations(this.value);
+          });
+        }
+
+        // Dépôt
+        const depotSelect = document.getElementById("depotSortie");
+        if (depotSelect) {
+          depotSelect.addEventListener("change", verifierStockDisponible);
+        }
+
+        // Quantité
+        const quantiteInput = document.getElementById("quantiteSortie");
+        if (quantiteInput) {
+          quantiteInput.addEventListener("change", verifierQuantite);
+          quantiteInput.addEventListener("input", verifierQuantite);
+        }
+
+        // Effacer article
+        const btnEffacerArticle = document.querySelector(
+          'button[onclick*="effacerArticleSortie"]'
+        );
+        if (btnEffacerArticle) {
+          btnEffacerArticle.addEventListener("click", effacerArticleSortie);
+          btnEffacerArticle.removeAttribute("onclick");
+        }
+
+        // Effacer lot
+        const btnEffacerLot = document.querySelector(
+          'button[onclick*="effacerLot"]'
+        );
+        if (btnEffacerLot) {
+          btnEffacerLot.addEventListener("click", effacerLot);
+          btnEffacerLot.removeAttribute("onclick");
+        }
+
+        // Effacer réservation
+        const btnEffacerReservation = document.querySelector(
+          'button[onclick*="effacerReservation"]'
+        );
+        if (btnEffacerReservation) {
+          btnEffacerReservation.addEventListener("click", effacerReservation);
+          btnEffacerReservation.removeAttribute("onclick");
+        }
+
+        // Prévisualisation
+        const btnPrevisualiser = document.querySelector(
+          'button[onclick*="previsualiserSortie"]'
+        );
+        if (btnPrevisualiser) {
+          btnPrevisualiser.addEventListener("click", previsualiserSortie);
+          btnPrevisualiser.removeAttribute("onclick");
+        }
+
+        // Validation formulaire
+        const form = document.getElementById("formSortie");
+        if (form) {
+          form.addEventListener("submit", validerFormulaire);
+        }
+
+        // Clic en dehors pour masquer les auto-complétions
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest(".auto-complete")) {
+            masquerAutoComplete();
+          }
         });
-        
-        // Initialiser
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialiser avec source article par défaut
-            changerSource('article');
-        });
+      }
+
+      // Initialisation au chargement
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM chargé, initialisation en cours...");
+
+        // Initialiser les événements
+        initialiserEvenements();
+
+        // Initialiser avec source article par défaut
+        setTimeout(() => {
+          changerSource("article");
+          changerTypeSortie();
+        }, 100);
+
+        console.log("Initialisation terminée.");
+      });
     </script>
-</body>
+  </body>
 </html>

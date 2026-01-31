@@ -1,0 +1,376 @@
+<!-- preparation.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">Préparation Réservation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+    <div class="container-fluid vh-100">
+        <div class="row h-100">
+            <!-- Barre latérale info -->
+            <div class="col-md-3 bg-white border-end p-4">
+                <div class="text-center mb-4">
+                    <h1 class="h4">
+                        <i class="bi bi-clipboard-check text-primary"></i><br>
+                        Préparation
+                    </h1>
+                    <div class="badge bg-info fs-6" th:text="${reservation.reference}">RES-2024-0001</div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-box"></i> Article
+                        </h6>
+                        <p class="mb-1">
+                            <strong th:text="${reservation.articleCode}">ART-001</strong>
+                        </p>
+                        <small class="text-muted" th:text="${reservation.articleLibelle}">Produit</small>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-building"></i> Dépôt
+                        </h6>
+                        <p th:text="${reservation.depotNom}">Dépôt Central</p>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-123"></i> Quantités
+                        </h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar" 
+                                 role="progressbar" 
+                                 th:style="'width: ' + ${(reservation.quantitePrelevee / reservation.quantiteReservee) * 100} + '%;'"
+                                 th:aria-valuenow="${(reservation.quantitePrelevee / reservation.quantiteReservee) * 100}"
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                <span th:text="${(reservation.quantitePrelevee / reservation.quantiteReservee) * 100}">0</span>%
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Prélevé: <span th:text="${reservation.quantitePrelevee}">0</span></small>
+                            <small>Total: <span th:text="${reservation.quantiteReservee}">10</span></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div th:if="${reservation.lotNumero}" class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-tag"></i> Lot Alloué
+                        </h6>
+                        <p class="mb-0">
+                            <span class="badge bg-secondary" th:text="${reservation.lotNumero}">LOT-001</span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <a th:href="@{/stock/reservations/details/__${reservation.id}__}" 
+                       class="btn btn-outline-secondary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Retour aux détails
+                    </a>
+                    <a th:href="@{/stock/reservations/liste}" class="btn btn-secondary w-100">
+                        <i class="bi bi-list"></i> Liste des réservations
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Zone principale - Scanner -->
+            <div class="col-md-6 p-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h2 class="card-title mb-4">
+                            <i class="bi bi-upc-scan"></i> Scanner le Lot
+                        </h2>
+                        
+                        <!-- Scanner -->
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+                            <div class="text-center mb-4">
+                                <div class="display-1 text-muted mb-3">
+                                    <i class="bi bi-upc-scan"></i>
+                                </div>
+                                <h3>Scannez le code-barres du lot</h3>
+                                <p class="text-muted">
+                                    Positionnez le code-barres devant la caméra
+                                </p>
+                            </div>
+                            
+                            <!-- Zone scanner simulée -->
+                            <div class="border rounded p-4 mb-4" style="width: 300px; height: 200px; background: #f8f9fa;">
+                                <div class="text-center text-muted h-100 d-flex flex-column justify-content-center">
+                                    <i class="bi bi-camera" style="font-size: 3rem;"></i>
+                                    <small>Zone scanner</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Ou saisie manuelle -->
+                            <div class="w-100" style="max-width: 400px;">
+                                <div class="input-group mb-3">
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           id="scanInput" 
+                                           placeholder="Saisir le numéro de lot..."
+                                           autofocus>
+                                    <button class="btn btn-primary btn-lg" type="button" onclick="validerScan()">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text text-center">
+                                    <i class="bi bi-info-circle"></i>
+                                    Appuyez sur Entrée pour valider
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Résultat scan -->
+                        <div id="scanResult" class="d-none">
+                            <div class="alert" id="scanAlert">
+                                <div id="scanMessage"></div>
+                                <div id="scanDetails" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zone historique -->
+            <div class="col-md-3 bg-white border-start p-4">
+                <h3 class="h5 mb-3">
+                    <i class="bi bi-clock-history"></i> Historique
+                </h3>
+                
+                <div class="list-group" id="scanHistory">
+                    <!-- Les scans apparaîtront ici -->
+                    <div class="list-group-item text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-0">Aucun scan enregistré</p>
+                    </div>
+                </div>
+                
+                <!-- Statistiques -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-graph-up"></i> Statistiques
+                        </h6>
+                        <ul class="list-unstyled mb-0">
+                            <li class="d-flex justify-content-between py-1">
+                                <span>Scans réussis:</span>
+                                <span class="badge bg-success" id="successScans">0</span>
+                            </li>
+                            <li class="d-flex justify-content-between py-1">
+                                <span>Erreurs:</span>
+                                <span class="badge bg-danger" id="errorScans">0</span>
+                            </li>
+                            <li class="d-flex justify-content-between py-1">
+                                <span>Temps moyen:</span>
+                                <span id="avgTime">0s</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Actions rapides -->
+                <div class="mt-4">
+                    <button class="btn btn-success w-100 mb-2" onclick="finaliserPreparation()">
+                        <i class="bi bi-check-circle"></i> Finaliser Préparation
+                    </button>
+                    <button class="btn btn-outline-danger w-100" onclick="annulerPreparation()">
+                        <i class="bi bi-x-circle"></i> Annuler
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let scanHistory = [];
+        let successCount = 0;
+        let errorCount = 0;
+        let totalTime = 0;
+        
+        document.getElementById('scanInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                validerScan();
+            }
+        });
+        
+        function validerScan() {
+            const input = document.getElementById('scanInput');
+            const lotNumero = input.value.trim();
+            
+            if (!lotNumero) {
+                showScanResult('error', 'Veuillez saisir un numéro de lot');
+                return;
+            }
+            
+            const startTime = Date.now();
+            
+            // Simuler appel API
+            setTimeout(() => {
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                // Vérifier si c'est le bon lot (simulation)
+                const expectedLot = document.querySelector('[th\\:text="${reservation.lotNumero}"]')?.textContent;
+                const isValid = !expectedLot || lotNumero.includes(expectedLot.substring(0, 5));
+                
+                if (isValid) {
+                    successCount++;
+                    showScanResult('success', `Lot ${lotNumero} validé avec succès`);
+                    addToHistory(lotNumero, 'success', duration);
+                    
+                    // Mettre à jour la progression
+                    updateProgress();
+                } else {
+                    errorCount++;
+                    showScanResult('error', `Lot ${lotNumero} ne correspond pas`);
+                    addToHistory(lotNumero, 'error', duration);
+                }
+                
+                updateStats();
+                input.value = '';
+                input.focus();
+                
+            }, 500);
+        }
+        
+        function showScanResult(type, message) {
+            const resultDiv = document.getElementById('scanResult');
+            const alertDiv = document.getElementById('scanAlert');
+            const messageDiv = document.getElementById('scanMessage');
+            
+            resultDiv.classList.remove('d-none');
+            
+            if (type === 'success') {
+                alertDiv.className = 'alert alert-success';
+                messageDiv.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+            } else {
+                alertDiv.className = 'alert alert-danger';
+                messageDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${message}`;
+            }
+            
+            // Masquer après 3 secondes
+            setTimeout(() => {
+                resultDiv.classList.add('d-none');
+            }, 3000);
+        }
+        
+        function addToHistory(lotNumero, status, duration) {
+            scanHistory.unshift({
+                lotNumero,
+                status,
+                duration,
+                timestamp: new Date().toLocaleTimeString()
+            });
+            
+            // Limiter à 10 éléments
+            if (scanHistory.length > 10) {
+                scanHistory.pop();
+            }
+            
+            updateHistoryDisplay();
+        }
+        
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('scanHistory');
+            
+            if (scanHistory.length === 0) {
+                historyDiv.innerHTML = `
+                    <div class="list-group-item text-center text-muted">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-0">Aucun scan enregistré</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            historyDiv.innerHTML = scanHistory.map(item => `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${item.lotNumero}</strong>
+                            <div class="small text-muted">${item.timestamp}</div>
+                        </div>
+                        <div>
+                            <span class="badge bg-${item.status === 'success' ? 'success' : 'danger'}">
+                                ${item.status === 'success' ? '✓' : '✗'}
+                            </span>
+                            <small class="text-muted ms-2">${item.duration.toFixed(1)}s</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateProgress() {
+            // Simuler l'augmentation de la progression
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const currentWidth = parseFloat(progressBar.style.width) || 0;
+                const newWidth = Math.min(currentWidth + 10, 100);
+                progressBar.style.width = newWidth + '%';
+                progressBar.setAttribute('aria-valuenow', newWidth);
+                progressBar.innerHTML = newWidth.toFixed(0) + '%';
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('successScans').textContent = successCount;
+            document.getElementById('errorScans').textContent = errorCount;
+            
+            const totalScans = successCount + errorCount;
+            if (totalScans > 0) {
+                document.getElementById('avgTime').textContent = (totalTime / totalScans).toFixed(1) + 's';
+            }
+        }
+        
+        function finaliserPreparation() {
+            if (confirm('Finaliser la préparation ? Cette action marquera la réservation comme prélevée.')) {
+                // Ici, appeler l'API pour marquer comme prélevée
+                const quantiteReservee = parseInt(document.querySelector('[th\\:text="${reservation.quantiteReservee}"]')?.textContent || 0);
+                
+                fetch('/stock/reservations/prelever/${reservation.id}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `quantitePrelevee=${quantiteReservee}`
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Préparation finalisée avec succès');
+                        window.location.href = '/stock/reservations/details/${reservation.id}';
+                    } else {
+                        alert('Erreur lors de la finalisation');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur réseau');
+                });
+            }
+        }
+        
+        function annulerPreparation() {
+            if (confirm('Annuler la préparation ?')) {
+                window.location.href = '/stock/reservations/details/${reservation.id}';
+            }
+        }
+        
+        // Initialiser
+        updateHistoryDisplay();
+    </script>
+</body>
+</html>

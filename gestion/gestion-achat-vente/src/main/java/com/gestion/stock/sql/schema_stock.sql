@@ -596,12 +596,14 @@ CREATE INDEX idx_utilisateurs_actif ON utilisateurs(actif) WHERE actif = TRUE;
 -- PARTIE 10 : TRIGGERS ET CONTRAINTES
 -- ============================================================================
 
--- Trigger pour mettre à jour le stock lors d'un mouvement
+-- Remplacer la fonction update_stock_after_movement par cette version corrigée
 CREATE OR REPLACE FUNCTION update_stock_after_movement()
 RETURNS TRIGGER AS $$
 DECLARE
     v_sens VARCHAR(10);
     v_nouvelle_quantite INTEGER;
+    v_existing_theorique INTEGER;
+    v_existing_physique INTEGER;
 BEGIN
     -- Récupérer le sens du mouvement
     SELECT sens INTO v_sens 
@@ -615,14 +617,47 @@ BEGIN
         v_nouvelle_quantite := -NEW.quantite;
     END IF;
     
-    -- Mettre à jour ou insérer le stock
-    INSERT INTO stocks (article_id, depot_id, quantite_theorique, quantite_physique, date_dernier_mouvement)
-    VALUES (NEW.article_id, NEW.depot_id, v_nouvelle_quantite, v_nouvelle_quantite, NEW.date_mouvement)
-    ON CONFLICT (article_id, depot_id) 
-    DO UPDATE SET 
-        quantite_theorique = stocks.quantite_theorique + v_nouvelle_quantite,
-        date_dernier_mouvement = NEW.date_mouvement,
-        updated_at = CURRENT_TIMESTAMP;
+    -- Récupérer les quantités existantes si elles existent
+    SELECT quantite_theorique, quantite_physique 
+    INTO v_existing_theorique, v_existing_physique
+    FROM stocks 
+    WHERE article_id = NEW.article_id 
+      AND depot_id = NEW.depot_id;
+    
+    -- Si pas de stock existant et c'est une sortie, initialiser à 0
+    IF NOT FOUND AND v_sens = 'SORTIE' THEN
+        v_existing_theorique := 0;
+        v_existing_physique := 0;
+    END IF;
+    
+    -- Calculer les nouvelles valeurs
+    IF FOUND OR (NOT FOUND AND v_sens = 'SORTIE') THEN
+        -- Stock existe déjà OU c'est une sortie sans stock
+        UPDATE stocks 
+        SET 
+            quantite_theorique = GREATEST(v_existing_theorique + v_nouvelle_quantite, 0),
+            quantite_physique = GREATEST(v_existing_physique + v_nouvelle_quantite, 0),
+            date_dernier_mouvement = NEW.date_mouvement,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE article_id = NEW.article_id 
+          AND depot_id = NEW.depot_id;
+    ELSE
+        -- Pas de stock existant et c'est une entrée
+        INSERT INTO stocks (
+            article_id, 
+            depot_id, 
+            quantite_theorique, 
+            quantite_physique, 
+            date_dernier_mouvement
+        )
+        VALUES (
+            NEW.article_id, 
+            NEW.depot_id, 
+            GREATEST(v_nouvelle_quantite, 0), 
+            GREATEST(v_nouvelle_quantite, 0), 
+            NEW.date_mouvement
+        );
+    END IF;
     
     RETURN NEW;
 END;

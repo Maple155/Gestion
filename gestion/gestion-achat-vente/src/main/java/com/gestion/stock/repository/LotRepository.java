@@ -176,4 +176,15 @@ public interface LotRepository extends JpaRepository<Lot, UUID> {
        @Query("SELECT COALESCE(SUM(l.quantiteActuelle * l.coutUnitaire), 0) FROM Lot l " +
                      "WHERE l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE'")
        BigDecimal getValeurTotaleByDepotId(@Param("depotId") UUID depotId);
+
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle >= :quantite AND " +
+                     "(l.emplacement.zone.depot.id = :depotId OR :depotId IS NULL) " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findLotsDisponiblesByArticleAndDepot(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("quantite") Integer quantite);
 }
