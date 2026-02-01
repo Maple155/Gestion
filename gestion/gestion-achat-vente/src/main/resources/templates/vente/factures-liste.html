@@ -25,6 +25,7 @@
                         <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Statut</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Total TTC</th>
                         <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -34,9 +35,36 @@
                         <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter" th:text="${f.statut}">STATUT</span></td>
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${f.totalTtc}">0</td>
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${#temporals.format(f.dateFacture, 'yyyy-MM-dd')}">date</td>
+                        <td class="px-6 py-4 space-y-2">
+                            <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT') and f.statut.name() != 'PAYEE'}"
+                                  th:action="@{/ventes/factures/{id}/payer(id=${f.id})}" method="post" class="flex flex-wrap items-center gap-2">
+                                <input type="number" step="0.01" min="0" name="montant"
+                                       th:value="${f.totalTtc}"
+                                       class="border border-slate-300 rounded px-2 py-1 text-xs w-24" />
+                                <select name="modePaiement" class="border border-slate-300 rounded px-2 py-1 text-xs">
+                                    <option th:each="m : ${T(com.gestion.vente.enums.ModePaiement).values()}"
+                                            th:value="${m}" th:text="${m}">VIREMENT</option>
+                                </select>
+                                <input type="text" name="notes" placeholder="Notes"
+                                       class="border border-slate-300 rounded px-2 py-1 text-xs w-32" />
+                                <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Payer
+                                </button>
+                            </form>
+                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT'}"
+                                  th:action="@{/ventes/factures/{id}/avoir(id=${f.id})}" method="post" class="flex flex-wrap items-center gap-2">
+                                <input type="number" step="0.01" min="0" name="montant" placeholder="Montant"
+                                       class="border border-slate-300 rounded px-2 py-1 text-xs w-24" />
+                                <input type="text" name="motif" placeholder="Motif"
+                                       class="border border-slate-300 rounded px-2 py-1 text-xs w-32" />
+                                <button class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Avoir
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(factures)}">
-                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">Aucune facture.</td>
+                        <td colspan="6" class="px-6 py-10 text-center text-slate-400 italic">Aucune facture.</td>
                     </tr>
                 </tbody>
             </table>

@@ -64,6 +64,7 @@ public class VenteService {
         devis.setRemiseGlobale(nz(request.getRemiseGlobale()));
         devis.setCreePar(request.getCreePar());
         devis.setNotes(request.getNotes());
+        devis.setStatut(StatutDevis.A_VALIDER);
 
         List<LigneDevisVente> lignes = new ArrayList<>();
         for (LigneVenteRequest ligneReq : request.getLignes()) {
@@ -94,6 +95,10 @@ public class VenteService {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
 
+        if (devis.getStatut() == StatutDevis.ANNULE || devis.getStatut() == StatutDevis.EXPIRE) {
+            throw new RuntimeException("Devis non validable");
+        }
+
         devis.setStatut(StatutDevis.VALIDE);
         devis.setValidePar(validePar);
         devis.setDateValidation(LocalDateTime.now());
@@ -104,8 +109,8 @@ public class VenteService {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
 
-        if (devis.getStatut() == StatutDevis.BROUILLON) {
-            devis.setStatut(StatutDevis.VALIDE);
+        if (devis.getStatut() != StatutDevis.VALIDE) {
+            throw new RuntimeException("Le devis doit être validé avant transformation");
         }
 
         String modeReservation = request.getModeReservation() != null ? request.getModeReservation() : "IMMEDIATE";

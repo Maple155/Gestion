@@ -12,10 +12,13 @@ import jakarta.servlet.http.HttpSession;
 import com.gestion.vente.dto.CreateDevisRequest;
 import com.gestion.vente.dto.CreateCommandeFromDevisRequest;
 import com.gestion.vente.dto.CreateLivraisonRequest;
+import com.gestion.vente.dto.CreatePaiementRequest;
+import com.gestion.vente.dto.CreateAvoirRequest;
 import com.gestion.vente.dto.LigneVenteRequest;
 import com.gestion.vente.entity.*;
 import com.gestion.vente.repository.*;
 import com.gestion.vente.service.VenteService;
+import com.gestion.vente.enums.ModePaiement;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.entity.Article;
 
@@ -114,6 +117,14 @@ public class VenteViewController {
         return "redirect:/ventes/devis/liste";
     }
 
+    @PostMapping("/devis/{id}/valider")
+    public String validerDevis(@PathVariable UUID id, HttpSession session) {
+        requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
+        UUID userId = (UUID) session.getAttribute("userId");
+        venteService.validerDevis(id, userId);
+        return "redirect:/ventes/devis/liste";
+    }
+
     @PostMapping("/devis/{id}/commande")
     public String transformerDevis(@PathVariable UUID id,
                                    @RequestParam(required = false) String modeReservation,
@@ -178,6 +189,34 @@ public class VenteViewController {
         model.addAttribute("montantRestant", montantRestant);
         model.addAttribute("activePage", "vente-factures");
         return "vente/factures-liste";
+    }
+
+    @PostMapping("/factures/{id}/payer")
+    public String payerFacture(@PathVariable UUID id,
+                               @RequestParam java.math.BigDecimal montant,
+                               @RequestParam(defaultValue = "VIREMENT") ModePaiement modePaiement,
+                               @RequestParam(required = false) String notes,
+                               HttpSession session) {
+        requireRole(session, "ADMIN", "COMPTABLE_CLIENT");
+        CreatePaiementRequest request = new CreatePaiementRequest();
+        request.setMontant(montant);
+        request.setModePaiement(modePaiement);
+        request.setNotes(notes);
+        venteService.enregistrerPaiement(id, request);
+        return "redirect:/ventes/factures/liste";
+    }
+
+    @PostMapping("/factures/{id}/avoir")
+    public String creerAvoir(@PathVariable UUID id,
+                             @RequestParam java.math.BigDecimal montant,
+                             @RequestParam String motif,
+                             HttpSession session) {
+        requireRole(session, "ADMIN", "COMPTABLE_CLIENT");
+        CreateAvoirRequest request = new CreateAvoirRequest();
+        request.setMontant(montant);
+        request.setMotif(motif);
+        venteService.creerAvoir(id, request);
+        return "redirect:/ventes/avoirs/liste";
     }
 
     @GetMapping("/paiements/liste")

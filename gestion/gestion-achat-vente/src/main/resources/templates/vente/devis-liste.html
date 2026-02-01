@@ -37,7 +37,14 @@
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${d.totalTtc}">0</td>
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${#temporals.format(d.dateDevis, 'yyyy-MM-dd')}">date</td>
                         <td class="px-6 py-4">
-                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES'}"
+                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES'}"
+                                  th:action="@{/ventes/devis/{id}/valider(id=${d.id})}" method="post">
+                                <button th:if="${d.statut.name() == 'A_VALIDER'}"
+                                        class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Valider
+                                </button>
+                            </form>
+                                <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'VALIDE'}"
                                   th:action="@{/ventes/devis/{id}/commande(id=${d.id})}" method="post">
                                 <input type="hidden" name="modeReservation" value="IMMEDIATE" />
                                 <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold">
