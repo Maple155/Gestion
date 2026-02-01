@@ -36,6 +36,36 @@ public class SequenceGeneratorService {
     public synchronized Long getNextInventaireSequence() {
         return getNextSequence("seq_inventaire");
     }
+
+    @Transactional
+    public synchronized Long getNextDevisVenteSequence() {
+        return getNextSequence("seq_devis_vente");
+    }
+
+    @Transactional
+    public synchronized Long getNextCommandeClientSequence() {
+        return getNextSequence("seq_commande_client");
+    }
+
+    @Transactional
+    public synchronized Long getNextLivraisonClientSequence() {
+        return getNextSequence("seq_livraison_client");
+    }
+
+    @Transactional
+    public synchronized Long getNextFactureVenteSequence() {
+        return getNextSequence("seq_facture_vente");
+    }
+
+    @Transactional
+    public synchronized Long getNextPaiementClientSequence() {
+        return getNextSequence("seq_paiement_client");
+    }
+
+    @Transactional
+    public synchronized Long getNextAvoirClientSequence() {
+        return getNextSequence("seq_avoir_client");
+    }
     
     private Long getNextSequence(String sequenceName) {
         try {
@@ -72,7 +102,13 @@ public class SequenceGeneratorService {
             "seq_lot", 
             "seq_reservation_stock",
             "seq_transfert",
-            "seq_inventaire"
+            "seq_inventaire",
+            "seq_devis_vente",
+            "seq_commande_client",
+            "seq_livraison_client",
+            "seq_facture_vente",
+            "seq_paiement_client",
+            "seq_avoir_client"
         };
         
         for (String seq : sequences) {
