@@ -1,0 +1,17 @@
+<form method="post" action="/login">
+    <h2>Login</h2>
+
+    <input name="username" placeholder="username">
+    <input name="password" type="password" placeholder="password">
+
+    <button type="submit">Login</button>
+
+    <p th:text="${error}"></p>
+</form>
+
+<form method="post" action="/signup">
+    <h3>Créer un compte</h3>
+    <input name="username">
+    <input name="password" type="password">
+    <button>S'inscrire</button>
+</form>

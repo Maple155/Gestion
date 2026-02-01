@@ -2,14 +2,18 @@ package com.gestion.stock.controller;
 
 import com.gestion.stock.service.TransfertService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.*;
 import com.gestion.stock.dto.*;
+import com.gestion.stock.entity.Transfert;
 
 @Controller
 @RequestMapping("/stock/transferts")
@@ -215,5 +219,14 @@ public class TransfertController {
         }
         
         return "redirect:/stock/transferts/liste";
+    }
+
+     @PutMapping("/{id}/statut")
+    public ResponseEntity<Transfert> updateStatus(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateTransfertStatusRequest request,
+            @RequestHeader("X-USER-ID") UUID userId) {
+
+        return ResponseEntity.ok(transfertService.updateStatus(id, request.getStatut(), userId));
     }
 }

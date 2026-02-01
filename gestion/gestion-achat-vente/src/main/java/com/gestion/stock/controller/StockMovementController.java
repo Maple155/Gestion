@@ -1,14 +1,17 @@
 package com.gestion.stock.controller;
 
+import com.gestion.stock.dto.UpdateMovementStatusRequest;
+import com.gestion.stock.entity.StockMovement;
 import com.gestion.stock.service.*;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.UUID;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -43,5 +46,16 @@ public class StockMovementController {
                 "Erreur: " + e.getMessage());
             return "redirect:/achats/reception/liste";
         }
+    }
+
+    private final StockMovementService service;
+
+    @PutMapping("/{id}/statut")
+    public ResponseEntity<StockMovement> updateStatus(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateMovementStatusRequest request) {
+
+        StockMovement updated = service.updateStatus(id, request.getStatut());
+        return ResponseEntity.ok(updated);
     }
 }

@@ -18,7 +18,7 @@
   <description>Application de gestion des ressources humaines, congés et paie</description>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-ai.version>1.0.0-M3</spring-ai.version>
   </properties>
