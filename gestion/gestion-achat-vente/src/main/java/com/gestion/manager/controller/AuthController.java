@@ -17,7 +17,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @GetMapping("/login")
+    @GetMapping("/loginManager")
     public String loginPage(HttpSession session) {
         if (authService.isLogged(session)) {
             return "redirect:/home";
@@ -25,7 +25,7 @@ public class AuthController {
         return "loginManager";
     }
 
-    @PostMapping("/login")
+    @PostMapping("/loginManager")
     public String login(@ModelAttribute @Valid LoginRequest request,
                         HttpSession session,
                         Model model) {
@@ -39,7 +39,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/signupManager")
     public String signup(@ModelAttribute @Valid LoginRequest request,
                          Model model) {
 
@@ -48,7 +48,7 @@ public class AuthController {
         return "loginManager";
     }
 
-    @GetMapping("/logout")
+    @GetMapping("/logoutManager")
     public String logout(HttpSession session) {
         authService.logout(session);
         return "redirect:/loginManager";
