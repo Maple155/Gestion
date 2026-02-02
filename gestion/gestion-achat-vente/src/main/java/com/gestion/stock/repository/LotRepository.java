@@ -67,24 +67,6 @@ public interface LotRepository extends JpaRepository<Lot, UUID> {
                      "ORDER BY l.datePeremption ASC")
        List<Lot> findLotsActifsByArticle(@Param("articleId") UUID articleId);
 
-       // @Query("SELECT l FROM Lot l WHERE " +
-       // "(:numeroLot IS NULL OR LOWER(l.numeroLot) LIKE LOWER(CONCAT('%', :numeroLot,
-       // '%'))) " +
-       // "AND (:articleId IS NULL OR l.article.id = :articleId) " +
-       // "AND (:depotId IS NULL OR l.emplacement.zone.depot.id = :depotId) " +
-       // "AND (:statut IS NULL OR l.statut = :statut) " +
-       // "AND (:datePeremptionFrom IS NULL OR l.datePeremption >= :datePeremptionFrom)
-       // " +
-       // "AND (:datePeremptionTo IS NULL OR l.datePeremption <= :datePeremptionTo)")
-       // Page<Lot> rechercherAvecFiltres(
-       // @Param("numeroLot") String numeroLot,
-       // @Param("articleId") String articleId,
-       // @Param("depotId") String depotId,
-       // @Param("statut") Lot.LotStatus statut,
-       // @Param("datePeremptionFrom") LocalDate datePeremptionFrom,
-       // @Param("datePeremptionTo") LocalDate datePeremptionTo,
-       // Pageable pageable);
-
        @Query("SELECT l FROM Lot l WHERE " +
                      "(:numeroLot IS NULL OR LOWER(l.numeroLot) LIKE LOWER(CONCAT('%', :numeroLot, '%'))) AND " +
                      "(:articleId IS NULL OR l.article.id = :articleId) AND " +
@@ -187,4 +169,10 @@ public interface LotRepository extends JpaRepository<Lot, UUID> {
                      @Param("articleId") UUID articleId,
                      @Param("depotId") UUID depotId,
                      @Param("quantite") Integer quantite);
+
+       @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND l.emplacement.zone.depot.id = :depotId AND l.statut = :statut AND l.quantiteActuelle > 0")
+       List<Lot> findByArticleIdAndDepotIdAndStatut(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("statut") Lot.LotStatus statut);
 }

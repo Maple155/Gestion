@@ -211,18 +211,18 @@ public class ArticleController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String utilisateurId = (String) session.getAttribute("userId");
+            UUID utilisateurId = (UUID) session.getAttribute("userId");
             String articleId = params.get("id");
 
             if (articleId == null || articleId.isEmpty()) {
                 // Création
-                Article article = articleService.creerArticle(params, UUID.fromString(utilisateurId));
+                Article article = articleService.creerArticle(params, utilisateurId);
                 redirectAttributes.addFlashAttribute("success",
                         "Article créé: " + article.getCodeArticle());
             } else {
                 // Modification
                 Article article = articleService.modifierArticle(UUID.fromString(articleId), params,
-                        UUID.fromString(utilisateurId));
+                        utilisateurId);
                 redirectAttributes.addFlashAttribute("success",
                         "Article modifié: " + article.getCodeArticle());
             }

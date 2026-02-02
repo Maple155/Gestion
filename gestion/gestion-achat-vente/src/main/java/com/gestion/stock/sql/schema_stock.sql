@@ -484,7 +484,7 @@ CREATE TABLE inventaires (
     responsable_id UUID NOT NULL,
     
     -- Résultats globaux
-    nombre_articles_comptés INTEGER DEFAULT 0,
+    nombre_articles_comptes INTEGER DEFAULT 0,
     valeur_ecart_total DECIMAL(15, 2) DEFAULT 0,
     
     observations TEXT,

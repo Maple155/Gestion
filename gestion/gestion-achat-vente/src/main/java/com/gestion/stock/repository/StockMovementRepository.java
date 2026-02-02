@@ -248,4 +248,14 @@ public interface StockMovementRepository
                      @Param("dateFin") LocalDateTime dateFin,
                      @Param("statut") String statut,
                      Pageable pageable);
+
+       @Query("SELECT sm FROM StockMovement sm WHERE sm.transfert.id = :transfertId " +
+                     "AND sm.article.id = :articleId AND sm.depot.id = :depotId")
+       Optional<StockMovement> findByTransfertIdAndArticleIdAndDepotId(
+                     @Param("transfertId") UUID transfertId,
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId);
+
+       @Query(value = "SELECT nextval('seq_mouvement_stock')", nativeQuery = true)
+       Long getNextSequenceValue();
 }

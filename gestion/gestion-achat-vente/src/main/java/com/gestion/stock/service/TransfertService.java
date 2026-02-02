@@ -1,17 +1,26 @@
 package com.gestion.stock.service;
 
+import com.gestion.stock.dto.LigneTransfertDTO;
 import com.gestion.stock.entity.*;
 import com.gestion.stock.repository.*;
-import lombok.Data;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import com.gestion.stock.dto.LigneTransfertDTO;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,122 +29,140 @@ public class TransfertService {
     
     private final TransfertRepository transfertRepository;
     private final LigneTransfertRepository ligneTransfertRepository;
-    private final StockMovementRepository mouvementRepository;
-    private final StockRepository stockRepository;
-    private final LotRepository lotRepository;
     private final DepotRepository depotRepository;
-    private final ArticleRepository articleRepository;
+    private final StockService stockService;
+    private final LotRepository lotRepository;
+    private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository;
     private final MovementTypeRepository movementTypeRepository;
-    private final LotService lotService;
-    private final SequenceGeneratorService sequenceService;
+    private final SequenceGeneratorService sequenceGeneratorService;
+    private final EntityManager entityManager;
     
     /**
-     * Créer une demande de transfert
+     * Créer un transfert entre dépôts
      */
     @Transactional
-    public Transfert creerTransfert(UUID depotSourceId, UUID depotDestinationId,
-                                   List<LigneTransfertDTO> lignes, String motif,
+    public Transfert creerTransfert(UUID depotSourceId, UUID depotDestinationId, 
+                                   List<LigneTransfertDTO> lignesDTO, String motif, 
                                    UUID demandeurId) {
-        
-        log.info("Création transfert: {} → {}", depotSourceId, depotDestinationId);
-        
-        // Vérifier que les dépôts sont différents
-        if (depotSourceId.equals(depotDestinationId)) {
-            throw new RuntimeException("Les dépôts source et destination doivent être différents");
-        }
-        
-        // Vérifier la disponibilité des stocks pour chaque ligne
-        for (LigneTransfertDTO ligne : lignes) {
-            boolean disponible = verifierDisponibilite(
-                UUID.fromString(ligne.getArticleId()), depotSourceId, ligne.getQuantiteDemandee());
-            
-            if (!disponible) {
-                Article article = articleRepository.findById(UUID.fromString(ligne.getArticleId()))
-                    .orElseThrow(() -> new RuntimeException("Article non trouvé"));
-                throw new RuntimeException("Stock insuffisant pour l'article: " + article.getCodeArticle());
-            }
-        }
-        
-        // Créer le transfert
-        String reference = "TRF-" + LocalDate.now().getYear() + 
-                          String.format("-%04d", sequenceService.getNextTransfertSequence());
         
         Depot depotSource = depotRepository.findById(depotSourceId)
             .orElseThrow(() -> new RuntimeException("Dépôt source non trouvé"));
         Depot depotDestination = depotRepository.findById(depotDestinationId)
             .orElseThrow(() -> new RuntimeException("Dépôt destination non trouvé"));
         
+        // Vérifier que ce n'est pas le même dépôt
+        if (depotSourceId.equals(depotDestinationId)) {
+            throw new RuntimeException("Le dépôt source et destination doivent être différents");
+        }
+        
+        // Générer référence unique
+        String reference = genererReferenceTransfert();
+        
+        // Créer le transfert
         Transfert transfert = Transfert.builder()
             .reference(reference)
             .depotSource(depotSource)
             .depotDestination(depotDestination)
-            .dateDemande(LocalDateTime.now())
-            .dateReceptionPrevue(LocalDate.now().plusDays(2))
-            .statut(Transfert.TransfertStatut.BROUILLON)
             .motif(motif)
             .demandeurId(demandeurId)
+            .statut(Transfert.TransfertStatut.BROUILLON)
+            .dateDemande(LocalDateTime.now())
             .build();
         
-        Transfert transfertSauvegarde = transfertRepository.save(transfert);
+        transfert = transfertRepository.save(transfert);
         
         // Créer les lignes de transfert
-        for (LigneTransfertDTO ligneDTO : lignes) {
-            Article article = articleRepository.findById(UUID.fromString(ligneDTO.getArticleId()))
-                .orElseThrow(() -> new RuntimeException("Article non trouvé"));
-            
-            LigneTransfert ligne = LigneTransfert.builder()
-                .transfert(transfertSauvegarde)
-                .article(article)
-                .quantiteDemandee(ligneDTO.getQuantiteDemandee())
-                .quantiteExpediee(0)
-                .quantiteRecue(0)
-                .lot(ligneDTO.getLotId() != null ? 
-                     lotRepository.findById(UUID.fromString(ligneDTO.getLotId())).orElse(null) : null)
-                .build();
-            
-            ligneTransfertRepository.save(ligne);
+        List<LigneTransfert> lignes = new ArrayList<>();
+        for (LigneTransfertDTO dto : lignesDTO) {
+            LigneTransfert ligne = creerLigneTransfert(transfert, dto);
+            lignes.add(ligne);
         }
         
-        log.info("Transfert créé: {} avec {} lignes", reference, lignes.size());
-        return transfertSauvegarde;
+        transfertRepository.save(transfert);
+        log.info("Transfert créé : {} avec {} lignes", reference, lignes.size());
+        
+        return transfert;
     }
     
     /**
-     * Valider un transfert (première validation)
+     * Créer une ligne de transfert
+     */
+    private LigneTransfert creerLigneTransfert(Transfert transfert, LigneTransfertDTO dto) {
+        
+        // Vérifier disponibilité stock source
+        Stock stockSource = stockRepository.findByArticleIdAndDepotId(
+            dto.getArticle().getId(), transfert.getDepotSource().getId())
+            .orElseThrow(() -> new RuntimeException(
+                String.format("Stock insuffisant ou inexistant pour l'article %s dans le dépôt source", 
+                dto.getArticle().getCodeArticle())));
+        
+        if (stockSource.getQuantiteDisponible() < dto.getQuantiteDemandee()) {
+            throw new RuntimeException(
+                String.format("Stock insuffisant. Disponible: %d, Demandé: %d",
+                stockSource.getQuantiteDisponible(), dto.getQuantiteDemandee()));
+        }
+        
+        // Allouer des lots si spécifié
+        Lot lot = null;
+        if (dto.getLot() != null) {
+            lot = lotRepository.findById(dto.getLot().getId())
+                .orElseThrow(() -> new RuntimeException("Lot non trouvé"));
+            
+            if (lot.getQuantiteActuelle() < dto.getQuantiteDemandee()) {
+                throw new RuntimeException("Quantité du lot insuffisante");
+            }
+        }
+        
+        LigneTransfert ligne = LigneTransfert.builder()
+            .transfert(transfert)
+            .article(stockSource.getArticle())
+            .quantiteDemandee(dto.getQuantiteDemandee())
+            .quantiteExpediee(0)
+            .quantiteRecue(0)
+            .lot(lot)
+            .notes(dto.getNotes())
+            .build();
+        
+        return ligneTransfertRepository.save(ligne);
+    }
+    
+    /**
+     * Valider un transfert
      */
     @Transactional
-    public void validerTransfert(UUID transfertId, UUID valideurId) {
+    public Transfert validerTransfert(UUID transfertId, UUID valideurId) {
         Transfert transfert = transfertRepository.findById(transfertId)
             .orElseThrow(() -> new RuntimeException("Transfert non trouvé"));
         
-        // Vérifier que le transfert est en statut BROUILLON
+        // Vérifier que le transfert est en brouillon
         if (transfert.getStatut() != Transfert.TransfertStatut.BROUILLON) {
-            throw new RuntimeException("Le transfert n'est pas en statut BROUILLON");
+            throw new RuntimeException("Le transfert doit être en statut BROUILLON pour être validé");
         }
         
         // Vérifier séparation des tâches (demandeur ≠ valideur)
         if (transfert.getDemandeurId().equals(valideurId)) {
-            throw new RuntimeException("Le demandeur ne peut pas valider son propre transfert");
+            throw new RuntimeException("Violation séparation des tâches : le demandeur ne peut pas valider son propre transfert");
         }
         
-        // Mettre à jour le statut
+        // Mettre à jour le transfert
         transfert.setStatut(Transfert.TransfertStatut.VALIDE);
         transfert.setValideurId(valideurId);
         transfert.setDateValidation(LocalDateTime.now());
         
-        transfertRepository.save(transfert);
-        log.info("Transfert validé: {} par {}", transfert.getReference(), valideurId);
+        log.info("Transfert {} validé par {}", transfert.getReference(), valideurId);
+        return transfertRepository.save(transfert);
     }
     
     /**
-     * Expédier un transfert (créer mouvements de sortie)
+     * Expédier un transfert (sortie du dépôt source)
      */
     @Transactional
-    public void expedierTransfert(UUID transfertId, UUID expéditeurId) {
+    public Transfert expedierTransfert(UUID transfertId, UUID expediteurId) {
         Transfert transfert = transfertRepository.findById(transfertId)
             .orElseThrow(() -> new RuntimeException("Transfert non trouvé"));
         
-        // Vérifier que le transfert est VALIDE
+        // Vérifier que le transfert est validé
         if (transfert.getStatut() != Transfert.TransfertStatut.VALIDE) {
             throw new RuntimeException("Le transfert doit être validé avant expédition");
         }
@@ -144,56 +171,76 @@ public class TransfertService {
         
         // Pour chaque ligne, créer un mouvement de sortie
         for (LigneTransfert ligne : lignes) {
-            // Vérifier disponibilité finale
-            boolean disponible = verifierDisponibilite(
-                ligne.getArticle().getId(), 
-                transfert.getDepotSource().getId(), 
-                ligne.getQuantiteDemandee());
-            
-            if (!disponible) {
-                throw new RuntimeException("Stock insuffisant pour expédier l'article: " + 
-                    ligne.getArticle().getCodeArticle());
-            }
-            
-            // Créer mouvement de sortie
-            StockMovement mouvementSortie = creerMouvementTransfertSortant(
-                ligne, transfert, expéditeurId);
-            
-            // Mettre à jour la ligne avec la quantité expédiée
-            ligne.setQuantiteExpediee(ligne.getQuantiteDemandee());
-            ligneTransfertRepository.save(ligne);
-            
-            // Mettre à jour le stock source
-            stockRepository.decrementerQuantiteTheorique(
-                ligne.getArticle().getId(),
-                transfert.getDepotSource().getId(),
-                ligne.getQuantiteDemandee());
-            
-            // Mettre à jour le lot si nécessaire
-            if (ligne.getLot() != null) {
-                lotService.mettreAJourQuantiteLot(
-                    ligne.getLot().getId(), ligne.getQuantiteDemandee(), true);
-            }
+            expedierLigne(ligne, expediteurId);
         }
         
         // Mettre à jour le transfert
         transfert.setStatut(Transfert.TransfertStatut.EXPEDIE);
+        // transfert.setExpediteurId(expediteurId);
         transfert.setDateExpedition(LocalDate.now());
-        transfert.setExpediteurId(expéditeurId);
-        transfertRepository.save(transfert);
         
-        log.info("Transfert expédié: {}", transfert.getReference());
+        log.info("Transfert {} expédié par {}", transfert.getReference(), expediteurId);
+        return transfertRepository.save(transfert);
     }
     
     /**
-     * Réceptionner un transfert (créer mouvements d'entrée)
+     * Expédier une ligne spécifique
+     */
+    private void expedierLigne(LigneTransfert ligne, UUID expediteurId) {
+        // Créer mouvement de sortie
+        MovementType typeSortie = movementTypeRepository.findByCode("TRANSFERT_SORTANT")
+            .orElseThrow(() -> new RuntimeException("Type mouvement TRANSFERT_SORTANT non trouvé"));
+        
+        // Utiliser le coût moyen du stock source
+        Stock stockSource = stockRepository.findByArticleIdAndDepotId(
+            ligne.getArticle().getId(), 
+            ligne.getTransfert().getDepotSource().getId())
+            .orElseThrow(() -> new RuntimeException("Stock source non trouvé"));
+        
+        StockMovement mouvementSortie = StockMovement.builder()
+            .reference(genererReferenceMouvement())
+            .type(typeSortie)
+            .article(ligne.getArticle())
+            .depot(ligne.getTransfert().getDepotSource())
+            .quantite(ligne.getQuantiteDemandee())
+            .coutUnitaire(stockSource.getCoutUnitaireMoyen())
+            .lot(ligne.getLot())
+            .transfert(ligne.getTransfert())
+            .dateMouvement(LocalDateTime.now())
+            .dateComptable(LocalDate.now())
+            .utilisateurId(expediteurId)
+            .motif("Expédition transfert " + ligne.getTransfert().getReference())
+            .statut(StockMovement.MovementStatus.VALIDE)
+            .build();
+        
+        stockMovementRepository.save(mouvementSortie);
+        
+        // Mettre à jour la quantité expédiée
+        ligne.setQuantiteExpediee(ligne.getQuantiteDemandee());
+        ligneTransfertRepository.save(ligne);
+        
+        // Mettre à jour le lot si spécifié
+        if (ligne.getLot() != null) {
+            Lot lot = ligne.getLot();
+            lot.setQuantiteActuelle(lot.getQuantiteActuelle() - ligne.getQuantiteDemandee());
+            if (lot.getQuantiteActuelle() == 0) {
+                lot.setStatut(Lot.LotStatus.EPUISE);
+            }
+            lotRepository.save(lot);
+        }
+        
+        log.info("Ligne {} expédiée : {} unités", ligne.getId(), ligne.getQuantiteDemandee());
+    }
+    
+    /**
+     * Réceptionner un transfert (entrée dans le dépôt destination)
      */
     @Transactional
-    public void receptionnerTransfert(UUID transfertId, UUID receptionnaireId) {
+    public Transfert receptionnerTransfert(UUID transfertId, UUID receptionnaireId) {
         Transfert transfert = transfertRepository.findById(transfertId)
             .orElseThrow(() -> new RuntimeException("Transfert non trouvé"));
         
-        // Vérifier que le transfert est EXPEDIE
+        // Vérifier que le transfert est expédié
         if (transfert.getStatut() != Transfert.TransfertStatut.EXPEDIE) {
             throw new RuntimeException("Le transfert doit être expédié avant réception");
         }
@@ -202,208 +249,201 @@ public class TransfertService {
         
         // Pour chaque ligne, créer un mouvement d'entrée
         for (LigneTransfert ligne : lignes) {
-            // Créer mouvement d'entrée
-            StockMovement mouvementEntree = creerMouvementTransfertEntrant(
-                ligne, transfert, receptionnaireId);
-            
-            // Mettre à jour la ligne avec la quantité reçue
-            ligne.setQuantiteRecue(ligne.getQuantiteExpediee());
-            ligneTransfertRepository.save(ligne);
-            
-            // Mettre à jour le stock destination
-            stockRepository.incrementerQuantiteTheorique(
-                ligne.getArticle().getId(),
-                transfert.getDepotDestination().getId(),
-                ligne.getQuantiteExpediee());
-            
-            // Créer un nouveau lot dans le dépôt destination si nécessaire
-            if (ligne.getLot() != null) {
-                creerLotDestination(ligne, transfert.getDepotDestination());
-            }
+            receptionnerLigne(ligne, receptionnaireId);
         }
         
         // Mettre à jour le transfert
         transfert.setStatut(Transfert.TransfertStatut.RECEPTIONNE);
+        // transfert.setReceptionnaireId(receptionnaireId);
         transfert.setDateReceptionReelle(LocalDateTime.now());
-        transfert.setReceptionnaireId(receptionnaireId);
-        transfertRepository.save(transfert);
         
-        log.info("Transfert réceptionné: {}", transfert.getReference());
+        log.info("Transfert {} réceptionné par {}", transfert.getReference(), receptionnaireId);
+        return transfertRepository.save(transfert);
+    }
+    
+    /**
+     * Réceptionner une ligne spécifique
+     */
+    private void receptionnerLigne(LigneTransfert ligne, UUID receptionnaireId) {
+        // Récupérer le coût du mouvement de sortie correspondant
+        Optional<StockMovement> mouvementSortie = stockMovementRepository
+            .findByTransfertIdAndArticleIdAndDepotId(
+                ligne.getTransfert().getId(),
+                ligne.getArticle().getId(),
+                ligne.getTransfert().getDepotSource().getId());
+        
+        BigDecimal coutUnitaire = mouvementSortie
+            .map(StockMovement::getCoutUnitaire)
+            .orElseGet(() -> {
+                // Fallback : coût moyen du stock source
+                Stock stockSource = stockRepository.findByArticleIdAndDepotId(
+                    ligne.getArticle().getId(),
+                    ligne.getTransfert().getDepotSource().getId())
+                    .orElseThrow(() -> new RuntimeException("Stock source non trouvé"));
+                return stockSource.getCoutUnitaireMoyen();
+            });
+        
+        // Créer mouvement d'entrée
+        MovementType typeEntree = movementTypeRepository.findByCode("TRANSFERT_ENTRANT")
+            .orElseThrow(() -> new RuntimeException("Type mouvement TRANSFERT_ENTRANT non trouvé"));
+        
+        StockMovement mouvementEntree = StockMovement.builder()
+            .reference(genererReferenceMouvement())
+            .type(typeEntree)
+            .article(ligne.getArticle())
+            .depot(ligne.getTransfert().getDepotDestination())
+            .quantite(ligne.getQuantiteExpediee())
+            .coutUnitaire(coutUnitaire)
+            .lot(ligne.getLot())
+            .transfert(ligne.getTransfert())
+            .dateMouvement(LocalDateTime.now())
+            .dateComptable(LocalDate.now())
+            .utilisateurId(receptionnaireId)
+            .motif("Réception transfert " + ligne.getTransfert().getReference())
+            .statut(StockMovement.MovementStatus.VALIDE)
+            .build();
+        
+        stockMovementRepository.save(mouvementEntree);
+        
+        // Mettre à jour la quantité reçue
+        ligne.setQuantiteRecue(ligne.getQuantiteExpediee());
+        ligneTransfertRepository.save(ligne);
+        
+        log.info("Ligne {} réceptionnée : {} unités", ligne.getId(), ligne.getQuantiteExpediee());
     }
     
     /**
      * Annuler un transfert
      */
     @Transactional
-    public void annulerTransfert(UUID transfertId, String motifAnnulation, UUID utilisateurId) {
+    public Transfert annulerTransfert(UUID transfertId, String motifAnnulation, UUID annulateurId) {
         Transfert transfert = transfertRepository.findById(transfertId)
             .orElseThrow(() -> new RuntimeException("Transfert non trouvé"));
         
         // Vérifier que le transfert peut être annulé
         if (transfert.getStatut() == Transfert.TransfertStatut.RECEPTIONNE) {
-            throw new RuntimeException("Un transfert réceptionné ne peut pas être annulé");
+            throw new RuntimeException("Impossible d'annuler un transfert déjà réceptionné");
         }
         
-        // Si le transfert a été expédié, il faut annuler les mouvements
         if (transfert.getStatut() == Transfert.TransfertStatut.EXPEDIE) {
+            // Si déjà expédié, on doit annuler les mouvements de sortie
             annulerMouvementsTransfert(transfertId);
-            
-            // Restaurer les stocks source
-            List<LigneTransfert> lignes = ligneTransfertRepository.findByTransfertId(transfertId);
-            for (LigneTransfert ligne : lignes) {
-                stockRepository.incrementerQuantiteTheorique(
-                    ligne.getArticle().getId(),
-                    transfert.getDepotSource().getId(),
-                    ligne.getQuantiteExpediee());
-                
-                // Restaurer le lot si nécessaire
-                if (ligne.getLot() != null) {
-                    lotService.mettreAJourQuantiteLot(
-                        ligne.getLot().getId(), ligne.getQuantiteExpediee(), false);
-                }
-            }
         }
         
-        // Marquer comme annulé
+        // Mettre à jour le transfert
         transfert.setStatut(Transfert.TransfertStatut.ANNULE);
-        transfert.setMotifAnnulation(motifAnnulation);
-        transfert.setDateAnnulation(LocalDateTime.now());
-        transfert.setAnnulateurId(utilisateurId);
+        // transfert.setMotifAnnulation(motifAnnulation);
+        // transfert.setDateAnnulation(LocalDateTime.now());
         
-        transfertRepository.save(transfert);
-        log.info("Transfert annulé: {}", transfert.getReference());
+        log.info("Transfert {} annulé par {}", transfert.getReference(), annulateurId);
+        return transfertRepository.save(transfert);
     }
     
     /**
-     * Vérifier disponibilité stock
-     */
-    private boolean verifierDisponibilite(UUID articleId, UUID depotId, Integer quantite) {
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
-        return stockOpt.map(stock -> stock.getQuantiteDisponible() >= quantite)
-                      .orElse(false);
-    }
-    
-    /**
-     * Créer mouvement de transfert sortant
-     */
-    private StockMovement creerMouvementTransfertSortant(LigneTransfert ligne, 
-                                                         Transfert transfert, 
-                                                         UUID utilisateurId) {
-        
-        MovementType type = movementTypeRepository.findByCode("TRANSFERT_SORTANT")
-            .orElseThrow(() -> new RuntimeException("Type mouvement TRANSFERT_SORTANT non trouvé"));
-        
-        // Déterminer le coût unitaire
-        BigDecimal coutUnitaire = ligne.getLot() != null ? 
-            ligne.getLot().getCoutUnitaire() :
-            stockRepository.findByArticleIdAndDepotId(
-                ligne.getArticle().getId(), transfert.getDepotSource().getId())
-                .map(Stock::getCoutUnitaireMoyen)
-                .orElse(ligne.getArticle().getCoutStandard() != null ? 
-                    ligne.getArticle().getCoutStandard() : BigDecimal.ZERO);
-        
-        String reference = "MVT-TRF-SORT-" + LocalDate.now().getYear() + 
-                          String.format("-%06d", sequenceService.getNextMovementSequence());
-        
-        StockMovement mouvement = StockMovement.builder()
-            .reference(reference)
-            .type(type)
-            .article(ligne.getArticle())
-            .depot(transfert.getDepotSource())
-            .quantite(ligne.getQuantiteDemandee())
-            .coutUnitaire(coutUnitaire)
-            .lot(ligne.getLot())
-            .transfert(transfert)
-            .dateMouvement(LocalDateTime.now())
-            .dateComptable(LocalDate.now())
-            .utilisateurId(utilisateurId)
-            .motif("Transfert sortant: " + transfert.getReference() + " - " + transfert.getMotif())
-            .statut(StockMovement.MovementStatus.VALIDE)
-            .build();
-        
-        return mouvementRepository.save(mouvement);
-    }
-    
-    /**
-     * Créer mouvement de transfert entrant
-     */
-    private StockMovement creerMouvementTransfertEntrant(LigneTransfert ligne, 
-                                                        Transfert transfert, 
-                                                        UUID utilisateurId) {
-        
-        MovementType type = movementTypeRepository.findByCode("TRANSFERT_ENTRANT")
-            .orElseThrow(() -> new RuntimeException("Type mouvement TRANSFERT_ENTRANT non trouvé"));
-        
-        // Le coût unitaire est le même que celui du mouvement sortant
-        BigDecimal coutUnitaire = ligne.getLot() != null ? 
-            ligne.getLot().getCoutUnitaire() :
-            stockRepository.findByArticleIdAndDepotId(
-                ligne.getArticle().getId(), transfert.getDepotSource().getId())
-                .map(Stock::getCoutUnitaireMoyen)
-                .orElse(ligne.getArticle().getCoutStandard() != null ? 
-                    ligne.getArticle().getCoutStandard() : BigDecimal.ZERO);
-        
-        String reference = "MVT-TRF-ENTR-" + LocalDate.now().getYear() + 
-                          String.format("-%06d", sequenceService.getNextMovementSequence());
-        
-        StockMovement mouvement = StockMovement.builder()
-            .reference(reference)
-            .type(type)
-            .article(ligne.getArticle())
-            .depot(transfert.getDepotDestination())
-            .quantite(ligne.getQuantiteExpediee())
-            .coutUnitaire(coutUnitaire)
-            .transfert(transfert)
-            .dateMouvement(LocalDateTime.now())
-            .dateComptable(LocalDate.now())
-            .utilisateurId(utilisateurId)
-            .motif("Transfert entrant: " + transfert.getReference() + " - " + transfert.getMotif())
-            .statut(StockMovement.MovementStatus.VALIDE)
-            .build();
-        
-        return mouvementRepository.save(mouvement);
-    }
-    
-    /**
-     * Créer un lot dans le dépôt destination
-     */
-    private void creerLotDestination(LigneTransfert ligne, Depot depotDestination) {
-        Lot lotSource = ligne.getLot();
-        
-        String nouveauNumeroLot = "TRF-" + LocalDate.now().getYear() + 
-                                 String.format("%02d", LocalDate.now().getMonthValue()) +
-                                 "-" + lotSource.getNumeroLot().substring(
-                                     Math.max(0, lotSource.getNumeroLot().length() - 4));
-        
-        Lot lotDestination = Lot.builder()
-            .numeroLot(nouveauNumeroLot)
-            .article(lotSource.getArticle())
-            .quantiteInitiale(ligne.getQuantiteExpediee())
-            .quantiteActuelle(ligne.getQuantiteExpediee())
-            .dateFabrication(lotSource.getDateFabrication())
-            .dateReception(LocalDate.now())
-            .datePeremption(lotSource.getDatePeremption())
-            .coutUnitaire(lotSource.getCoutUnitaire())
-            .statut(Lot.LotStatus.DISPONIBLE)
-            .build();
-        
-        lotRepository.save(lotDestination);
-        log.info("Lot créé en destination: {} (source: {})", 
-                nouveauNumeroLot, lotSource.getNumeroLot());
-    }
-    
-    /**
-     * Annuler tous les mouvements d'un transfert
+     * Annuler les mouvements liés à un transfert
      */
     private void annulerMouvementsTransfert(UUID transfertId) {
-        List<StockMovement> mouvements = mouvementRepository.findByTransfertId(transfertId);
+        List<StockMovement> mouvements = stockMovementRepository.findByTransfertId(transfertId);
         
         for (StockMovement mouvement : mouvements) {
             mouvement.setStatut(StockMovement.MovementStatus.ANNULE);
-            mouvementRepository.save(mouvement);
+            stockMovementRepository.save(mouvement);
+            
+            // Annuler l'impact sur le stock
+            annulerImpactStock(mouvement);
+        }
+    }
+    
+    /**
+     * Annuler l'impact d'un mouvement sur le stock
+     */
+    private void annulerImpactStock(StockMovement mouvement) {
+        // Cette logique dépend de votre implémentation de StockService
+        // Exemple simplifié :
+        Stock stock = stockRepository.findByArticleIdAndDepotId(
+            mouvement.getArticle().getId(), mouvement.getDepot().getId())
+            .orElseThrow(() -> new RuntimeException("Stock non trouvé"));
+        
+        if (mouvement.getType().getSens() == MovementType.SensMouvement.ENTREE) {
+            stock.setQuantiteTheorique(stock.getQuantiteTheorique() - mouvement.getQuantite());
+            stock.setQuantitePhysique(stock.getQuantitePhysique() - mouvement.getQuantite());
+        } else {
+            stock.setQuantiteTheorique(stock.getQuantiteTheorique() + mouvement.getQuantite());
+            stock.setQuantitePhysique(stock.getQuantitePhysique() + mouvement.getQuantite());
         }
         
-        log.info("{} mouvements annulés pour transfert {}", mouvements.size(), transfertId);
+        stockRepository.save(stock);
+    }
+    
+    public List<Transfert> rechercherTransferts(String statut, UUID depotSourceId, 
+                                               UUID depotDestinationId, 
+                                               LocalDate dateDebut, LocalDate dateFin) {
+        
+        log.info("Recherche transferts avec filtres: statut={}, depotSource={}, depotDestination={}, dateDebut={}, dateFin={}", 
+                 statut, depotSourceId, depotDestinationId, dateDebut, dateFin);
+        
+        try {
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Transfert> query = cb.createQuery(Transfert.class);
+            Root<Transfert> transfert = query.from(Transfert.class);
+            
+            // Joins pour charger les relations (évite les LazyInitializationException)
+            Join<Transfert, Depot> depotSourceJoin = transfert.join("depotSource", JoinType.LEFT);
+            Join<Transfert, Depot> depotDestinationJoin = transfert.join("depotDestination", JoinType.LEFT);
+            
+            List<Predicate> predicates = new ArrayList<>();
+            
+            // Filtre par statut
+            if (statut != null && !statut.trim().isEmpty()) {
+                try {
+                    Transfert.TransfertStatut statutEnum = Transfert.TransfertStatut.valueOf(statut.toUpperCase());
+                    predicates.add(cb.equal(transfert.get("statut"), statutEnum));
+                } catch (IllegalArgumentException e) {
+                    log.warn("Statut '{}' invalide. Statuts valides: {}", statut, 
+                             Arrays.toString(Transfert.TransfertStatut.values()));
+                }
+            }
+            
+            // Filtre par dépôt source
+            if (depotSourceId != null) {
+                predicates.add(cb.equal(depotSourceJoin.get("id"), depotSourceId));
+            }
+            
+            // Filtre par dépôt destination
+            if (depotDestinationId != null) {
+                predicates.add(cb.equal(depotDestinationJoin.get("id"), depotDestinationId));
+            }
+            
+            // Filtre par date début
+            if (dateDebut != null) {
+                predicates.add(cb.greaterThanOrEqualTo(
+                    transfert.get("dateDemande").as(LocalDate.class), dateDebut));
+            }
+            
+            // Filtre par date fin
+            if (dateFin != null) {
+                predicates.add(cb.lessThanOrEqualTo(
+                    transfert.get("dateDemande").as(LocalDate.class), dateFin));
+            }
+            
+            // Appliquer les prédicats
+            if (!predicates.isEmpty()) {
+                query.where(cb.and(predicates.toArray(new Predicate[0])));
+            }
+            
+            // Trier par date de demande décroissante
+            query.orderBy(cb.desc(transfert.get("dateDemande")));
+            
+            // Exécuter la requête
+            List<Transfert> result = entityManager.createQuery(query).getResultList();
+            
+            log.info("Nombre de transferts trouvés: {}", result.size());
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Erreur dans rechercherTransferts avec Criteria API: ", e);
+            throw new RuntimeException("Erreur lors de la recherche des transferts: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -412,27 +452,89 @@ public class TransfertService {
     public Map<String, Object> getStatistiquesTransferts(Integer mois, Integer annee) {
         Map<String, Object> stats = new HashMap<>();
         
-        // Compter les transferts par statut
-        long totalTransferts = transfertRepository.count();
-        long transfertsBrouillon = transfertRepository.countByStatut(Transfert.TransfertStatut.BROUILLON);
-        long transfertsValides = transfertRepository.countByStatut(Transfert.TransfertStatut.VALIDE);
-        long transfertsExpedies = transfertRepository.countByStatut(Transfert.TransfertStatut.EXPEDIE);
-        long transfertsReceptionnes = transfertRepository.countByStatut(Transfert.TransfertStatut.RECEPTIONNE);
-        long transfertsAnnules = transfertRepository.countByStatut(Transfert.TransfertStatut.ANNULE);
+        // Transferts du mois
+        List<Transfert> transfertsMois = transfertRepository.findByMonth(mois, annee);
         
-        // Calculer le taux de complétion
-        double tauxCompletion = totalTransferts > 0 ? 
-            (double) transfertsReceptionnes / totalTransferts * 100 : 0;
+        stats.put("nombreTransferts", transfertsMois.size());
+        stats.put("nombreExpedies", transfertsMois.stream()
+            .filter(t -> t.getStatut() == Transfert.TransfertStatut.EXPEDIE)
+            .count());
+        stats.put("nombreReceptionnes", transfertsMois.stream()
+            .filter(t -> t.getStatut() == Transfert.TransfertStatut.RECEPTIONNE)
+            .count());
+        stats.put("nombreEnAttente", transfertsMois.stream()
+            .filter(t -> t.getStatut() == Transfert.TransfertStatut.VALIDE)
+            .count());
         
-        stats.put("totalTransferts", totalTransferts);
-        stats.put("transfertsBrouillon", transfertsBrouillon);
-        stats.put("transfertsValides", transfertsValides);
-        stats.put("transfertsExpedies", transfertsExpedies);
-        stats.put("transfertsReceptionnes", transfertsReceptionnes);
-        stats.put("transfertsAnnules", transfertsAnnules);
-        stats.put("tauxCompletion", String.format("%.1f%%", tauxCompletion));
-        stats.put("periode", mois + "/" + annee);
+        // Valeur totale des transferts expédiés
+        BigDecimal valeurTotale = transfertsMois.stream()
+            .filter(t -> t.getStatut() == Transfert.TransfertStatut.EXPEDIE)
+            .flatMap(t -> ligneTransfertRepository.findByTransfertId(t.getId()).stream())
+            .map(ligne -> {
+                Stock stock = stockRepository.findByArticleIdAndDepotId(
+                    ligne.getArticle().getId(), 
+                    ligne.getTransfert().getDepotSource().getId())
+                    .orElse(new Stock());
+                return stock.getCoutUnitaireMoyen()
+                    .multiply(BigDecimal.valueOf(ligne.getQuantiteExpediee()));
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        stats.put("valeurTotale", valeurTotale);
+        
+        // Top 5 dépôts sources
+        List<Object[]> topDepots = transfertRepository.findTopDepotsSources(mois, annee);
+        stats.put("topDepotsSources", topDepots);
         
         return stats;
+    }
+    
+    /**
+     * Vérifier la disponibilité pour un transfert
+     */
+    public Map<UUID, Integer> verifierDisponibiliteTransfert(UUID depotSourceId, 
+                                                           List<LigneTransfertDTO> lignes) {
+        Map<UUID, Integer> indisponibilites = new HashMap<>();
+        
+        for (LigneTransfertDTO ligne : lignes) {
+            Stock stock = stockRepository.findByArticleIdAndDepotId(
+                ligne.getArticle().getId(), depotSourceId)
+                .orElse(null);
+            
+            if (stock == null || stock.getQuantiteDisponible() < ligne.getQuantiteDemandee()) {
+                int disponible = stock != null ? stock.getQuantiteDisponible() : 0;
+                indisponibilites.put(ligne.getArticle().getId(), disponible);
+            }
+        }
+        
+        return indisponibilites;
+    }
+    
+    /**
+     * Générer une référence unique pour les transferts
+     */
+    private String genererReferenceTransfert() {
+        String prefix = "TRF";
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        
+        Long sequence = sequenceGeneratorService.getNextTransfertSequence();
+        if (sequence == null) sequence = 1L;
+        
+        return String.format("%s-%d-%04d", prefix, year, sequence);
+    }
+    
+    /**
+     * Générer une référence unique pour les mouvements
+     */
+    private String genererReferenceMouvement() {
+        String prefix = "MVT";
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        
+        Long sequence = sequenceGeneratorService.getNextMovementSequence();
+        if (sequence == null) sequence = 1L;
+        
+        return String.format("%s-%d-%06d", prefix, year, sequence);
     }
 }
