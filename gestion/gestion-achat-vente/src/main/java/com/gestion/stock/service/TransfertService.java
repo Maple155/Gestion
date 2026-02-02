@@ -506,20 +506,12 @@ public class TransfertService {
                 trf.setValideurId(userId);
                 trf.setDateValidation(LocalDateTime.now());
             }
-            case ANNULE -> {
-                trf.setAnnulateurId(userId);
-                trf.setDateAnnulation(LocalDateTime.now());
-            }
-            case RECEPTIONNE -> {
-                trf.setReceptionnaireId(userId);
-                trf.setDateReceptionReelle(LocalDateTime.now());
-            }
             default -> {}
         }
 
         trf.setStatut(newStatus);
         return transfertRepository.save(trf);
-
+    }
     
     /**
      * Vérifier la disponibilité pour un transfert
