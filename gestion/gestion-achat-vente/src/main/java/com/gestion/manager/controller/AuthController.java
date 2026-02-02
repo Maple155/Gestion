@@ -47,7 +47,7 @@ public class AuthController {
         model.addAttribute("success", "Compte créé");
         return "loginManager";
     }
-
+ 
     @GetMapping("/logoutManager")
     public String logout(HttpSession session) {
         authService.logout(session);
@@ -55,10 +55,7 @@ public class AuthController {
     }
 
     @GetMapping("/home")
-    public String home(HttpSession session) {
-        if (!authService.isLogged(session)) {
-            return "redirect:/loginManager";
-        }
+    public String home() {
         return "home";
     }
 }

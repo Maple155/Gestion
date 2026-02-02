@@ -20,7 +20,10 @@ public class SessionInterceptor implements HandlerInterceptor {
         
         // URLs publiques (pas besoin de session)
         if (requestURI.equals("/login") || 
+            requestURI.equals("/loginManager") ||
+            requestURI.equals("/home") ||
             requestURI.equals("/") || 
+            requestURI.equals("signupManager") ||
             requestURI.startsWith("/css/") || 
             requestURI.startsWith("/js/") ||
             requestURI.startsWith("/images/")) {

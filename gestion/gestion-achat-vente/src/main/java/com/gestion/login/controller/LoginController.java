@@ -155,6 +155,8 @@ public class LoginController {
                     return "redirect:/achats/demandes";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
+                case "MANAGER":
+                    return "redirect:home";
                 default:
                     return "redirect:/achats/demandes";
             }
