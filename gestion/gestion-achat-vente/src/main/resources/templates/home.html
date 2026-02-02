@@ -266,7 +266,7 @@
             <div class="sidebar-section">
                 <h3>Achat</h3>
                 <ul>
-                    <li><a href="/achat/bons">Bons de commande</a></li>
+                    <li><a href="/achat/bons/all">Bons de commande</a></li>
                 </ul>
             </div>
 
@@ -475,57 +475,57 @@
 </table>
 </div>
 
+<div th:if="${bdc != null}" class="stat-card" style="margin-top:30px;">
+    <h3>Liste des Bons de commande</h3>
 
-<div th:if="${mvfftStock != null}" class="stat-card" style="margin-top:30px;">
-<h3>Liste des mouvements</h3>
+    <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Proforma</th>
+                <th>Montant TTC</th>
+                <th>Statut</th>
+                <th>Date émission</th>
+                <th>Date livraison estimée</th>
+                <th>Action</th>
+                <th>Modifier Status</th>
+            </tr>
+        </thead>
 
-<table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-<thead>
-<tr>
-<th>Référence</th>
-<th>Article</th>
-<th>Dépôt</th>
-<th>Quantité</th>
-<th>Statut</th>
-<th>Date</th>
-<th>Action</th>
-<th>Modifier</th>
-</tr>
-</thead>
+       <tbody>
+    <tr th:each="mvt : ${bdc}">
+        <td th:text="${mvt.referenceBc}"></td>
+        <td th:text="${mvt.proforma.id}"></td>
+        <td th:text="${mvt.montantFormate}"></td>
 
-<tbody>
-<tr th:each="mvt : ${mvtStock}">
-<td th:text="${mvt.reference}"></td>
-<td th:text="${mvt.article.libelle}"></td>
-<td th:text="${mvt.depot.nom}"></td>
-<td th:text="${mvt.quantite}"></td>
-<td th:text="${mvt.statut}"></td>
-<td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}"></td>
-
-<td>
-    <a th:href="@{/stock/mouvements/{id}(id=${mvt.id})}">
-        <button>Détails</button>
-    </a>
-</td>
-<td>
-<form th:action="@{/stock/mouvements/{id}/statut(id=${mvt.id})}" method="post">
-<select name="statut">
-    <option th:each="s : ${T(com.gestion.stock.entity.StockMovement.MovementStatus).values()}"
-            th:value="${s}"
-            th:text="${s}"
-            th:selected="${s == mvt.statut}">
-    </option>
-</select>
-
-<button type="submit">OK</button>
-</form>
+        <td th:text="${mvt.statutFinance}"></td>
+        <td th:text="${#temporals.format(mvt.dateEmission, 'dd/MM/yyyy HH:mm')}"></td>
+        <td th:text="${mvt.dateLivraisonEstimee != null ? #temporals.format(mvt.dateLivraisonEstimee, 'dd/MM/yyyy') : '-'}"></td>
+        <td>
+            <a th:href="@{/achat/bons/{id}(id=${mvt.id})}">
+                <button>Détails</button>
+            </a>
+        </td>
+      <td>
+    <form th:action="@{/achat/bons/{id}/statut-finance(id=${mvt.id})}" method="post">
+        <select name="statutFinance">
+            <option th:each="s : ${T(com.gestion.achat.enums.StatutFinance).values()}"
+                    th:value="${s}"
+                    th:text="${s}"
+                    th:selected="${s == mvt.statutFinance}">
+            </option>
+        </select>
+        <button type="submit">OK</button>
+    </form>
 </td>
 
-</tr>
+
+    </tr>
 </tbody>
 
-</table>
+    </table>
 </div>
+
         </div>
 
 

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail Bon de commande</title>
+</head>
+<body>
+
+<h2>Détail Bon de commande</h2>
+
+<table border="1" width="60%" style="border-collapse: collapse;">
+    <tr><td>ID</td><td th:text="${bdc.id}"></td></tr>
+    <tr><td>Référence BC</td><td th:text="${bdc.referenceBc}"></td></tr>
+    <tr><td>Proforma</td><td th:text="${bdc.proforma.id}"></td></tr>
+    <tr><td>Montant TTC</td><td th:text="${bdc.montantFormate}"></td></tr>
+    <tr><td>Statut</td><td th:text="${bdc.statutFinance}"></td></tr>
+    <tr><td>Date émission</td><td th:text="${#temporals.format(bdc.dateEmission,'dd/MM/yyyy HH:mm')}"></td></tr>
+    <tr><td>Date livraison estimée</td><td th:text="${bdc.dateLivraisonEstimee != null ? #temporals.format(bdc.dateLivraisonEstimee,'dd/MM/yyyy') : '-'}"></td></tr>
+</table>
+
+<br>
+<a href="/achat/bons/all">⬅ Retour</a>
+
+</body>
+</html>
