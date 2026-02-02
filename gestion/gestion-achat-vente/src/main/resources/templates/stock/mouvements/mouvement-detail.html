@@ -1,31 +1,198 @@
-<h2>Détail Mouvement</h2>
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détail Mouvement</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<table border="1" width="60%" style="border-collapse: collapse;">
-    <tr><td>ID</td><td th:text="${mvt.id}"></td></tr>
-    <tr><td>Référence</td><td th:text="${mvt.reference}"></td></tr>
-    <tr><td>Type</td><td th:text="${mvt.type.libelle}"></td></tr>
-    <tr><td>Article</td><td th:text="${mvt.article.libelle}"></td></tr>
-    <tr><td>Dépôt</td><td th:text="${mvt.depot.nom}"></td></tr>
-    <tr><td>Emplacement</td><td th:text="${mvt.emplacement?.nom}"></td></tr>
-    <tr><td>Inventaire</td><td th:text="${mvt.inventaire?.reference}"></td></tr>
-    <tr><td>Transfert</td><td th:text="${mvt.transfert?.reference}"></td></tr>
-    <tr><td>Quantité</td><td th:text="${mvt.quantite}"></td></tr>
-    <tr><td>Coût unitaire</td><td th:text="${mvt.coutUnitaire}"></td></tr>
-    <tr><td>Valeur</td><td th:text="${mvt.valeurMouvement}"></td></tr>
-    <tr><td>Lot</td><td th:text="${mvt.lot?.numero}"></td></tr>
-    <tr><td>Bon réception</td><td th:text="${mvt.bonReception?.reference}"></td></tr>
-    <tr><td>Bon commande</td><td th:text="${mvt.bonCommande?.reference}"></td></tr>
-    <tr><td>Commande client</td><td th:text="${mvt.commandeClientId}"></td></tr>
-    <tr><td>Date mouvement</td>
-        <td th:text="${#temporals.format(mvt.dateMouvement,'dd/MM/yyyy HH:mm')}"></td></tr>
-    <tr><td>Date comptable</td>
-        <td th:text="${#temporals.format(mvt.dateComptable,'dd/MM/yyyy')}"></td></tr>
-    <tr><td>Utilisateur</td><td th:text="${mvt.utilisateurId}"></td></tr>
-    <tr><td>Motif</td><td th:text="${mvt.motif}"></td></tr>
-    <tr><td>Statut</td><td th:text="${mvt.statut}"></td></tr>
-    <tr><td>Créé le</td>
-        <td th:text="${#temporals.format(mvt.createdAt,'dd/MM/yyyy HH:mm')}"></td></tr>
-</table>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 40px;
+        }
 
-<br>
-<a href="/stock/mouvements/all">⬅ Retour</a>
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h2::before {
+            content: '📦';
+            font-size: 32px;
+        }
+
+        .detail-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .detail-card table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .detail-card table tr {
+            border-bottom: 1px solid #e8eef3;
+        }
+
+        .detail-card table tr:last-child {
+            border-bottom: none;
+        }
+
+        .detail-card table td {
+            padding: 18px 15px;
+            font-size: 15px;
+        }
+
+        .detail-card table td:first-child {
+            font-weight: 600;
+            color: #8492a6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            width: 35%;
+        }
+
+        .detail-card table td:last-child {
+            color: #3c4858;
+            font-weight: 500;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-btn::before {
+            content: '⬅';
+            font-size: 18px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .detail-card {
+                padding: 20px;
+            }
+
+            .detail-card table td:first-child {
+                width: 45%;
+                font-size: 11px;
+            }
+
+            .detail-card table td {
+                padding: 12px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Détail Mouvement</h2>
+        </div>
+
+        <div class="detail-card">
+            <table>
+                <tr><td>ID</td><td th:text="${mvt.id}"></td></tr>
+                <tr><td>Référence</td><td th:text="${mvt.reference}"></td></tr>
+                <tr><td>Type</td><td th:text="${mvt.type.libelle}"></td></tr>
+                <tr><td>Article</td><td th:text="${mvt.article.libelle}"></td></tr>
+                <tr><td>Dépôt</td><td th:text="${mvt.depot.nom}"></td></tr>
+                <tr><td>Emplacement</td><td th:text="${mvt.emplacement?.nom}"></td></tr>
+                <tr><td>Inventaire</td><td th:text="${mvt.inventaire?.reference}"></td></tr>
+                <tr><td>Transfert</td><td th:text="${mvt.transfert?.reference}"></td></tr>
+                <tr><td>Quantité</td><td th:text="${mvt.quantite}"></td></tr>
+                <tr><td>Coût unitaire</td><td th:text="${mvt.coutUnitaire}"></td></tr>
+                <tr><td>Valeur</td><td th:text="${mvt.valeurMouvement}"></td></tr>
+                <tr><td>Lot</td><td th:text="${mvt.lot?.numero}"></td></tr>
+                <tr><td>Bon réception</td><td th:text="${mvt.bonReception?.reference}"></td></tr>
+                <tr><td>Bon commande</td><td th:text="${mvt.bonCommande?.reference}"></td></tr>
+                <tr><td>Commande client</td><td th:text="${mvt.commandeClientId}"></td></tr>
+                <tr><td>Date mouvement</td>
+                    <td th:text="${#temporals.format(mvt.dateMouvement,'dd/MM/yyyy HH:mm')}"></td></tr>
+                <tr><td>Date comptable</td>
+                    <td th:text="${#temporals.format(mvt.dateComptable,'dd/MM/yyyy')}"></td></tr>
+                <tr><td>Utilisateur</td><td th:text="${mvt.utilisateurId}"></td></tr>
+                <tr><td>Motif</td><td th:text="${mvt.motif}"></td></tr>
+                <tr><td>Statut</td><td th:text="${mvt.statut}"></td></tr>
+                <tr><td>Créé le</td>
+                    <td th:text="${#temporals.format(mvt.createdAt,'dd/MM/yyyy HH:mm')}"></td></tr>
+            </table>
+        </div>
+
+        <a href="/stock/mouvements/all" class="back-btn">Retour</a>
+    </div>
+</body>
+</html>
