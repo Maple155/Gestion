@@ -221,51 +221,6 @@ public class TransfertController {
         return "redirect:/stock/transferts/liste";
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
      @PutMapping("/{id}/statut")
     public ResponseEntity<Transfert> updateStatus(
             @PathVariable UUID id,
