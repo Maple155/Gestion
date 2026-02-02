@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gestion.stock.entity.StockMovement;
 import com.gestion.stock.entity.StockMovement.MovementStatus;
 import com.gestion.stock.repository.StockMovementRepository;
-
+import java.util.list;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -16,6 +16,10 @@ import lombok.RequiredArgsConstructor;
 public class StockMovementService {
 
     private final StockMovementRepository repository;
+
+    public List<StockMovement> getAll(){
+        return repository.findAll();
+    }
 
     @Transactional
     public StockMovement updateStatus(UUID id, MovementStatus newStatus) {
