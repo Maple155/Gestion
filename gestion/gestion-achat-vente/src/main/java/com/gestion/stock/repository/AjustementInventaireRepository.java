@@ -13,18 +13,31 @@ import java.util.UUID;
 
 @Repository
 public interface AjustementInventaireRepository extends JpaRepository<AjustementInventaire, UUID> {
-    
-    List<AjustementInventaire> findByLigneInventaireId(UUID ligneInventaireId);
-    
-    List<AjustementInventaire> findByValideurId(UUID valideurId);
-    
-    @Query("SELECT a FROM AjustementInventaire a WHERE a.dateValidation >= :debut " +
-           "AND a.dateValidation <= :fin")
-    List<AjustementInventaire> findByDateValidationBetween(@Param("debut") LocalDateTime debut,
-                                                          @Param("fin") LocalDateTime fin);
-    
-    @Query("SELECT SUM(a.valeurAjustement) FROM AjustementInventaire a " +
-           "WHERE a.dateValidation >= :debut AND a.dateValidation <= :fin")
-    BigDecimal sumValeurAjustements(@Param("debut") LocalDateTime debut,
-                                   @Param("fin") LocalDateTime fin);
+
+       List<AjustementInventaire> findByLigneInventaireId(UUID ligneInventaireId);
+
+       List<AjustementInventaire> findByValideurId(UUID valideurId);
+
+       @Query("SELECT a FROM AjustementInventaire a WHERE a.dateValidation >= :debut " +
+                     "AND a.dateValidation <= :fin")
+       List<AjustementInventaire> findByDateValidationBetween(@Param("debut") LocalDateTime debut,
+                     @Param("fin") LocalDateTime fin);
+
+       @Query("SELECT SUM(a.valeurAjustement) FROM AjustementInventaire a " +
+                     "WHERE a.dateValidation >= :debut AND a.dateValidation <= :fin")
+       BigDecimal sumValeurAjustements(@Param("debut") LocalDateTime debut,
+                     @Param("fin") LocalDateTime fin);
+
+       List<AjustementInventaire> findByLigneInventaireInventaireId(UUID inventaireId);
+
+       default List<AjustementInventaire> findByInventaireId(UUID inventaireId) {
+              return findByLigneInventaireInventaireId(inventaireId);
+       }
+
+       @Query("SELECT a FROM AjustementInventaire a " +
+                     "WHERE a.ligneInventaire.inventaire.id = :inventaireId " +
+                     "ORDER BY a.dateValidation DESC")
+       List<AjustementInventaire> findByInventaireIdOrderByDate(@Param("inventaireId") UUID inventaireId);
+
+       List<AjustementInventaire> findByRequiertDoubleValidationTrueAndDateSecondValidationIsNull();
 }

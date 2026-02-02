@@ -1,0 +1,631 @@
+<!-- templates/stock/inventaires/comptage.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Comptage Inventaire</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+        }
+        .comptage-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .article-card {
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .article-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .quantite-input {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            border: 3px solid #dee2e6;
+            border-radius: 10px;
+            width: 150px;
+            margin: 0 auto 20px;
+            transition: all 0.3s;
+        }
+        .quantite-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .btn-quantite {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            padding: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .btn-scanner {
+            background: linear-gradient(135deg, var(--primary-color), #0a58ca);
+            color: white;
+            border: none;
+        }
+        .btn-scanner:hover {
+            background: linear-gradient(135deg, #0a58ca, var(--primary-color));
+            color: white;
+        }
+        .info-badge {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+        }
+        .comptage-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .statut-badge {
+            font-size: 1rem;
+            padding: 8px 16px;
+        }
+        .theorique-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #6c757d;
+            text-align: center;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        .keypad button {
+            height: 60px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="comptage-container py-4">
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">
+                    <i class="bi bi-clipboard-data me-2"></i>
+                    Comptage inventaire
+                </h1>
+                <p class="text-muted mb-0">
+                    [[${inventaire.reference}]] - [[${inventaire.depot?.nom}]]
+                </p>
+            </div>
+            <a th:href="@{/stock/inventaires/details/} + ${inventaire.id}" 
+               class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg me-1"></i> Quitter
+            </a>
+        </div>
+
+        <!-- Progression -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 th:style="'width: ' + ${progression.pourcentage} + '%;'"
+                                 th:attr="aria-valuenow=${progression.pourcentage}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                [[${progression.pourcentage}]]%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="h4 mb-0">
+                            [[${progression.comptes}]]/[[${progression.total}]]
+                        </div>
+                        <small class="text-muted">Articles comptés</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Article à compter -->
+        <div th:if="${ligne != null}">
+            <div class="article-card">
+                <div class="article-header">
+                    <div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span th:switch="${ligne.statut.name()}" class="statut-badge me-3">
+                                <span th:case="'A_COMPTER'" class="badge bg-secondary">À COMPTER</span>
+                                <span th:case="'ECART_A_RECOMPTER'" class="badge bg-warning">RECOMPTAGE</span>
+                            </span>
+                            <span class="badge bg-info info-badge">
+                                <i class="bi bi-upc-scan me-1"></i>
+                                [[${ligne.article?.codeArticle}]]
+                            </span>
+                        </div>
+                        <h2 class="h4 mb-2">[[${ligne.article?.libelle}]]</h2>
+                        <div class="text-muted">
+                            <div>
+                                <i class="bi bi-box me-1"></i>
+                                Emplacement: 
+                                <span th:if="${ligne.emplacement}" class="fw-bold">
+                                    [[${ligne.emplacement.code}]]
+                                </span>
+                                <span th:unless="${ligne.emplacement}" class="fst-italic">
+                                    Non défini
+                                </span>
+                            </div>
+                            <div th:if="${ligne.lot}">
+                                <i class="bi bi-tag me-1"></i>
+                                Lot: [[${ligne.lot.numeroLot}]]
+                                <span th:if="${ligne.lot.datePeremption}" class="ms-2">
+                                    (DLC: [[${#temporals.format(ligne.lot.datePeremption, 'dd/MM/yyyy')}]])
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-scanner" onclick="simulateScan()">
+                            <i class="bi bi-upc-scan me-2"></i>Scanner
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quantité théorique -->
+                <div class="text-center mb-4">
+                    <div class="text-muted mb-2">
+                        <i class="bi bi-calculator me-1"></i>Quantité théorique en stock
+                    </div>
+                    <div class="theorique-value">[[${ligne.quantiteTheorique}]]</div>
+                </div>
+
+                <!-- Saisie quantité -->
+                <div class="text-center mb-4">
+                    <label class="form-label fw-bold mb-3">
+                        <i class="bi bi-123 me-2"></i>Quantité comptée
+                    </label>
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <button class="btn btn-outline-secondary btn-quantite me-3" 
+                                onclick="adjustQuantity(-1)">
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
+                        
+                        <input type="number" 
+                               class="form-control quantite-input" 
+                               id="quantiteInput"
+                               th:value="${ligne.quantiteComptee1 != null ? ligne.quantiteComptee1 : ''}"
+                               min="0" 
+                               max="999999"
+                               oninput="validateQuantity(this)">
+                        
+                        <button class="btn btn-outline-secondary btn-quantite ms-3" 
+                                onclick="adjustQuantity(1)">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Pavé numérique -->
+                    <div class="keypad mb-4">
+                        <button class="btn btn-outline-secondary" onclick="addDigit(1)">1</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(2)">2</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(3)">3</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(4)">4</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(5)">5</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(6)">6</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(7)">7</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(8)">8</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(9)">9</button>
+                        <button class="btn btn-outline-secondary" onclick="addDigit(0)">0</button>
+                        <button class="btn btn-outline-danger" onclick="clearQuantity()">
+                            <i class="bi bi-backspace"></i>
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="setQuantity([[${ligne.quantiteTheorique}]])">
+                            Théorique
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Détails du comptage -->
+                <div class="comptage-details">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-chat-left-text me-1"></i>Observations
+                            </label>
+                            <textarea class="form-control" id="observations" rows="2" 
+                                      placeholder="Conditionnement, état, emplacement exact..."></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-upc me-1"></i>Code-barres scanné
+                            </label>
+                            <input type="text" class="form-control" id="codeBarreScanner" 
+                                   placeholder="Scanner ou saisir le code-barres">
+                        </div>
+                    </div>
+                    
+                    <!-- Premier comptage déjà fait -->
+                    <div th:if="${ligne.quantiteComptee1 != null}" class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Premier comptage: [[${ligne.quantiteComptee1}]] 
+                        par [[${ligne.compteur1Id}]] 
+                        le [[${#temporals.format(ligne.dateComptage1, 'dd/MM/yyyy HH:mm')}]]
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="text-center mt-4">
+                    <button class="btn btn-lg btn-success me-3 px-5" 
+                            onclick="enregistrerComptage(false)">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Enregistrer
+                    </button>
+                    <button class="btn btn-lg btn-primary px-5" 
+                            onclick="enregistrerComptage(true)">
+                        <i class="bi bi-arrow-right-circle me-2"></i>
+                        Suivant
+                    </button>
+                </div>
+            </div>
+
+            <!-- Information écart -->
+            <div id="ecartAlert" class="alert alert-warning d-none">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span id="ecartMessage"></span>
+            </div>
+        </div>
+
+        <!-- Aucun article à compter -->
+        <div th:if="${ligne == null}" class="text-center py-5">
+            <i class="bi bi-check2-circle display-1 text-success mb-4"></i>
+            <h3 class="mb-3">Inventaire terminé !</h3>
+            <p class="text-muted mb-4">
+                Tous les articles ont été comptés pour cette session.
+            </p>
+            <a th:href="@{/stock/inventaires/details/} + ${inventaire.id}" 
+               class="btn btn-primary btn-lg">
+                <i class="bi bi-clipboard-check me-2"></i>Retour aux détails
+            </a>
+        </div>
+    </div>
+
+    <!-- Barre de progression fixe en bas -->
+    <div class="progress-container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small class="text-muted d-block">Votre progression</small>
+                <div class="d-flex align-items-center">
+                    <div class="fw-bold me-3">[[${progression.comptesUtilisateur}]]/[[${progression.total}]]</div>
+                    <div class="progress" style="width: 200px; height: 10px;">
+                        <div class="progress-bar" 
+                             th:style="'width: ' + ${progression.comptesUtilisateur / progression.total * 100} + '%;'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="passerArticle()">
+                    <i class="bi bi-skip-forward me-1"></i>Passer
+                </button>
+                <a th:href="@{/stock/inventaires/details/} + ${inventaire.id}" 
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-list-check me-1"></i>Vue détaillée
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmation -->
+    <div class="modal fade" id="confirmationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Comptage enregistré</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="bi bi-check-circle-fill text-success display-4 mb-3"></i>
+                    <p id="modalMessage">Le comptage a été enregistré avec succès.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal recomptage requis -->
+    <div class="modal fade" id="recomptageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Recomptage requis
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Un écart significatif a été détecté. Un second comptage est recommandé.</p>
+                    <div class="alert alert-info">
+                        <h6>Détails de l'écart:</h6>
+                        <ul>
+                            <li>Quantité théorique: <span id="modalTheorique">0</span></li>
+                            <li>Quantité comptée: <span id="modalComptee">0</span></li>
+                            <li>Écart: <span id="modalEcart" class="fw-bold">0</span></li>
+                            <li>Pourcentage: <span id="modalPourcentage" class="fw-bold">0%</span></li>
+                        </ul>
+                    </div>
+                    <p class="mb-0">Souhaitez-vous effectuer un recomptage immédiatement ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="skipRecomptage()">
+                        Non, valider ce comptage
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="startRecomptage()">
+                        Oui, recomptage
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let ligneId = "[[${ligne != null ? ligne.id : ''}]]";
+        let quantiteTheorique = [[${ligne != null ? ligne.quantiteTheorique : 0}]];
+        let quantiteInput = document.getElementById('quantiteInput');
+        
+        // Gestion de la quantité
+        function adjustQuantity(delta) {
+            let current = parseInt(quantiteInput.value) || 0;
+            let newValue = Math.max(0, current + delta);
+            quantiteInput.value = newValue;
+            checkEcart();
+        }
+        
+        function addDigit(digit) {
+            let current = quantiteInput.value || '0';
+            if (current === '0') current = '';
+            quantiteInput.value = current + digit;
+            checkEcart();
+        }
+        
+        function clearQuantity() {
+            quantiteInput.value = '';
+        }
+        
+        function setQuantity(value) {
+            quantiteInput.value = value;
+            checkEcart();
+        }
+        
+        function validateQuantity(input) {
+            let value = parseInt(input.value);
+            if (isNaN(value) || value < 0) {
+                input.value = '';
+            } else if (value > 999999) {
+                input.value = 999999;
+            }
+            checkEcart();
+        }
+        
+        // Vérification de l'écart
+        function checkEcart() {
+            const quantite = parseInt(quantiteInput.value) || 0;
+            const ecart = quantite - quantiteTheorique;
+            const ecartAbs = Math.abs(ecart);
+            const pourcentage = quantiteTheorique > 0 ? (ecartAbs / quantiteTheorique * 100) : 0;
+            
+            const alertDiv = document.getElementById('ecartAlert');
+            const messageSpan = document.getElementById('ecartMessage');
+            
+            if (ecartAbs === 0) {
+                alertDiv.classList.add('d-none');
+                return;
+            }
+            
+            alertDiv.classList.remove('d-none', 'alert-danger', 'alert-warning');
+            
+            let message = `Écart: ${ecart > 0 ? '+' : ''}${ecart} unités (${pourcentage.toFixed(1)}%)`;
+            let alertClass = 'alert-warning';
+            
+            // Règles d'écart important
+            if (ecartAbs > 10 || pourcentage > 5) {
+                message += " - Recomptage recommandé";
+                alertClass = 'alert-danger';
+            }
+            
+            messageSpan.textContent = message;
+            alertDiv.classList.add(alertClass);
+        }
+        
+        // Enregistrement du comptage
+        function enregistrerComptage(autoNext) {
+            const quantite = parseInt(quantiteInput.value);
+            if (isNaN(quantite) || quantite < 0) {
+                alert('Veuillez saisir une quantité valide');
+                return;
+            }
+            
+            const data = {
+                ligneId: ligneId,
+                quantite: quantite,
+                estRecomptage: "[[${ligne != null and ligne.quantiteComptee1 != null}]]" === "true",
+                observations: document.getElementById('observations').value,
+                codeBarreScanner: document.getElementById('codeBarreScanner').value,
+                autoNext: autoNext
+            };
+            
+            fetch('/stock/inventaires/enregistrer-comptage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.necessiteRecomptage) {
+                        // Afficher modal de recomptage
+                        document.getElementById('modalTheorique').textContent = quantiteTheorique;
+                        document.getElementById('modalComptee').textContent = quantite;
+                        const ecart = quantite - quantiteTheorique;
+                        document.getElementById('modalEcart').textContent = ecart > 0 ? '+' + ecart : ecart;
+                        document.getElementById('modalEcart').className = ecart > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                        const pourcentage = Math.abs(ecart) / quantiteTheorique * 100;
+                        document.getElementById('modalPourcentage').textContent = pourcentage.toFixed(1) + '%';
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('recomptageModal'));
+                        modal.show();
+                    } else if (autoNext && data.prochaineLigne) {
+                        // Passer à l'article suivant
+                        location.reload();
+                    } else {
+                        // Afficher confirmation
+                        document.getElementById('modalMessage').textContent = data.message;
+                        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                        modal.show();
+                        
+                        modal._element.addEventListener('hidden.bs.modal', function () {
+                            if (autoNext) {
+                                location.reload();
+                            }
+                        });
+                    }
+                } else {
+                    alert('Erreur: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de l\'enregistrement');
+            });
+        }
+        
+        // Gestion du recomptage
+        function startRecomptage() {
+            // Marquer comme recomptage et recharger
+            document.getElementById('recomptageModal').querySelector('.btn-close').click();
+            setTimeout(() => {
+                const data = {
+                    ligneId: ligneId,
+                    quantite: parseInt(quantiteInput.value),
+                    estRecomptage: true,
+                    observations: document.getElementById('observations').value,
+                    codeBarreScanner: document.getElementById('codeBarreScanner').value,
+                    autoNext: false
+                };
+                
+                fetch('/stock/inventaires/enregistrer-comptage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Erreur: ' + data.message);
+                    }
+                });
+            }, 300);
+        }
+        
+        function skipRecomptage() {
+            document.getElementById('recomptageModal').querySelector('.btn-close').click();
+        }
+        
+        // Passer à l'article suivant
+        function passerArticle() {
+            if (confirm('Passer à l\'article suivant sans enregistrer ?')) {
+                location.reload();
+            }
+        }
+        
+        // Simulation de scan
+        function simulateScan() {
+            // Dans une vraie application, cette fonction intégrerait un scanner réel
+            // Pour la démo, on simule un scan
+            document.getElementById('codeBarreScanner').value = 'SIMULATED-SCAN-' + Date.now();
+            
+            // Flash visuel
+            const scannerBtn = document.querySelector('.btn-scanner');
+            const originalBg = scannerBtn.style.background;
+            scannerBtn.style.background = 'linear-gradient(135deg, #198754, #0d6efd)';
+            setTimeout(() => {
+                scannerBtn.style.background = originalBg;
+            }, 500);
+        }
+        
+        // Initialiser la vérification d'écart
+        if (quantiteInput.value) {
+            checkEcart();
+        }
+        
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(event) {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            switch(event.key) {
+                case '+':
+                    adjustQuantity(1);
+                    break;
+                case '-':
+                    adjustQuantity(-1);
+                    break;
+                case 'Enter':
+                    enregistrerComptage(true);
+                    break;
+                case 'Escape':
+                    passerArticle();
+                    break;
+                case ' ':
+                    simulateScan();
+                    break;
+            }
+            
+            // Chiffres 0-9
+            if (event.key >= '0' && event.key <= '9') {
+                addDigit(parseInt(event.key));
+            }
+        });
+        
+        // Focus automatique
+        setTimeout(() => {
+            quantiteInput.focus();
+            quantiteInput.select();
+        }, 100);
+    </script>
+</body>
+</html>
