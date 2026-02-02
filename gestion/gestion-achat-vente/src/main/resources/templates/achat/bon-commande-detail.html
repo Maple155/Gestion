@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Détail Réservation</title>
+    <title>Détail Bon de commande</title>
     <style>
         * {
             margin: 0;
@@ -41,7 +41,7 @@
         }
 
         .header h2::before {
-            content: '📋';
+            content: '🛒';
             font-size: 32px;
         }
 
@@ -135,43 +135,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Détail Réservation</h2>
+            <h2>Détail Bon de commande</h2>
         </div>
 
         <div class="detail-card">
             <table>
-                <tr><td>ID</td><td th:text="${res.id}"></td></tr>
-                <tr><td>Référence</td><td th:text="${res.reference}"></td></tr>
-                <tr><td>Article</td><td th:text="${res.article.libelle}"></td></tr>
-                <tr><td>Dépôt</td><td th:text="${res.depot.nom}"></td></tr>
-                <tr><td>Quantité réservée</td><td th:text="${res.quantiteReservee}"></td></tr>
-                <tr><td>Quantité prélevée</td><td th:text="${res.quantitePrelevee}"></td></tr>
-                <tr><td>Quantité restante</td><td th:text="${res.quantiteRestante}"></td></tr>
-                <tr><td>Lot</td><td th:text="${res.lot?.numero}"></td></tr>
-                <tr><td>Commande client</td><td th:text="${res.commandeClientId}"></td></tr>
-                <tr><td>Ligne commande</td><td th:text="${res.ligneCommandeId}"></td></tr>
-                <tr>
-                    <td>Date réservation</td>
-                    <td th:text="${#temporals.format(res.dateReservation,'dd/MM/yyyy HH:mm')}"></td>
-                </tr>
-                <tr>
-                    <td>Date expiration</td>
-                    <td th:text="${res.dateExpiration != null ? #temporals.format(res.dateExpiration,'dd/MM/yyyy HH:mm') : '-'}"></td>
-                </tr>
-                <tr>
-                    <td>Date livraison prévue</td>
-                    <td th:text="${res.dateLivraisonPrevue != null ? #temporals.format(res.dateLivraisonPrevue,'dd/MM/yyyy') : '-'}"></td>
-                </tr>
-                <tr><td>Statut</td><td th:text="${res.statut}"></td></tr>
-                <tr><td>Utilisateur</td><td th:text="${res.utilisateurId}"></td></tr>
-                <tr>
-                    <td>Créé le</td>
-                    <td th:text="${#temporals.format(res.createdAt,'dd/MM/yyyy HH:mm')}"></td>
-                </tr>
+                <tr><td>ID</td><td th:text="${bdc.id}"></td></tr>
+                <tr><td>Référence BC</td><td th:text="${bdc.referenceBc}"></td></tr>
+                <tr><td>Proforma</td><td th:text="${bdc.proforma.id}"></td></tr>
+                <tr><td>Montant TTC</td><td th:text="${bdc.montantFormate}"></td></tr>
+                <tr><td>Statut</td><td th:text="${bdc.statutFinance}"></td></tr>
+                <tr><td>Date émission</td><td th:text="${#temporals.format(bdc.dateEmission,'dd/MM/yyyy HH:mm')}"></td></tr>
+                <tr><td>Date livraison estimée</td><td th:text="${bdc.dateLivraisonEstimee != null ? #temporals.format(bdc.dateLivraisonEstimee,'dd/MM/yyyy') : '-'}"></td></tr>
             </table>
         </div>
 
-        <a href="/stock/reservations/all" class="back-btn">Retour</a>
+        <a href="/achat/bons/all" class="back-btn">Retour</a>
     </div>
 </body>
 </html>

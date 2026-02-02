@@ -28,9 +28,9 @@ public class ReservationStockController {
     }
 
     @GetMapping("{id}")
-public String detailReservation(@PathVariable UUID id, Model model) {
-    ReservationStock mvt = service.findById(id);
-    model.addAttribute("res", mvt);
-    return "stock/reservations/reservations-detail";
-}
+    public String detailReservation(@PathVariable UUID id, Model model) {
+        ReservationStock mvt = service.findById(id);
+        model.addAttribute("res", mvt);
+        return "stock/reservations/reservations-detail";
+    }
 }
