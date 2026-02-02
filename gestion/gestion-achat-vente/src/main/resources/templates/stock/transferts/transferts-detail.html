@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail Transfert</title>
+</head>
+<body>
+
+<h2>Détail Transfert</h2>
+
+<table border="1" width="60%" style="border-collapse: collapse;">
+
+    <tr><td>ID</td><td th:text="${trf.id}"></td></tr>
+
+    <tr><td>Référence</td><td th:text="${trf.reference}"></td></tr>
+
+    <tr><td>Dépôt source</td>
+        <td th:text="${trf.depotSource.nom}"></td>
+    </tr>
+
+    <tr><td>Dépôt destination</td>
+        <td th:text="${trf.depotDestination.nom}"></td>
+    </tr>
+
+    <tr>
+        <td>Date demande</td>
+        <td th:text="${#temporals.format(trf.dateDemande,'dd/MM/yyyy HH:mm')}"></td>
+    </tr>
+
+    <tr>
+        <td>Date expédition</td>
+        <td th:text="${trf.dateExpedition != null ? #temporals.format(trf.dateExpedition,'dd/MM/yyyy') : '-'}"></td>
+    </tr>
+
+    <tr>
+        <td>Date réception prévue</td>
+        <td th:text="${trf.dateReceptionPrevue != null ? #temporals.format(trf.dateReceptionPrevue,'dd/MM/yyyy') : '-'}"></td>
+    </tr>
+
+    <tr>
+        <td>Date réception réelle</td>
+        <td th:text="${trf.dateReceptionReelle != null ? #temporals.format(trf.dateReceptionReelle,'dd/MM/yyyy HH:mm') : '-'}"></td>
+    </tr>
+
+    <tr><td>Statut</td><td th:text="${trf.statut}"></td></tr>
+
+    <tr><td>Motif</td><td th:text="${trf.motif != null ? trf.motif : '-'}"></td></tr>
+
+    <tr><td>Demandeur</td><td th:text="${trf.demandeurId}"></td></tr>
+
+    <tr><td>Valideur</td>
+        <td th:text="${trf.valideurId != null ? trf.valideurId : '-'}"></td>
+    </tr>
+
+    <tr>
+        <td>Date validation</td>
+        <td th:text="${trf.dateValidation != null ? #temporals.format(trf.dateValidation,'dd/MM/yyyy HH:mm') : '-'}"></td>
+    </tr>
+
+    <tr>
+        <td>Créé le</td>
+        <td th:text="${#temporals.format(trf.createdAt,'dd/MM/yyyy HH:mm')}"></td>
+    </tr>
+
+</table>
+
+<br>
+<a href="/stock/transferts/all">⬅ Retour</a>
+
+</body>
+</html>

@@ -39,6 +39,11 @@ public class TransfertService {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final EntityManager entityManager;
     
+    public Transfert findById(UUID id) {
+        return transfertRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transfert introuvable"));
+    }
+
     /**
      * Créer un transfert entre dépôts
      */
@@ -560,5 +565,9 @@ public class TransfertService {
         if (sequence == null) sequence = 1L;
         
         return String.format("%s-%d-%06d", prefix, year, sequence);
+    }
+
+    public List<Transfert> getAll(){
+        return transfertRepository.findAll();
     }
 }
