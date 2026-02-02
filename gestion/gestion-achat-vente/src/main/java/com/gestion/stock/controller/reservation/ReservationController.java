@@ -5,7 +5,7 @@ import com.gestion.stock.dto.CreateReservationRequest;
 import com.gestion.stock.dto.ReservationDTO;
 import com.gestion.stock.entity.ReservationStock;
 import com.gestion.stock.service.ReservationService;
-
+import com.gestion.stock.service.ReservationStockService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +29,17 @@ import java.util.stream.Collectors;
 public class ReservationController {
 
     private final ReservationService reservationService;
-
+    private final ReservationStockService reservationStockService;
     /**
      * Liste des réservations avec filtres
      */
+
+    @GetMapping("/all")
+    public String getAll(Model model){
+        model.addAttribute("resStock", reservationStockService.getAll());
+        return "/home";
+    }
+
     @GetMapping("/liste")
     public String listeReservations(Model model,
             HttpSession session,
