@@ -395,4 +395,15 @@ public class StockService {
                                 .limit(limit)
                                 .collect(Collectors.toList());
         }
+
+        public List<StockMovement> getDerniersMouvements(int limit, int jours) {
+                LocalDateTime debut = LocalDateTime.now().minusDays(jours);
+                List<StockMovement> mouvements = stockMovementRepository.findByDateMouvementBetween(debut,
+                                LocalDateTime.now());
+                return mouvements.stream()
+                                .sorted((a, b) -> b.getDateMouvement().compareTo(a.getDateMouvement()))
+                                .limit(limit)
+                                .collect(Collectors.toList());
+        }
+
 }

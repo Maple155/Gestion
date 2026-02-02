@@ -14,7 +14,7 @@
   <groupId>com.rh</groupId>
   <artifactId>rh-achat-vente</artifactId>
   <version>1.0.0</version>
-  <name>Système RH - Congés et Paie</name>
+  <name>Gestion</name>
   <description>Application de gestion des ressources humaines, congés et paie</description>
 
   <properties>

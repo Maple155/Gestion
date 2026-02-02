@@ -1,0 +1,1212 @@
+<!-- templates/stock/mouvements/modals.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <div th:fragment="modals">
+      <!-- Modal de sélection d'article -->
+      <div
+        class="modal fade"
+        id="modalSelectionArticleSortie"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title">
+                <i class="bi bi-search"></i> Sélectionner un article
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <!-- Barre de recherche -->
+              <div class="row mb-3">
+                <div class="col-md-8">
+                  <div class="input-group">
+                    <span class="input-group-text">
+                      <i class="bi bi-search"></i>
+                    </span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="searchArticleModal"
+                      placeholder="Rechercher par code, libellé, code barre..."
+                      onkeyup="searchArticlesModal(this.value)"
+                    />
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <select
+                    class="form-select"
+                    id="filterCategoryModal"
+                    onchange="filterArticlesModal()"
+                  >
+                    <option value="">Toutes les catégories</option>
+                    <option
+                      th:each="categorie : ${categories}"
+                      th:value="${categorie.id}"
+                      th:text="${categorie.libelle}"
+                    ></option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tableau des articles -->
+              <div
+                class="table-responsive"
+                style="max-height: 400px; overflow-y: auto"
+              >
+                <table class="table table-hover table-sm">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>Code</th>
+                      <th>Libellé</th>
+                      <th>Catégorie</th>
+                      <th>Stock disponible</th>
+                      <th>Gestion lot</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableArticlesModal">
+                    <!-- Rempli par JavaScript -->
+                    <tr>
+                      <td colspan="6" class="text-center text-muted">
+                        <div
+                          class="spinner-border spinner-border-sm"
+                          role="status"
+                        >
+                          <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        Chargement des articles...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination -->
+              <div class="row mt-3">
+                <div class="col-md-6">
+                  <small class="text-muted" id="articleCountModal">
+                    Chargement...
+                  </small>
+                </div>
+                <div class="col-md-6 text-end">
+                  <nav>
+                    <ul
+                      class="pagination pagination-sm justify-content-end"
+                      id="paginationArticlesModal"
+                    >
+                      <!-- Rempli par JavaScript -->
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-circle"></i> Annuler
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="validateArticleSelection()"
+                disabled
+                id="btnValidateArticle"
+              >
+                <i class="bi bi-check-circle"></i> Sélectionner
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de sélection de lot -->
+      <div
+        class="modal fade"
+        id="modalSelectionLot"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+              <h5 class="modal-title">
+                <i class="bi bi-tags"></i> Sélectionner un lot
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <!-- Filtres -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="searchLotModal"
+                    placeholder="Numéro de lot..."
+                    onkeyup="searchLotsModal(this.value)"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="searchArticleLotModal"
+                    placeholder="Article..."
+                    onkeyup="searchLotsModal()"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <select
+                    class="form-select"
+                    id="filterDepotLotModal"
+                    onchange="searchLotsModal()"
+                  >
+                    <option value="">Tous les dépôts</option>
+                    <option
+                      th:each="depot : ${depots}"
+                      th:value="${depot.id}"
+                      th:text="${depot.nom}"
+                    ></option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tableau des lots -->
+              <div
+                class="table-responsive"
+                style="max-height: 400px; overflow-y: auto"
+              >
+                <table class="table table-hover table-sm">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>N° Lot</th>
+                      <th>Article</th>
+                      <th>Dépôt</th>
+                      <th>Quantité</th>
+                      <th>Péremption</th>
+                      <th>Coût unitaire</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableLotsModal">
+                    <tr>
+                      <td colspan="7" class="text-center text-muted">
+                        <div
+                          class="spinner-border spinner-border-sm"
+                          role="status"
+                        >
+                          <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        Chargement des lots...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-circle"></i> Annuler
+              </button>
+              <button
+                type="button"
+                class="btn btn-info"
+                onclick="validateLotSelection()"
+                disabled
+                id="btnValidateLot"
+              >
+                <i class="bi bi-check-circle"></i> Sélectionner
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de sélection de réservation -->
+      <div
+        class="modal fade"
+        id="modalSelectionReservation"
+        tabindex="-1"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+              <h5 class="modal-title">
+                <i class="bi bi-calendar-check"></i> Sélectionner une
+                réservation
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <!-- Filtres -->
+              <div class="row mb-3">
+                <div class="col-md-4">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="searchReservationRefModal"
+                    placeholder="Référence réservation..."
+                    onkeyup="searchReservationsModal(this.value)"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="searchReservationArticleModal"
+                    placeholder="Article..."
+                    onkeyup="searchReservationsModal()"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <select
+                    class="form-select"
+                    id="filterReservationStatusModal"
+                    onchange="searchReservationsModal()"
+                  >
+                    <option value="ACTIVE">Réservations actives</option>
+                    <option value="ALL">Toutes les réservations</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tableau des réservations -->
+              <div
+                class="table-responsive"
+                style="max-height: 400px; overflow-y: auto"
+              >
+                <table class="table table-hover table-sm">
+                  <thead class="table-light sticky-top">
+                    <tr>
+                      <th>Référence</th>
+                      <th>Article</th>
+                      <th>Dépôt</th>
+                      <th>Quantité réservée</th>
+                      <th>Quantité prélevée</th>
+                      <th>Commande client</th>
+                      <th>Date réservation</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tableReservationsModal">
+                    <tr>
+                      <td colspan="8" class="text-center text-muted">
+                        <div
+                          class="spinner-border spinner-border-sm"
+                          role="status"
+                        >
+                          <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        Chargement des réservations...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-circle"></i> Annuler
+              </button>
+              <button
+                type="button"
+                class="btn btn-warning"
+                onclick="validateReservationSelection()"
+                disabled
+                id="btnValidateReservation"
+              >
+                <i class="bi bi-check-circle"></i> Sélectionner
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de confirmation -->
+      <div class="modal fade" id="modalConfirmationSortie" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title">
+                <i class="bi bi-exclamation-triangle"></i> Confirmer la sortie
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p id="confirmationMessage">
+                Êtes-vous sûr de vouloir enregistrer cette sortie de stock ?
+              </p>
+              <div class="alert alert-warning">
+                <i class="bi bi-info-circle"></i>
+                Cette action réduira immédiatement le stock disponible.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-circle"></i> Annuler
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                id="btnConfirmSortie"
+              >
+                <i class="bi bi-check-circle"></i> Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Variables globales pour les modals
+      let selectedArticleId = null;
+      let selectedLotId = null;
+      let selectedReservationId = null;
+
+      // ============================================
+      // GESTION MODAL ARTICLES
+      // ============================================
+
+      function ouvrirSelectionArticleSortie() {
+        // Réinitialiser la sélection
+        selectedArticleId = null;
+        document.getElementById("btnValidateArticle").disabled = true;
+
+        // Charger les articles
+        chargerArticlesModal();
+
+        // Afficher la modal
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalSelectionArticleSortie")
+        );
+        modal.show();
+      }
+
+      function chargerArticlesModal(page = 0) {
+        const searchTerm = document.getElementById("searchArticleModal").value;
+        const categoryId = document.getElementById("filterCategoryModal").value;
+
+        // Simuler un appel API (à remplacer par une vraie requête)
+        fetch(
+          `/api/articles/rechercher?search=${encodeURIComponent(
+            searchTerm
+          )}&categorieId=${categoryId}&page=${page}&size=10`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const tbody = document.getElementById("tableArticlesModal");
+            let html = "";
+
+            if (data.content && data.content.length > 0) {
+              data.content.forEach((article) => {
+                const estSelectionne = article.id === selectedArticleId;
+                html += `
+                                <tr class="${
+                                  estSelectionne ? "table-primary" : ""
+                                }" 
+                                    onclick="selectArticleRow('${article.id}')"
+                                    style="cursor: pointer;">
+                                    <td>
+                                        <strong>${article.codeArticle}</strong>
+                                        ${
+                                          article.codeBarre
+                                            ? `<br><small class="text-muted">${article.codeBarre}</small>`
+                                            : ""
+                                        }
+                                    </td>
+                                    <td>${article.libelle}</td>
+                                    <td>${article.categorieLibelle || ""}</td>
+                                    <td>
+                                        <span class="badge ${
+                                          article.quantiteDisponible > 0
+                                            ? "bg-success"
+                                            : "bg-danger"
+                                        }">
+                                            ${article.quantiteDisponible || 0}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${
+                                          article.gestionParLot
+                                            ? '<i class="bi bi-check-circle text-success"></i>'
+                                            : '<i class="bi bi-x-circle text-secondary"></i>'
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm ${
+                                          estSelectionne
+                                            ? "btn-primary"
+                                            : "btn-outline-primary"
+                                        }"
+                                                onclick="selectArticle('${
+                                                  article.id
+                                                }', '${
+                  article.codeArticle
+                }', '${article.libelle}', ${
+                  article.gestionParLot
+                }); event.stopPropagation();">
+                                            ${
+                                              estSelectionne
+                                                ? '<i class="bi bi-check"></i> Sélectionné'
+                                                : "Sélectionner"
+                                            }
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+              });
+            } else {
+              html = `
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                    Aucun article trouvé
+                                </td>
+                            </tr>
+                        `;
+            }
+
+            tbody.innerHTML = html;
+
+            // Mettre à jour le compteur
+            document.getElementById("articleCountModal").textContent = `${
+              data.totalElements || 0
+            } article(s) trouvé(s)`;
+
+            // Mettre à jour la pagination
+            updatePaginationArticles(data);
+          })
+          .catch((error) => {
+            console.error("Erreur chargement articles:", error);
+            document.getElementById("tableArticlesModal").innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center text-danger py-4">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Erreur lors du chargement des articles
+                            </td>
+                        </tr>
+                    `;
+          });
+      }
+
+      function updatePaginationArticles(data) {
+        const pagination = document.getElementById("paginationArticlesModal");
+        if (!data.totalPages || data.totalPages <= 1) {
+          pagination.innerHTML = "";
+          return;
+        }
+
+        let html = "";
+        const currentPage = data.number;
+
+        // Bouton précédent
+        html += `
+                <li class="page-item ${currentPage === 0 ? "disabled" : ""}">
+                    <a class="page-link" href="#" onclick="chargerArticlesModal(${
+                      currentPage - 1
+                    }); return false;">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+
+        // Pages
+        for (let i = 0; i < data.totalPages; i++) {
+          if (i === currentPage) {
+            html += `<li class="page-item active"><span class="page-link">${
+              i + 1
+            }</span></li>`;
+          } else if (
+            i === 0 ||
+            i === data.totalPages - 1 ||
+            (i >= currentPage - 2 && i <= currentPage + 2)
+          ) {
+            html += `
+                        <li class="page-item">
+                            <a class="page-link" href="#" onclick="chargerArticlesModal(${i}); return false;">
+                                ${i + 1}
+                            </a>
+                        </li>
+                    `;
+          } else if (i === currentPage - 3 || i === currentPage + 3) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+        }
+
+        // Bouton suivant
+        html += `
+                <li class="page-item ${
+                  currentPage === data.totalPages - 1 ? "disabled" : ""
+                }">
+                    <a class="page-link" href="#" onclick="chargerArticlesModal(${
+                      currentPage + 1
+                    }); return false;">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+
+        pagination.innerHTML = html;
+      }
+
+      function searchArticlesModal(term) {
+        clearTimeout(window.searchTimeout);
+        window.searchTimeout = setTimeout(() => {
+          chargerArticlesModal(0);
+        }, 300);
+      }
+
+      function filterArticlesModal() {
+        chargerArticlesModal(0);
+      }
+
+      function selectArticleRow(articleId) {
+        selectedArticleId = articleId;
+        document.getElementById("btnValidateArticle").disabled = false;
+
+        // Mettre en évidence la ligne
+        document.querySelectorAll("#tableArticlesModal tr").forEach((tr) => {
+          tr.classList.remove("table-primary");
+        });
+        event.currentTarget.classList.add("table-primary");
+      }
+
+      function selectArticle(id, code, libelle, gestionParLot) {
+        window.selectedArticleId = id;
+
+        // Mettre à jour l'interface du formulaire principal
+        if (typeof selectionnerArticleSortie === "function") {
+          selectionnerArticleSortie(id, code, libelle, gestionParLot);
+        }
+
+        // Fermer la modal proprement
+        const modalElement = document.getElementById(
+          "modalSelectionArticleSortie"
+        );
+        if (modalElement) {
+          const modalInstance = bootstrap.Modal.getInstance(modalElement);
+          if (modalInstance) {
+            modalInstance.hide();
+          } else {
+            // Fallback si l'instance n'existe pas
+            const bsModal = new bootstrap.Modal(modalElement);
+            bsModal.hide();
+          }
+        }
+      }
+
+      function validateArticleSelection() {
+        if (selectedArticleId) {
+          // Trouver les infos de l'article sélectionné
+          const selectedRow = document.querySelector(
+            `#tableArticlesModal tr[onclick*="${selectedArticleId}"]`
+          );
+          if (selectedRow) {
+            const code =
+              selectedRow.cells[0].querySelector("strong").textContent;
+            const libelle = selectedRow.cells[1].textContent;
+            const gestionParLot = selectedRow.cells[4]
+              .querySelector("i")
+              .classList.contains("text-success");
+
+            selectArticle(selectedArticleId, code, libelle, gestionParLot);
+          }
+        }
+      }
+
+      // ============================================
+      // GESTION MODAL LOTS
+      // ============================================
+
+      function ouvrirSelectionLot() {
+        selectedLotId = null;
+        document.getElementById("btnValidateLot").disabled = true;
+
+        chargerLotsModal();
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalSelectionLot")
+        );
+        modal.show();
+      }
+
+      function chargerLotsModal() {
+        const lotNum = document.getElementById("searchLotModal").value;
+        const articleSearch = document.getElementById(
+          "searchArticleLotModal"
+        ).value;
+        const depotId = document.getElementById("filterDepotLotModal").value;
+
+        // Simuler appel API
+        fetch(
+          `/api/lots/rechercher?numeroLot=${encodeURIComponent(
+            lotNum
+          )}&articleSearch=${encodeURIComponent(
+            articleSearch
+          )}&depotId=${depotId}`
+        )
+          .then((response) => response.json())
+          .then((lots) => {
+            const tbody = document.getElementById("tableLotsModal");
+            let html = "";
+
+            if (lots.length > 0) {
+              lots.forEach((lot) => {
+                const estSelectionne = lot.id === selectedLotId;
+                html += `
+                                <tr class="${
+                                  estSelectionne ? "table-info" : ""
+                                }" 
+                                    onclick="selectLotRow('${lot.id}')"
+                                    style="cursor: pointer;">
+                                    <td>
+                                        <strong>${lot.numeroLot}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            ${
+                                              lot.bonReceptionRef
+                                                ? `BR: ${lot.bonReceptionRef}`
+                                                : ""
+                                            }
+                                        </small>
+                                    </td>
+                                    <td>
+                                        ${lot.articleCode || ""}
+                                        <br>
+                                        <small>${
+                                          lot.articleLibelle || ""
+                                        }</small>
+                                    </td>
+                                    <td>${lot.depotNom || ""}</td>
+                                    <td>
+                                        <span class="badge ${
+                                          lot.quantiteActuelle > 0
+                                            ? "bg-success"
+                                            : "bg-danger"
+                                        }">
+                                            ${lot.quantiteActuelle || 0}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${
+                                          lot.datePeremption
+                                            ? `<span class="${
+                                                isPeremptionProche(
+                                                  lot.datePeremption
+                                                )
+                                                  ? "text-danger fw-bold"
+                                                  : ""
+                                              }">
+                                                ${formatDate(
+                                                  lot.datePeremption
+                                                )}
+                                            </span>`
+                                            : '<span class="text-muted">N/A</span>'
+                                        }
+                                    </td>
+                                    <td>${
+                                      lot.coutUnitaire
+                                        ? formatPrix(lot.coutUnitaire)
+                                        : ""
+                                    }</td>
+                                    <td>
+                                        <button class="btn btn-sm ${
+                                          estSelectionne
+                                            ? "btn-info"
+                                            : "btn-outline-info"
+                                        }"
+                                                onclick="selectLot('${
+                                                  lot.id
+                                                }', '${lot.numeroLot}', '${
+                  lot.articleLibelle
+                }', ${lot.quantiteActuelle}, '${
+                  lot.datePeremption
+                }'); event.stopPropagation();">
+                                            ${
+                                              estSelectionne
+                                                ? '<i class="bi bi-check"></i> Sélectionné'
+                                                : "Sélectionner"
+                                            }
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+              });
+            } else {
+              html = `
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                    Aucun lot trouvé
+                                </td>
+                            </tr>
+                        `;
+            }
+
+            tbody.innerHTML = html;
+          })
+          .catch((error) => {
+            console.error("Erreur chargement lots:", error);
+            tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger py-4">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Erreur lors du chargement des lots
+                            </td>
+                        </tr>
+                    `;
+          });
+      }
+
+      function searchLotsModal(term) {
+        if (term !== undefined) {
+          document.getElementById("searchLotModal").value = term;
+        }
+        clearTimeout(window.searchLotsTimeout);
+        window.searchLotsTimeout = setTimeout(() => {
+          chargerLotsModal();
+        }, 300);
+      }
+
+      function selectLotRow(lotId) {
+        selectedLotId = lotId;
+        document.getElementById("btnValidateLot").disabled = false;
+
+        document.querySelectorAll("#tableLotsModal tr").forEach((tr) => {
+          tr.classList.remove("table-info");
+        });
+        event.currentTarget.classList.add("table-info");
+      }
+
+      function selectLot(id, numero, article, quantite, peremption) {
+        window.selectedLotId = id;
+
+        // Mettre à jour le formulaire principal
+        if (typeof selectionnerLot === "function") {
+          // Vous devez créer cette fonction dans formulaire-sortie.html
+          selectionnerLot(id, numero, article, quantite, peremption);
+        } else {
+          // Fallback direct
+          document.getElementById("lotId").value = id;
+          document.getElementById("lotNumero").textContent = numero;
+          document.getElementById("lotArticle").textContent = article;
+          document.getElementById("lotQuantite").textContent = quantite;
+          document.getElementById("lotPeremption").textContent = peremption
+            ? formatDate(peremption)
+            : "N/A";
+          document.getElementById("lotSelectionne").style.display = "block";
+        }
+
+        // Fermer la modal
+        const modalElement = document.getElementById("modalSelectionLot");
+        if (modalElement) {
+          const modalInstance = bootstrap.Modal.getInstance(modalElement);
+          if (modalInstance) {
+            modalInstance.hide();
+          }
+        }
+
+        // Basculer sur source lot si nécessaire
+        const sourceLotRadio = document.getElementById("sourceLot");
+        if (sourceLotRadio) {
+          sourceLotRadio.checked = true;
+          if (typeof changerSource === "function") {
+            changerSource("lot");
+          }
+        }
+      }
+
+      function validateLotSelection() {
+        if (selectedLotId) {
+          const selectedRow = document.querySelector(
+            `#tableLotsModal tr[onclick*="${selectedLotId}"]`
+          );
+          if (selectedRow) {
+            const numero =
+              selectedRow.cells[0].querySelector("strong").textContent;
+            const article = selectedRow.cells[1].textContent;
+            const quantite = parseInt(
+              selectedRow.cells[3].querySelector(".badge").textContent
+            );
+            const peremption = selectedRow.cells[4].textContent;
+
+            selectLot(selectedLotId, numero, article, quantite, peremption);
+          }
+        }
+      }
+
+      // ============================================
+      // GESTION MODAL RESERVATIONS
+      // ============================================
+
+      function ouvrirSelectionReservation() {
+        selectedReservationId = null;
+        document.getElementById("btnValidateReservation").disabled = true;
+
+        chargerReservationsModal();
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("modalSelectionReservation")
+        );
+        modal.show();
+      }
+
+      function chargerReservationsModal() {
+        const ref = document.getElementById("searchReservationRefModal").value;
+        const articleSearch = document.getElementById(
+          "searchReservationArticleModal"
+        ).value;
+        const statut = document.getElementById(
+          "filterReservationStatusModal"
+        ).value;
+
+        fetch(
+          `/api/reservations/rechercher?reference=${encodeURIComponent(
+            ref
+          )}&articleSearch=${encodeURIComponent(
+            articleSearch
+          )}&statut=${statut}`
+        )
+          .then((response) => response.json())
+          .then((reservations) => {
+            const tbody = document.getElementById("tableReservationsModal");
+            let html = "";
+
+            if (reservations.length > 0) {
+              reservations.forEach((res) => {
+                const estSelectionne = res.id === selectedReservationId;
+                const quantiteRestante =
+                  res.quantiteReservee - res.quantitePrelevee;
+
+                html += `
+                                <tr class="${
+                                  estSelectionne ? "table-warning" : ""
+                                }" 
+                                    onclick="selectReservationRow('${res.id}')"
+                                    style="cursor: pointer;">
+                                    <td>
+                                        <strong>${res.reference}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            ${formatDateTime(
+                                              res.dateReservation
+                                            )}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        ${res.articleCode || ""}
+                                        <br>
+                                        <small>${
+                                          res.articleLibelle || ""
+                                        }</small>
+                                    </td>
+                                    <td>${res.depotNom || ""}</td>
+                                    <td>
+                                        <span class="badge bg-primary">${
+                                          res.quantiteReservee || 0
+                                        }</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${
+                                          quantiteRestante > 0
+                                            ? "bg-warning"
+                                            : "bg-success"
+                                        }">
+                                            ${res.quantitePrelevee || 0} / ${
+                  res.quantiteReservee || 0
+                }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${res.commandeClientRef || ""}
+                                        ${
+                                          res.dateLivraisonPrevue
+                                            ? `<br><small>Livraison: ${formatDate(
+                                                res.dateLivraisonPrevue
+                                              )}</small>`
+                                            : ""
+                                        }
+                                    </td>
+                                    <td>${formatDate(res.dateReservation)}</td>
+                                    <td>
+                                        <button class="btn btn-sm ${
+                                          estSelectionne
+                                            ? "btn-warning"
+                                            : "btn-outline-warning"
+                                        }"
+                                                onclick="selectReservation('${
+                                                  res.id
+                                                }', '${res.reference}', '${
+                  res.articleLibelle
+                }', ${res.quantiteReservee}, ${res.quantitePrelevee}, '${
+                  res.commandeClientRef
+                }'); event.stopPropagation();"
+                                                ${
+                                                  quantiteRestante <= 0
+                                                    ? 'disabled title="Réservation complètement prélevée"'
+                                                    : ""
+                                                }>
+                                            ${
+                                              estSelectionne
+                                                ? '<i class="bi bi-check"></i> Sélectionné'
+                                                : "Sélectionner"
+                                            }
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+              });
+            } else {
+              html = `
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                    Aucune réservation trouvée
+                                </td>
+                            </tr>
+                        `;
+            }
+
+            tbody.innerHTML = html;
+          })
+          .catch((error) => {
+            console.error("Erreur chargement réservations:", error);
+            tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center text-danger py-4">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Erreur lors du chargement des réservations
+                            </td>
+                        </tr>
+                    `;
+          });
+      }
+
+      function searchReservationsModal(term) {
+        if (term !== undefined) {
+          document.getElementById("searchReservationRefModal").value = term;
+        }
+        clearTimeout(window.searchReservationsTimeout);
+        window.searchReservationsTimeout = setTimeout(() => {
+          chargerReservationsModal();
+        }, 300);
+      }
+
+      function selectReservationRow(reservationId) {
+        const row = event.currentTarget;
+        const quantiteRestante = parseInt(
+          row.cells[4].querySelector(".badge").textContent.split("/")[0].trim()
+        );
+
+        if (quantiteRestante > 0) {
+          selectedReservationId = reservationId;
+          document.getElementById("btnValidateReservation").disabled = false;
+
+          document
+            .querySelectorAll("#tableReservationsModal tr")
+            .forEach((tr) => {
+              tr.classList.remove("table-warning");
+            });
+          row.classList.add("table-warning");
+        }
+      }
+
+      function selectReservation(
+        id,
+        reference,
+        article,
+        quantiteReservee,
+        quantitePrelevee,
+        commande
+      ) {
+        selectedReservationId = id;
+
+        // Mettre à jour le formulaire
+        document.getElementById("reservationId").value = id;
+        document.getElementById("reservationReference").textContent = reference;
+        document.getElementById("reservationArticle").textContent = article;
+        document.getElementById("reservationQuantite").textContent = `${
+          quantitePrelevee || 0
+        } / ${quantiteReservee}`;
+        document.getElementById("reservationCommande").textContent =
+          commande || "N/A";
+        document.getElementById("reservationSelectionnee").style.display =
+          "block";
+
+        // Pré-remplir la quantité avec le restant
+        const quantiteRestante = quantiteReservee - (quantitePrelevee || 0);
+        if (quantiteRestante > 0) {
+          document.getElementById("quantiteSortie").value = quantiteRestante;
+          document.getElementById("quantiteSortie").max = quantiteRestante;
+        }
+
+        // Fermer la modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalSelectionReservation")
+        );
+        modal.hide();
+
+        // Basculer sur source reservation si nécessaire
+        document.getElementById("sourceReservation").checked = true;
+        changerSource("reservation");
+      }
+
+      function validateReservationSelection() {
+        if (selectedReservationId) {
+          const selectedRow = document.querySelector(
+            `#tableReservationsModal tr[onclick*="${selectedReservationId}"]`
+          );
+          if (selectedRow) {
+            const reference =
+              selectedRow.cells[0].querySelector("strong").textContent;
+            const article =
+              selectedRow.cells[1].querySelector("small").textContent;
+            const quantiteReservee = parseInt(
+              selectedRow.cells[3].querySelector(".badge").textContent
+            );
+            const quantitePrelevee = parseInt(
+              selectedRow.cells[4]
+                .querySelector(".badge")
+                .textContent.split("/")[0]
+                .trim()
+            );
+            const commande = selectedRow.cells[5].textContent
+              .split("\n")[0]
+              .trim();
+
+            selectReservation(
+              selectedReservationId,
+              reference,
+              article,
+              quantiteReservee,
+              quantitePrelevee,
+              commande
+            );
+          }
+        }
+      }
+
+      // ============================================
+      // FONCTIONS UTILITAIRES
+      // ============================================
+
+      function formatDate(dateString) {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        return date.toLocaleDateString("fr-FR");
+      }
+
+      function formatDateTime(dateTimeString) {
+        if (!dateTimeString) return "N/A";
+        const date = new Date(dateTimeString);
+        return date.toLocaleString("fr-FR");
+      }
+
+      function formatPrix(prix) {
+        if (!prix) return "0.00";
+        return parseFloat(prix).toFixed(2) + " €";
+      }
+
+      function isPeremptionProche(datePeremption) {
+        if (!datePeremption) return false;
+        const aujourdhui = new Date();
+        const peremption = new Date(datePeremption);
+        const diffJours = Math.ceil(
+          (peremption - aujourdhui) / (1000 * 60 * 60 * 24)
+        );
+        return diffJours <= 7 && diffJours >= 0; // 7 jours ou moins
+      }
+
+      // modals.html - Ajoutez dans la section <script>
+
+      // Initialiser les modals avec des données
+      document.addEventListener("DOMContentLoaded", function () {
+        // Pré-charger les catégories pour le filtre
+        if (document.getElementById("filterCategoryModal")) {
+          // Les catégories sont déjà passées via Thymeleaf
+        }
+
+        // Charger les articles au démarrage
+        if (document.getElementById("tableArticlesModal")) {
+          setTimeout(() => chargerArticlesModal(), 100);
+        }
+      });
+
+      // Fonction pour sélectionner un article depuis la modal
+      function selectArticleFromModal(id, code, libelle, gestionParLot) {
+        selectionnerArticleSortie(id, code, libelle, gestionParLot);
+
+        // Fermer la modal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalSelectionArticleSortie")
+        );
+        if (modal) modal.hide();
+      }
+
+      // Fonction pour sélectionner un lot depuis la modal
+      function selectLotFromModal(
+        id,
+        numero,
+        article,
+        quantite,
+        peremption,
+        cout
+      ) {
+        document.getElementById("lotId").value = id;
+        document.getElementById("lotNumero").textContent = numero;
+        document.getElementById("lotArticle").textContent = article;
+        document.getElementById("lotQuantite").textContent = quantite;
+        document.getElementById("lotPeremption").textContent = peremption
+          ? formatDate(peremption)
+          : "N/A";
+        document.getElementById("lotSelectionne").style.display = "block";
+
+        // Mettre à jour le formulaire principal
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("modalSelectionLot")
+        );
+        if (modal) modal.hide();
+
+        // Basculer sur source lot
+        document.getElementById("sourceLot").checked = true;
+        changerSource("lot");
+      }
+    </script>
+  </body>
+</html>

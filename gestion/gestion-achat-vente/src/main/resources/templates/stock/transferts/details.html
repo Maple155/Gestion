@@ -1,0 +1,219 @@
+<!-- Code détaillé pour la page de suivi d'un transfert -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="'Transfert ' + ${transfert.reference}"></title>
+    <!-- Include Bootstrap CSS -->
+  </head>
+  <body>
+    <!-- Header/Sidebar -->
+
+    <main>
+      <!-- En-tête avec étapes du transfert -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-arrow-left-right"></i>
+            Transfert <span th:text="${transfert.reference}"></span>
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Étape 1: Demande -->
+          <div class="row align-items-center mb-3">
+            <div class="col-auto">
+              <div class="step-circle bg-success text-white">
+                <i class="bi bi-check-lg"></i>
+              </div>
+            </div>
+            <div class="col">
+              <h6>Demandé</h6>
+              <small
+                class="text-muted"
+                th:text="${#temporals.format(transfert.dateDemande, 'dd/MM/yyyy HH:mm')}"
+              ></small>
+              <div th:if="${transfert.demandeurId}">
+                <small
+                  >Par: <span th:text="${transfert.demandeurId}"></span
+                ></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 2: Validation -->
+          <div
+            th:if="${transfert.statut != 'BROUILLON'}"
+            class="row align-items-center mb-3"
+          >
+            <div class="col-auto">
+              <div class="step-circle bg-success text-white">
+                <i class="bi bi-check-lg"></i>
+              </div>
+            </div>
+            <div class="col">
+              <h6>Validé</h6>
+              <small
+                class="text-muted"
+                th:text="${#temporals.format(transfert.dateValidation, 'dd/MM/yyyy HH:mm')}"
+              ></small>
+              <div th:if="${transfert.valideurId}">
+                <small
+                  >Par: <span th:text="${transfert.valideurId}"></span
+                ></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 3: Expédition -->
+          <div
+            th:if="${transfert.statut == 'EXPEDIE' || transfert.statut == 'RECEPTIONNE'}"
+            class="row align-items-center mb-3"
+          >
+            <div class="col-auto">
+              <div class="step-circle bg-success text-white">
+                <i class="bi bi-check-lg"></i>
+              </div>
+            </div>
+            <div class="col">
+              <h6>Expédié</h6>
+              <small
+                class="text-muted"
+                th:text="${#temporals.format(transfert.dateExpedition, 'dd/MM/yyyy')}"
+              ></small>
+              <div th:if="${transfert.expediteurId}">
+                <small
+                  >Par: <span th:text="${transfert.expediteurId}"></span
+                ></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Étape 4: Réception -->
+          <div
+            th:if="${transfert.statut == 'RECEPTIONNE'}"
+            class="row align-items-center"
+          >
+            <div class="col-auto">
+              <div class="step-circle bg-success text-white">
+                <i class="bi bi-check-lg"></i>
+              </div>
+            </div>
+            <div class="col">
+              <h6>Réceptionné</h6>
+              <small
+                class="text-muted"
+                th:text="${#temporals.format(transfert.dateReceptionReelle, 'dd/MM/yyyy HH:mm')}"
+              ></small>
+              <div th:if="${transfert.receptionnaireId}">
+                <small
+                  >Par: <span th:text="${transfert.receptionnaireId}"></span
+                ></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Boutons d'action selon le statut -->
+          <div class="mt-4">
+            <a
+              th:if="${transfert.statut == 'BROUILLON' && canValidate}"
+              th:href="@{'/stock/transferts/valider/' + ${transfert.id}}"
+              class="btn btn-warning"
+            >
+              <i class="bi bi-check-circle"></i> Valider le transfert
+            </a>
+
+            <a
+              th:if="${transfert.statut == 'VALIDE' && canExpedite}"
+              th:href="@{'/stock/transferts/expedier/' + ${transfert.id}}"
+              class="btn btn-info"
+            >
+              <i class="bi bi-box-arrow-up"></i> Expédier
+            </a>
+
+            <a
+              th:if="${transfert.statut == 'EXPEDIE' && canReceive}"
+              th:href="@{'/stock/transferts/receptionner/' + ${transfert.id}}"
+              class="btn btn-success"
+            >
+              <i class="bi bi-box-arrow-in-down"></i> Réceptionner
+            </a>
+
+            <a
+              th:if="${transfert.statut != 'RECEPTIONNE' && transfert.statut != 'ANNULE' && canCancel}"
+              th:href="@{'/stock/transferts/annuler/' + ${transfert.id}}"
+              class="btn btn-outline-danger"
+            >
+              <i class="bi bi-x-circle"></i> Annuler
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Détails des lignes -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">Articles transférés</h6>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th>Quantité</th>
+                <th>Lot</th>
+                <th>Statut</th>
+                <th>Coût unitaire</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="ligne : ${lignes}">
+                <td>
+                  <div>
+                    <strong th:text="${ligne.article.libelle}"></strong>
+                    <div
+                      class="text-muted small"
+                      th:text="${ligne.article.codeArticle}"
+                    ></div>
+                  </div>
+                </td>
+                <td>
+                  <div th:text="${ligne.quantiteDemandee}"></div>
+                  <div class="text-muted small">
+                    Exp: <span th:text="${ligne.quantiteExpediee}"></span> |
+                    Rec: <span th:text="${ligne.quantiteRecue}"></span>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    th:if="${ligne.lot}"
+                    th:text="${ligne.lot.numeroLot}"
+                    class="badge bg-info"
+                  ></span>
+                  <span th:unless="${ligne.lot}" class="text-muted">-</span>
+                </td>
+                <td>
+                  <span
+                    th:if="${ligne.quantiteRecue == ligne.quantiteDemandee}"
+                    class="badge bg-success"
+                    >Réceptionné</span
+                  >
+                  <span
+                    th:elseif="${ligne.quantiteExpediee == ligne.quantiteDemandee}"
+                    class="badge bg-info"
+                    >Expédié</span
+                  >
+                  <span th:else class="badge bg-warning">En attente</span>
+                </td>
+                <td class="text-end" th:text="${ligne.article.coutStandard}"></td>
+                <td class="text-end" th:text="${ligne.article.coutStandard * ligne.quantiteDemandee}"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- Scripts -->
+  </body>
+</html>

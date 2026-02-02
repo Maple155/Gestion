@@ -9,10 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -56,19 +58,16 @@ public class MouvementService {
      * Récupérer les types de mouvement d'entrée
      */
     public List<MovementType> getTypesMouvementEntree() {
-        return typeMouvementRepository.findBySens("ENTREE");
+        return typeMouvementRepository.findBySens(MovementType.SensMouvement.ENTREE);
     }
 
     /**
      * Récupérer les types de mouvement de sortie
      */
     public List<MovementType> getTypesMouvementSortie() {
-        return typeMouvementRepository.findBySens("SORTIE");
+        return typeMouvementRepository.findBySens(MovementType.SensMouvement.SORTIE);
     }
 
-    /**
-     * Rechercher des mouvements avec filtres
-     */
     public Page<Map<String, Object>> rechercherMouvements(
             UUID typeMouvement, UUID articleId, UUID depotId,
             LocalDate dateDebut, LocalDate dateFin, Pageable pageable) {
@@ -76,9 +75,32 @@ public class MouvementService {
         LocalDateTime debut = dateDebut != null ? dateDebut.atStartOfDay() : null;
         LocalDateTime fin = dateFin != null ? dateFin.plusDays(1).atStartOfDay() : null;
 
-        Page<StockMovement> mouvements = mouvementRepository.rechercherMouvements(
-                typeMouvement, articleId, depotId, debut, fin, null, pageable);
+        Specification<StockMovement> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
+            if (typeMouvement != null) {
+                predicates.add(cb.equal(root.get("type").get("id"), typeMouvement));
+            }
+            if (articleId != null) {
+                predicates.add(cb.equal(root.get("article").get("id"), articleId));
+            }
+            if (depotId != null) {
+                predicates.add(cb.equal(root.get("depot").get("id"), depotId));
+            }
+            if (debut != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dateMouvement"), debut));
+            }
+            if (fin != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("dateMouvement"), fin));
+            }
+            // si vous avez un filtre statut plus tard, ajoutez-le de la même façon :
+            // if (statut != null) { predicates.add(cb.equal(root.get("statut"), statut)); }
+
+            query.orderBy(cb.desc(root.get("dateMouvement")));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<StockMovement> mouvements = mouvementRepository.findAll(spec, pageable);
         return mouvements.map(this::convertirMouvementEnMap);
     }
 
@@ -99,6 +121,7 @@ public class MouvementService {
         map.put("lot", mouvement.getLot() != null ? mouvement.getLot().getNumeroLot() : "");
         map.put("dateMouvement", mouvement.getDateMouvement());
         map.put("statut", mouvement.getStatut().toString());
+        map.put("dateComptable", mouvement.getDateComptable());
         map.put("utilisateurId", mouvement.getUtilisateurId());
 
         return map;
@@ -110,6 +133,7 @@ public class MouvementService {
     @Transactional
     public Map<String, Object> creerMouvementEntree(Map<String, String> params, UUID utilisateurId) {
         log.info("Création mouvement entrée par utilisateur: {}", utilisateurId);
+        log.info("Paramètres reçus: {}", params);
 
         // Validation des paramètres obligatoires
         String typeMouvementId = params.get("typeMouvementId");
@@ -121,6 +145,14 @@ public class MouvementService {
         if (typeMouvementId == null || articleId == null || depotId == null ||
                 quantiteStr == null || coutUnitaireStr == null) {
             throw new RuntimeException("Paramètres obligatoires manquants");
+        }
+
+        try {
+            UUID.fromString(typeMouvementId);
+            UUID.fromString(articleId);
+            UUID.fromString(depotId);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Format UUID invalide: " + e.getMessage());
         }
 
         // Création du mouvement
@@ -203,12 +235,10 @@ public class MouvementService {
         return convertirMouvementEnMap(mouvementSauvegarde);
     }
 
-    /**
-     * Créer un mouvement de sortie
-     */
     @Transactional
     public Map<String, Object> creerMouvementSortie(Map<String, String> params, UUID utilisateurId) {
         log.info("Création mouvement sortie par utilisateur: {}", utilisateurId);
+        log.info("Paramètres reçus: {}", params);
 
         // Validation des paramètres obligatoires
         String typeMouvementId = params.get("typeMouvementId");
@@ -222,10 +252,42 @@ public class MouvementService {
 
         Integer quantite = Integer.parseInt(quantiteStr);
 
-        // Vérifier le stock disponible
-        Stock stock = stockRepository.findByArticleIdAndDepotId(UUID.fromString(articleId), UUID.fromString(depotId))
-                .orElseThrow(() -> new RuntimeException("Stock non trouvé pour cet article et dépôt"));
+        // Vérifier si le stock existe pour cet article et dépôt
+        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(
+                UUID.fromString(articleId),
+                UUID.fromString(depotId));
 
+        // Si le stock n'existe pas, créer un enregistrement avec quantité 0
+        Stock stock;
+        if (!stockOpt.isPresent()) {
+            log.warn("Aucun stock trouvé pour article {} et dépôt {}. Création d'un enregistrement vide.",
+                    articleId, depotId);
+
+            Article article = articleRepository.findById(UUID.fromString(articleId))
+                    .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+
+            Depot depot = depotRepository.findById(UUID.fromString(depotId))
+                    .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
+
+            stock = Stock.builder()
+                    .article(article)
+                    .depot(depot)
+                    .quantitePhysique(0)
+                    .quantiteTheorique(0)
+                    .quantiteReservee(0)
+                    .valeurStockCump(BigDecimal.ZERO)
+                    .dateDernierMouvement(null)
+                    .dateDernierInventaire(null)
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            stock = stockRepository.save(stock);
+            log.info("Nouvel enregistrement de stock créé pour article {}, dépôt {}", articleId, depotId);
+        } else {
+            stock = stockOpt.get();
+        }
+
+        // Maintenant vérifier si le stock disponible est suffisant
         if (stock.getQuantiteDisponible() < quantite) {
             throw new RuntimeException("Stock insuffisant. Disponible: " +
                     stock.getQuantiteDisponible() + ", Demandé: " + quantite);
@@ -281,7 +343,14 @@ public class MouvementService {
         }
 
         // Commande client (optionnel)
-        mouvement.setCommandeClientId(UUID.fromString(params.get("commandeClientId")));
+        String commandeClientId = params.get("commandeClientId");
+        if (commandeClientId != null && !commandeClientId.isEmpty()) {
+            try {
+                mouvement.setCommandeClientId(UUID.fromString(commandeClientId));
+            } catch (IllegalArgumentException e) {
+                log.warn("UUID invalide pour commandeClientId: {}", commandeClientId);
+            }
+        }
 
         // Motif
         mouvement.setMotif(params.get("motif"));
@@ -343,9 +412,6 @@ public class MouvementService {
         throw new RuntimeException("Aucun lot disponible pour cet article dans le dépôt spécifié");
     }
 
-    /**
-     * Mettre à jour le stock après un mouvement
-     */
     private void mettreAJourStock(StockMovement mouvement) {
         UUID articleId = mouvement.getArticle().getId();
         UUID depotId = mouvement.getDepot().getId();
@@ -354,34 +420,75 @@ public class MouvementService {
         Stock stock = stockRepository.findByArticleIdAndDepotId(articleId, depotId)
                 .orElse(null);
 
+        boolean estEntree = mouvement.getType().getSens() == MovementType.SensMouvement.ENTREE;
+
         if (stock == null) {
-            stock = new Stock();
-            stock.setArticle(mouvement.getArticle());
-            stock.setDepot(mouvement.getDepot());
-            stock.setQuantiteTheorique(0);
-            stock.setQuantiteReservee(0);
+            // Pour une entrée, créer un nouveau stock
+            if (estEntree) {
+                stock = Stock.builder()
+                        .article(mouvement.getArticle())
+                        .depot(mouvement.getDepot())
+                        .quantiteTheorique(quantite)
+                        .quantitePhysique(quantite)
+                        .quantiteReservee(0)
+                        .valeurStockCump(BigDecimal.ZERO)
+                        .dateDernierMouvement(mouvement.getDateMouvement())
+                        .updatedAt(LocalDateTime.now())
+                        .build();
+
+                // Calculer la valeur initiale pour les entrées
+                BigDecimal valeurEntree = mouvement.getCoutUnitaire()
+                        .multiply(BigDecimal.valueOf(quantite));
+                stock.setValeurStockCump(valeurEntree);
+
+                stockRepository.save(stock);
+                log.info("Nouveau stock créé pour article {}, dépôt {} (entrée)", articleId, depotId);
+            } else {
+                // Pour une sortie, on ne peut pas créer un stock négatif
+                throw new RuntimeException("Stock insuffisant. L'article n'existe pas dans ce dépôt.");
+            }
+        } else {
+            // Mettre à jour le stock existant
+            if (estEntree) {
+                // Entrée : ajouter la quantité
+                stock.setQuantiteTheorique(stock.getQuantiteTheorique() + quantite);
+                stock.setQuantitePhysique(stock.getQuantitePhysique() + quantite);
+
+                // Mettre à jour la valeur du stock (CUMP)
+                BigDecimal nouvelleValeur = stock.getValeurStockCump()
+                        .add(mouvement.getValeurMouvement());
+                stock.setValeurStockCump(nouvelleValeur);
+            } else {
+                // Sortie : vérifier le stock disponible
+                if (stock.getQuantiteTheorique() < quantite) {
+                    throw new RuntimeException("Stock insuffisant. Disponible: " +
+                            stock.getQuantiteTheorique() + ", Demandé: " + quantite);
+                }
+
+                // Soustraire la quantité
+                stock.setQuantiteTheorique(stock.getQuantiteTheorique() - quantite);
+                stock.setQuantitePhysique(stock.getQuantitePhysique() - quantite);
+
+                // Ajuster la valeur du stock proportionnellement
+                if (stock.getQuantiteTheorique() > 0) {
+                    BigDecimal proportion = BigDecimal.valueOf(quantite)
+                            .divide(BigDecimal.valueOf(stock.getQuantiteTheorique() + quantite), 4,
+                                    RoundingMode.HALF_UP);
+                    BigDecimal valeurSortie = stock.getValeurStockCump().multiply(proportion);
+                    stock.setValeurStockCump(stock.getValeurStockCump().subtract(valeurSortie));
+                } else {
+                    stock.setValeurStockCump(BigDecimal.ZERO);
+                }
+            }
+
+            // Mettre à jour la date du dernier mouvement
+            stock.setDateDernierMouvement(mouvement.getDateMouvement());
+            stock.setUpdatedAt(LocalDateTime.now());
+
+            stockRepository.save(stock);
+            log.info("Stock mis à jour pour article {}, dépôt {}: quantité = {}",
+                    articleId, depotId, stock.getQuantiteTheorique());
         }
-
-        // Déterminer si c'est une entrée ou une sortie
-        boolean estEntree = "ENTREE".equals(mouvement.getType().getSens());
-
-        // Mettre à jour la quantité théorique
-        int nouvelleQuantite = estEntree ? stock.getQuantiteTheorique() + quantite
-                : stock.getQuantiteTheorique() - quantite;
-
-        stock.setQuantiteTheorique(nouvelleQuantite);
-
-        // Mettre à jour le coût moyen pondéré pour les entrées
-        if (estEntree && mouvement.getCoutUnitaire() != null) {
-            BigDecimal nouvelleValeur = stock.getValeurStockCump()
-                    .add(mouvement.getValeurMouvement());
-            stock.setValeurStockCump(nouvelleValeur);
-        }
-
-        // Mettre à jour la date du dernier mouvement
-        stock.setDateDernierMouvement(mouvement.getDateMouvement());
-
-        stockRepository.save(stock);
     }
 
     /**
@@ -482,7 +589,7 @@ public class MouvementService {
         }
 
         // En dernier recours, prendre le premier type avec le sens inverse
-        List<MovementType> typesInverse = typeMouvementRepository.findBySens(sensInverse);
+        List<MovementType> typesInverse = typeMouvementRepository.findBySensString(sensInverse);
         if (!typesInverse.isEmpty()) {
             // Chercher un type d'annulation ou ajustement
             for (MovementType t : typesInverse) {
@@ -511,15 +618,26 @@ public class MouvementService {
         BigDecimal valeurSorties = BigDecimal.ZERO;
 
         for (Object[] row : totauxParSens) {
-            String sens = (String) row[0];
-            Long count = (Long) row[1];
-            Long quantite = (Long) row[2];
-            BigDecimal valeur = (BigDecimal) row[3];
+            // row[0] peut être MovementType.SensMouvement (enum) ou String selon JPA /
+            // dialecte
+            Object sensObj = row[0];
+            String sens;
+            if (sensObj instanceof com.gestion.stock.entity.MovementType.SensMouvement) {
+                sens = ((com.gestion.stock.entity.MovementType.SensMouvement) sensObj).name();
+            } else if (sensObj instanceof String) {
+                sens = (String) sensObj;
+            } else {
+                sens = sensObj != null ? sensObj.toString() : "";
+            }
 
-            if ("ENTREE".equals(sens)) {
+            Long count = row[1] != null ? ((Number) row[1]).longValue() : 0L;
+            Long quantite = row[2] != null ? ((Number) row[2]).longValue() : 0L;
+            BigDecimal valeur = row[3] != null ? (BigDecimal) row[3] : BigDecimal.ZERO;
+
+            if ("ENTREE".equalsIgnoreCase(sens)) {
                 totalEntrees = count;
                 valeurEntrees = valeur != null ? valeur : BigDecimal.ZERO;
-            } else if ("SORTIE".equals(sens)) {
+            } else if ("SORTIE".equalsIgnoreCase(sens)) {
                 totalSorties = count;
                 valeurSorties = valeur != null ? valeur : BigDecimal.ZERO;
             }
@@ -535,7 +653,11 @@ public class MouvementService {
         stats.put("soldeValeur", valeurEntrees.subtract(valeurSorties));
 
         // Statistiques par jour
-        List<Object[]> statsParJour = mouvementRepository.getStatistiquesParJour(dateDebut, dateFin);
+        java.time.LocalDateTime debutDateTime = dateDebut != null ? dateDebut.atStartOfDay()
+                : java.time.LocalDateTime.MIN;
+        java.time.LocalDateTime finDateTime = dateFin != null ? dateFin.plusDays(1).atStartOfDay().minusNanos(1)
+                : java.time.LocalDateTime.MAX;
+        List<Object[]> statsParJour = mouvementRepository.getStatistiquesParJour(debutDateTime, finDateTime);
         stats.put("statistiquesParJour", statsParJour);
 
         log.info("Statistiques mouvements: {} entrées, {} sorties", totalEntrees, totalSorties);

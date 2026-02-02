@@ -295,15 +295,15 @@ CREATE SEQUENCE IF NOT EXISTS seq_inventaire START 1;
 
 -- Insertion des types de mouvement initiaux
 INSERT INTO types_mouvement (id, code, libelle, sens, impact_valorisation) VALUES
-(gen_random_uuid(), 'RECEPTION_FOURNISSEUR', 'Réception fournisseur', 'ENTREE', TRUE),
+(gen_random_uuid(), 'RECEPTION_FOURNISSEUR', 'Reception fournisseur', 'ENTREE', TRUE),
 (gen_random_uuid(), 'RETOUR_CLIENT', 'Retour client', 'ENTREE', TRUE),
 (gen_random_uuid(), 'AJUSTEMENT_POSITIF', 'Ajustement inventaire positif', 'ENTREE', TRUE),
 (gen_random_uuid(), 'TRANSFERT_ENTRANT', 'Transfert entrant', 'ENTREE', TRUE),
-(gen_random_uuid(), 'PRODUCTION', 'Entrée production', 'ENTREE', TRUE),
+(gen_random_uuid(), 'PRODUCTION', 'Entree production', 'ENTREE', TRUE),
 (gen_random_uuid(), 'LIVRAISON_CLIENT', 'Livraison client', 'SORTIE', TRUE),
 (gen_random_uuid(), 'CONSOMMATION_INTERNE', 'Consommation interne', 'SORTIE', TRUE),
 (gen_random_uuid(), 'REBUT', 'Mise au rebut', 'SORTIE', TRUE),
-(gen_random_uuid(), 'AJUSTEMENT_NEGATIF', 'Ajustement inventaire négatif', 'SORTIE', TRUE),
+(gen_random_uuid(), 'AJUSTEMENT_NEGATIF', 'Ajustement inventaire negatif', 'SORTIE', TRUE),
 (gen_random_uuid(), 'TRANSFERT_SORTANT', 'Transfert sortant', 'SORTIE', TRUE),
 (gen_random_uuid(), 'PERTE', 'Perte/Vol', 'SORTIE', TRUE)
 ON CONFLICT (code) DO NOTHING;
@@ -484,7 +484,7 @@ CREATE TABLE inventaires (
     responsable_id UUID NOT NULL,
     
     -- Résultats globaux
-    nombre_articles_comptés INTEGER DEFAULT 0,
+    nombre_articles_comptes INTEGER DEFAULT 0,
     valeur_ecart_total DECIMAL(15, 2) DEFAULT 0,
     
     observations TEXT,
@@ -596,12 +596,14 @@ CREATE INDEX idx_utilisateurs_actif ON utilisateurs(actif) WHERE actif = TRUE;
 -- PARTIE 10 : TRIGGERS ET CONTRAINTES
 -- ============================================================================
 
--- Trigger pour mettre à jour le stock lors d'un mouvement
+-- Remplacer la fonction update_stock_after_movement par cette version corrigée
 CREATE OR REPLACE FUNCTION update_stock_after_movement()
 RETURNS TRIGGER AS $$
 DECLARE
     v_sens VARCHAR(10);
     v_nouvelle_quantite INTEGER;
+    v_existing_theorique INTEGER;
+    v_existing_physique INTEGER;
 BEGIN
     -- Récupérer le sens du mouvement
     SELECT sens INTO v_sens 
@@ -615,14 +617,47 @@ BEGIN
         v_nouvelle_quantite := -NEW.quantite;
     END IF;
     
-    -- Mettre à jour ou insérer le stock
-    INSERT INTO stocks (article_id, depot_id, quantite_theorique, quantite_physique, date_dernier_mouvement)
-    VALUES (NEW.article_id, NEW.depot_id, v_nouvelle_quantite, v_nouvelle_quantite, NEW.date_mouvement)
-    ON CONFLICT (article_id, depot_id) 
-    DO UPDATE SET 
-        quantite_theorique = stocks.quantite_theorique + v_nouvelle_quantite,
-        date_dernier_mouvement = NEW.date_mouvement,
-        updated_at = CURRENT_TIMESTAMP;
+    -- Récupérer les quantités existantes si elles existent
+    SELECT quantite_theorique, quantite_physique 
+    INTO v_existing_theorique, v_existing_physique
+    FROM stocks 
+    WHERE article_id = NEW.article_id 
+      AND depot_id = NEW.depot_id;
+    
+    -- Si pas de stock existant et c'est une sortie, initialiser à 0
+    IF NOT FOUND AND v_sens = 'SORTIE' THEN
+        v_existing_theorique := 0;
+        v_existing_physique := 0;
+    END IF;
+    
+    -- Calculer les nouvelles valeurs
+    IF FOUND OR (NOT FOUND AND v_sens = 'SORTIE') THEN
+        -- Stock existe déjà OU c'est une sortie sans stock
+        UPDATE stocks 
+        SET 
+            quantite_theorique = GREATEST(v_existing_theorique + v_nouvelle_quantite, 0),
+            quantite_physique = GREATEST(v_existing_physique + v_nouvelle_quantite, 0),
+            date_dernier_mouvement = NEW.date_mouvement,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE article_id = NEW.article_id 
+          AND depot_id = NEW.depot_id;
+    ELSE
+        -- Pas de stock existant et c'est une entrée
+        INSERT INTO stocks (
+            article_id, 
+            depot_id, 
+            quantite_theorique, 
+            quantite_physique, 
+            date_dernier_mouvement
+        )
+        VALUES (
+            NEW.article_id, 
+            NEW.depot_id, 
+            GREATEST(v_nouvelle_quantite, 0), 
+            GREATEST(v_nouvelle_quantite, 0), 
+            NEW.date_mouvement
+        );
+    END IF;
     
     RETURN NEW;
 END;
@@ -721,3 +756,12 @@ CREATE INDEX idx_inventaires_depot ON inventaires(depot_id);
 
 -- ALTER TABLE mouvements_stock 
 -- ALTER COLUMN inventaire_id TYPE UUID USING NULLIF(inventaire_id, '')::uuid;
+
+-- Remplacer les '' par NULL puis caster vers uuid
+-- ALTER TABLE articles
+--   ALTER COLUMN created_by TYPE uuid
+--   USING NULLIF(created_by, '')::uuid;
+
+-- ALTER TABLE articles
+--   ALTER COLUMN updated_by TYPE uuid
+--   USING NULLIF(updated_by, '')::uuid;

@@ -112,9 +112,9 @@
                         <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
                     </div>
                     <small class="text-muted">Dernier inventaire: 
-                        <span th:if="${kpis.dateDernierInventaire != null}" 
-                              th:text="${#dates.format(kpis.dateDernierInventaire, 'dd/MM/yyyy')}"></span>
-                        <span th:if="${kpis.dateDernierInventaire == null}">N/A</span>
+                        <small th:if="${kpis.dateDernierInventaire != null}">
+                            <span th:text="${#temporals.format(kpis.dateDernierInventaire, 'dd/MM/yyyy')}"></span>
+                        </small>
                     </small>
                 </div>
             </div>
@@ -473,17 +473,21 @@
     </div>
     
     <!-- JavaScript -->
-    <script>
+    <script th:inline="javascript">
         // Données pour le graphique
         const evolutionData = {
-            labels: [<th:block th:each="item : ${evolution}">
-                '<span th:text="${#dates.format(item.mois, 'MMM yyyy')}">Jan 2024</span>',
-            </th:block>],
+            labels: [
+                /*[# th:each="item : ${evolution}"]*/
+                    /*[[${item.mois}]]*/,
+                /*[/]*/
+            ],
             datasets: [{
                 label: 'Valeur Stock',
-                data: [<th:block th:each="item : ${evolution}">
-                    <span th:text="${item.valeur}">2500000</span>,
-                </th:block>],
+                data: [
+                    /*[# th:each="item : ${evolution}"]*/
+                        /*[[${item.valeur}]]*/,
+                    /*[/]*/
+                ],
                 borderColor: '#28a745',
                 backgroundColor: 'rgba(40, 167, 69, 0.1)',
                 fill: true,
@@ -531,7 +535,7 @@
         
         // Fonctions utilitaires
         function refreshDashboard() {
-            fetch('/stock/dashboard/api/kpi')
+            fetch('/main/dashboard/api/kpi')
                 .then(response => response.json())
                 .then(data => {
                     // Mettre à jour les KPI dynamiquement

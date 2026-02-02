@@ -398,6 +398,38 @@ public class ValorisationService {
             synthese.put("pourcentageCump", BigDecimal.ZERO);
         }
 
+        BigDecimal coutSortiesFifo = BigDecimal.ZERO;
+        BigDecimal coutSortiesFefo = BigDecimal.ZERO;
+
+        List<Stock> fifoStocks = stocks.stream()
+                .filter(s -> s.getArticle() != null && "FIFO".equals(s.getArticle().getMethodeValorisation()))
+                .collect(Collectors.toList());
+
+        List<Stock> fefoStocks = stocks.stream()
+                .filter(s -> s.getArticle() != null && "FEFO".equals(s.getArticle().getMethodeValorisation()))
+                .collect(Collectors.toList());
+
+        if (!fifoStocks.isEmpty()) {
+            BigDecimal sum = fifoStocks.stream()
+                    .map(s -> s.getCoutUnitaireMoyen() != null ? s.getCoutUnitaireMoyen() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            coutSortiesFifo = sum.divide(BigDecimal.valueOf(fifoStocks.size()), 4, RoundingMode.HALF_UP);
+        }
+
+        if (!fefoStocks.isEmpty()) {
+            BigDecimal sum = fefoStocks.stream()
+                    .map(s -> s.getCoutUnitaireMoyen() != null ? s.getCoutUnitaireMoyen() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            coutSortiesFefo = sum.divide(BigDecimal.valueOf(fefoStocks.size()), 4, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal differenceCout = coutSortiesFefo.subtract(coutSortiesFifo);
+
+        // Put into synthese map (so template can access them)
+        synthese.put("coutSortiesFifo", coutSortiesFifo);
+        synthese.put("coutSortiesFefo", coutSortiesFefo);
+        synthese.put("differenceCout", differenceCout);
+
         return synthese;
     }
 
@@ -444,6 +476,32 @@ public class ValorisationService {
                 }
             }
             detail.put("valeurRisque", valeurRisque);
+        }
+
+        if ("CUMP".equals(methode)) {
+            // Calcul d'un écart moyen fictif : ici on prend l'écart moyen des stocks si disponible
+            BigDecimal ecartMoyen = BigDecimal.ZERO;
+            if (!stocks.isEmpty()) {
+                // Exemple : écart moyen en pourcentage basé sur variance (vous pouvez remplacer par votre logique)
+                // Ici on met un calcul simple : si coutMoyen > 0, ecartMoyen = (coutMoyen - coutStandard)/(coutMoyen) * 100
+                BigDecimal coutStandardMoyen = stocks.stream()
+                        .map(s -> s.getArticle().getCoutStandard() != null ? s.getArticle().getCoutStandard() : BigDecimal.ZERO)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                if (coutMoyen.compareTo(BigDecimal.ZERO) > 0) {
+                    try {
+                        BigDecimal moyenneCoutStandard = coutStandardMoyen.divide(BigDecimal.valueOf(stocks.size()), 4, RoundingMode.HALF_UP);
+                        ecartMoyen = moyenneCoutStandard.compareTo(BigDecimal.ZERO) != 0
+                                    ? moyenneCoutStandard.subtract(coutMoyen).abs()
+                                        .divide(coutMoyen, 4, RoundingMode.HALF_UP)
+                                        .multiply(BigDecimal.valueOf(100))
+                                    : BigDecimal.ZERO;
+                    } catch (Exception ex) {
+                        ecartMoyen = BigDecimal.ZERO;
+                    }
+                }
+            }
+            detail.put("ecartMoyen", ecartMoyen.setScale(2, RoundingMode.HALF_UP));
+            detail.put("dateMaj", LocalDateTime.now());
         }
 
         return detail;
@@ -547,5 +605,57 @@ public class ValorisationService {
         detail.put("methodeValorisation", article.getMethodeValorisation());
         
         return detail;
+    }
+
+    public List<Map<String, Object>> getValorisationDetailForDashboard() {
+        List<Map<String, Object>> details = new ArrayList<>();
+        
+        // Récupérer tous les articles
+        List<Article> articles = articleRepository.findAll();
+        
+        for (Article article : articles) {
+            Map<String, Object> detail = new HashMap<>();
+            
+            // Récupérer tous les stocks pour cet article
+            List<Stock> stocks = stockRepository.findByArticleId(article.getId());
+            
+            if (!stocks.isEmpty()) {
+                // Calculer les valorisations
+                BigDecimal valorisationFifo = BigDecimal.ZERO;
+                BigDecimal valorisationFefo = BigDecimal.ZERO;
+                BigDecimal valorisationCump = BigDecimal.ZERO;
+                Integer quantiteTotale = 0;
+                
+                for (Stock stock : stocks) {
+                    // Pour chaque dépôt, calculer la valorisation
+                    switch (article.getMethodeValorisation()) {
+                        case "FIFO":
+                            valorisationFifo = valorisationFifo.add(stock.getValeurStockCump());
+                            break;
+                        case "FEFO":
+                            valorisationFefo = valorisationFefo.add(stock.getValeurStockCump());
+                            break;
+                        case "CUMP":
+                            valorisationCump = valorisationCump.add(stock.getValeurStockCump());
+                            break;
+                    }
+                    quantiteTotale += stock.getQuantiteTheorique();
+                }
+                
+                // S'assurer que toutes les méthodes ont une valeur (même si 0)
+                detail.put("codeArticle", article.getCodeArticle());
+                detail.put("libelle", article.getLibelle());
+                detail.put("methode", article.getMethodeValorisation());
+                detail.put("quantite", quantiteTotale);
+                detail.put("valorisationFifo", valorisationFifo);
+                detail.put("valorisationFefo", valorisationFefo);
+                detail.put("valorisationCump", valorisationCump);
+                
+                details.add(detail);
+            }
+        }
+        
+        // Limiter aux 50 premiers pour éviter des données trop lourdes
+        return details.stream().limit(50).collect(Collectors.toList());
     }
 }

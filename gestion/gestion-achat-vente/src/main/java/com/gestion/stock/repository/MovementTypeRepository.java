@@ -17,8 +17,20 @@ public interface MovementTypeRepository extends JpaRepository<MovementType, UUID
 
     Optional<MovementType> findByLibelle(String libelle);
 
-    // Ajoutez cette méthode manquante
-    List<MovementType> findBySens(String sens);
+    List<MovementType> findBySens(MovementType.SensMouvement sens);
+
+    // Add a convenience method that accepts String
+    default List<MovementType> findBySensString(String sens) {
+        if (sens == null) {
+            return findAll();
+        }
+        try {
+            MovementType.SensMouvement sensEnum = MovementType.SensMouvement.valueOf(sens.toUpperCase());
+            return findBySens(sensEnum);
+        } catch (IllegalArgumentException e) {
+            return List.of(); // Or throw a custom exception
+        }
+    }
 
     @Query("SELECT t FROM MovementType t ORDER BY t.libelle")
     List<MovementType> findAllOrderedByLibelle();

@@ -45,6 +45,7 @@ public class Transfert {
     @Enumerated(EnumType.STRING)
     private TransfertStatut statut = TransfertStatut.BROUILLON;
     
+    @Column(name = "motif")
     private String motif;
     
     @Column(name = "demandeur_id", nullable = false)
@@ -56,20 +57,20 @@ public class Transfert {
     @Column(name = "date_validation")
     private LocalDateTime dateValidation;
     
-    @Column(name = "expediteur_id")
-    private UUID expediteurId;
+    // @Column(name = "expediteur_id")
+    // private UUID expediteurId;
     
-    @Column(name = "receptionnaire_id")
-    private UUID receptionnaireId;
+    // @Column(name = "receptionnaire_id")
+    // private UUID receptionnaireId;
     
-    @Column(name = "motif_annulation")
-    private String motifAnnulation;
+    // @Column(name = "motif_annulation")
+    // private String motifAnnulation;
     
-    @Column(name = "date_annulation")
-    private LocalDateTime dateAnnulation;
+    // @Column(name = "date_annulation")
+    // private LocalDateTime dateAnnulation;
     
-    @Column(name = "annulateur_id")
-    private UUID annulateurId;
+    // @Column(name = "annulateur_id")
+    // private UUID annulateurId;
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

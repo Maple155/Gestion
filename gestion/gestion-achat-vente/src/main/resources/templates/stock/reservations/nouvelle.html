@@ -1,0 +1,408 @@
+<!-- nouvelle.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nouvelle Réservation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <div th:replace="~{fragments/navbar :: navbar(activePage='reservations')}"></div>
+    
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <!-- En-tête -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a th:href="@{/stock/reservations/liste}">Réservations</a>
+                                </li>
+                                <li class="breadcrumb-item active">Nouvelle</li>
+                            </ol>
+                        </nav>
+                        <h1>
+                            <i class="bi bi-plus-circle"></i>
+                            Nouvelle Réservation
+                        </h1>
+                        <p class="text-muted">
+                            Réserver du stock pour une commande client
+                        </p>
+                    </div>
+                    <a th:href="@{/stock/reservations/liste}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x"></i> Annuler
+                    </a>
+                </div>
+                
+                <!-- Messages -->
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${success}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                
+                <!-- Formulaire -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-card-checklist"></i> Détails de la Réservation
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/stock/reservations/creer}" method="post" id="reservationForm">
+                            <input type="hidden" name="redirectUrl" th:value="${refererUrl}">
+                            
+                            <!-- Commande Client -->
+                            <div class="mb-4">
+                                <h5><i class="bi bi-cart-check"></i> Commande Client</h5>
+                                <div class="mb-3">
+                                    <label for="commandeClientId" class="form-label">ID Commande Client *</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="commandeClientId" 
+                                           name="commandeClientId"
+                                           th:value="${commandeClientId}"
+                                           required
+                                           placeholder="UUID de la commande...">
+                                    <div class="form-text">
+                                        Identifiant de la commande client à réserver
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ligneCommandeId" class="form-label">ID Ligne Commande (optionnel)</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="ligneCommandeId" 
+                                           name="ligneCommandeId"
+                                           th:value="${ligneCommandeId}"
+                                           placeholder="UUID de la ligne de commande...">
+                                </div>
+                            </div>
+                            
+                            <!-- Article et Dépôt -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5><i class="bi bi-box"></i> Article</h5>
+                                    <div class="mb-3">
+                                        <label for="articleId" class="form-label">ID Article *</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="articleId" 
+                                               name="articleId"
+                                               required
+                                               placeholder="UUID de l'article...">
+                                        <div class="form-text">
+                                            <a href="#" class="link-primary" data-bs-toggle="modal" data-bs-target="#searchArticleModal">
+                                                <i class="bi bi-search"></i> Rechercher un article
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div id="articleInfo" class="alert alert-info d-none">
+                                        <div id="articleCode"></div>
+                                        <div id="articleLibelle"></div>
+                                        <div id="stockInfo"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h5><i class="bi bi-building"></i> Dépôt</h5>
+                                    <div class="mb-3">
+                                        <label for="depotId" class="form-label">ID Dépôt *</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="depotId" 
+                                               name="depotId"
+                                               required
+                                               placeholder="UUID du dépôt...">
+                                        <div class="form-text">
+                                            <a href="#" class="link-primary" data-bs-toggle="modal" data-bs-target="#searchDepotModal">
+                                                <i class="bi bi-search"></i> Rechercher un dépôt
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div id="depotInfo" class="alert alert-info d-none">
+                                        <div id="depotNom"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Quantité -->
+                            <div class="mb-4">
+                                <h5><i class="bi bi-123"></i> Quantité</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="quantite" class="form-label">Quantité à réserver *</label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="quantite" 
+                                                   name="quantite"
+                                                   min="1"
+                                                   required
+                                                   placeholder="10">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-end h-100">
+                                            <button type="button" 
+                                                    class="btn btn-outline-primary w-100" 
+                                                    id="btnVerifierDispo"
+                                                    onclick="verifierDisponibilite()">
+                                                <i class="bi bi-check-circle"></i> Vérifier Disponibilité
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Résultat vérification -->
+                                <div id="verificationResult" class="mt-3 d-none">
+                                    <div class="alert" id="dispoAlert">
+                                        <div id="dispoMessage"></div>
+                                        <div id="dispoDetails" class="mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Informations complémentaires -->
+                            <div class="mb-4">
+                                <h5><i class="bi bi-chat-left-text"></i> Informations Complémentaires</h5>
+                                <div class="mb-3">
+                                    <label for="motif" class="form-label">Motif (optionnel)</label>
+                                    <textarea class="form-control" 
+                                              id="motif" 
+                                              name="motif" 
+                                              rows="2"
+                                              placeholder="Réservation urgente, client VIP..."></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-between">
+                                <a th:href="@{/stock/reservations/liste}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Retour
+                                </a>
+                                <button type="submit" class="btn btn-success" id="btnSubmit">
+                                    <i class="bi bi-check-lg"></i> Créer la Réservation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Recherche Article -->
+    <div class="modal fade" id="searchArticleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rechercher un Article</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchArticleInput" placeholder="Code, libellé...">
+                        <button class="btn btn-primary" type="button" onclick="searchArticles()">
+                            <i class="bi bi-search"></i> Rechercher
+                        </button>
+                    </div>
+                    <div id="articlesList" class="list-group" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Recherche Dépôt -->
+    <div class="modal fade" id="searchDepotModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rechercher un Dépôt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchDepotInput" placeholder="Code, nom...">
+                        <button class="btn btn-primary" type="button" onclick="searchDepots()">
+                            <i class="bi bi-search"></i> Rechercher
+                        </button>
+                    </div>
+                    <div id="depotsList" class="list-group" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function verifierDisponibilite() {
+            const articleId = document.getElementById('articleId').value;
+            const depotId = document.getElementById('depotId').value;
+            const quantite = document.getElementById('quantite').value;
+            
+            if (!articleId || !depotId || !quantite) {
+                alert('Veuillez remplir tous les champs obligatoires');
+                return;
+            }
+            
+            const btn = document.getElementById('btnVerifierDispo');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Vérification...';
+            btn.disabled = true;
+            
+            fetch('/stock/reservations/verifier-disponibilite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ articleId, depotId, quantite })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('verificationResult');
+                const alertDiv = document.getElementById('dispoAlert');
+                const messageDiv = document.getElementById('dispoMessage');
+                const detailsDiv = document.getElementById('dispoDetails');
+                const submitBtn = document.getElementById('btnSubmit');
+                
+                resultDiv.classList.remove('d-none');
+                
+                if (data.success) {
+                    const dispo = data.data;
+                    
+                    if (dispo.disponible) {
+                        alertDiv.className = 'alert alert-success';
+                        messageDiv.innerHTML = `<i class="bi bi-check-circle"></i> ${dispo.message}`;
+                        submitBtn.disabled = false;
+                    } else {
+                        alertDiv.className = 'alert alert-danger';
+                        messageDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> ${dispo.message}`;
+                        submitBtn.disabled = true;
+                    }
+                    
+                    detailsDiv.innerHTML = `
+                        <small class="text-muted">
+                            Stock théorique: ${dispo.quantiteTheorique}<br>
+                            Déjà réservé: ${dispo.quantiteReservee}<br>
+                            Disponible réel: ${dispo.quantiteDisponible}
+                        </small>
+                    `;
+                } else {
+                    alertDiv.className = 'alert alert-danger';
+                    messageDiv.innerHTML = `<i class="bi bi-x-circle"></i> ${data.message}`;
+                    detailsDiv.innerHTML = '';
+                    submitBtn.disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la vérification');
+            })
+            .finally(() => {
+                btn.innerHTML = '<i class="bi bi-check-circle"></i> Vérifier Disponibilité';
+                btn.disabled = false;
+            });
+        }
+        
+        function searchArticles() {
+            const searchTerm = document.getElementById('searchArticleInput').value;
+            if (!searchTerm) return;
+            
+            fetch(`/api/articles/search?q=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.json())
+                .then(articles => {
+                    const list = document.getElementById('articlesList');
+                    list.innerHTML = '';
+                    
+                    articles.forEach(article => {
+                        const item = document.createElement('a');
+                        item.href = '#';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${article.codeArticle}</strong><br>
+                                    <small>${article.libelle}</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="selectArticle('${article.id}', '${article.codeArticle}', '${article.libelle}')">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                });
+        }
+        
+        function selectArticle(id, code, libelle) {
+            document.getElementById('articleId').value = id;
+            const infoDiv = document.getElementById('articleInfo');
+            document.getElementById('articleCode').textContent = 'Code: ' + code;
+            document.getElementById('articleLibelle').textContent = 'Libellé: ' + libelle;
+            infoDiv.classList.remove('d-none');
+            
+            // Fermer le modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('searchArticleModal'));
+            modal.hide();
+        }
+        
+        function searchDepots() {
+            const searchTerm = document.getElementById('searchDepotInput').value;
+            if (!searchTerm) return;
+            
+            fetch(`/api/depots/search?q=${encodeURIComponent(searchTerm)}`)
+                .then(response => response.json())
+                .then(depots => {
+                    const list = document.getElementById('depotsList');
+                    list.innerHTML = '';
+                    
+                    depots.forEach(depot => {
+                        const item = document.createElement('a');
+                        item.href = '#';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong>${depot.code}</strong><br>
+                                    <small>${depot.nom}</small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" 
+                                        onclick="selectDepot('${depot.id}', '${depot.nom}')">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+                });
+        }
+        
+        function selectDepot(id, nom) {
+            document.getElementById('depotId').value = id;
+            const infoDiv = document.getElementById('depotInfo');
+            document.getElementById('depotNom').textContent = 'Nom: ' + nom;
+            infoDiv.classList.remove('d-none');
+            
+            // Fermer le modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('searchDepotModal'));
+            modal.hide();
+        }
+        
+        // Validation du formulaire
+        document.getElementById('reservationForm').addEventListener('submit', function(e) {
+            const quantite = document.getElementById('quantite').value;
+            if (quantite < 1) {
+                e.preventDefault();
+                alert('La quantité doit être supérieure à 0');
+                return false;
+            }
+            return true;
+        });
+    </script>
+</body>
+</html>
