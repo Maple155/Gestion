@@ -39,6 +39,7 @@ public class MouvementController {
     private final DepotService depotService;
     private final LotService lotService;
 
+    @GetMapping("/")
     /**
      * Journal des mouvements
      */
