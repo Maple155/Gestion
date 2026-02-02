@@ -50,12 +50,13 @@ public class StockMovementController {
 
     private final StockMovementService service;
 
-    @PutMapping("/{id}/statut")
-    public ResponseEntity<StockMovement> updateStatus(
+    @PostMapping("/{id}/statut")
+    public String updateStatusPost(
             @PathVariable UUID id,
-            @RequestBody @Valid UpdateMovementStatusRequest request) {
+            @RequestParam("statut") StockMovement.MovementStatus statut) {
 
-        StockMovement updated = service.updateStatus(id, request.getStatut());
-        return ResponseEntity.ok(updated);
+        StockMovement updated = service.updateStatus(id, statut);
+        return "/home";
     }
+
 }

@@ -1,0 +1,31 @@
+<h2>Détail Mouvement</h2>
+
+<table border="1" width="60%" style="border-collapse: collapse;">
+    <tr><td>ID</td><td th:text="${mvt.id}"></td></tr>
+    <tr><td>Référence</td><td th:text="${mvt.reference}"></td></tr>
+    <tr><td>Type</td><td th:text="${mvt.type.libelle}"></td></tr>
+    <tr><td>Article</td><td th:text="${mvt.article.libelle}"></td></tr>
+    <tr><td>Dépôt</td><td th:text="${mvt.depot.nom}"></td></tr>
+    <tr><td>Emplacement</td><td th:text="${mvt.emplacement?.nom}"></td></tr>
+    <tr><td>Inventaire</td><td th:text="${mvt.inventaire?.reference}"></td></tr>
+    <tr><td>Transfert</td><td th:text="${mvt.transfert?.reference}"></td></tr>
+    <tr><td>Quantité</td><td th:text="${mvt.quantite}"></td></tr>
+    <tr><td>Coût unitaire</td><td th:text="${mvt.coutUnitaire}"></td></tr>
+    <tr><td>Valeur</td><td th:text="${mvt.valeurMouvement}"></td></tr>
+    <tr><td>Lot</td><td th:text="${mvt.lot?.numero}"></td></tr>
+    <tr><td>Bon réception</td><td th:text="${mvt.bonReception?.reference}"></td></tr>
+    <tr><td>Bon commande</td><td th:text="${mvt.bonCommande?.reference}"></td></tr>
+    <tr><td>Commande client</td><td th:text="${mvt.commandeClientId}"></td></tr>
+    <tr><td>Date mouvement</td>
+        <td th:text="${#temporals.format(mvt.dateMouvement,'dd/MM/yyyy HH:mm')}"></td></tr>
+    <tr><td>Date comptable</td>
+        <td th:text="${#temporals.format(mvt.dateComptable,'dd/MM/yyyy')}"></td></tr>
+    <tr><td>Utilisateur</td><td th:text="${mvt.utilisateurId}"></td></tr>
+    <tr><td>Motif</td><td th:text="${mvt.motif}"></td></tr>
+    <tr><td>Statut</td><td th:text="${mvt.statut}"></td></tr>
+    <tr><td>Créé le</td>
+        <td th:text="${#temporals.format(mvt.createdAt,'dd/MM/yyyy HH:mm')}"></td></tr>
+</table>
+
+<br>
+<a href="/stock/mouvements/all">⬅ Retour</a>
