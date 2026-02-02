@@ -10,7 +10,7 @@ import com.gestion.stock.entity.ReservationStock.ReservationStatus;
 import com.gestion.stock.repository.ReservationStockRepository;
 
 import lombok.RequiredArgsConstructor;
-
+import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReservationStockService {
@@ -28,5 +28,14 @@ public class ReservationStockService {
 
         res.setStatut(newStatus);
         return repository.save(res);
+    }
+
+    public List<ReservationStock> getAll(){
+        return repository.findAll();
+    }
+
+    public ReservationStock findById(UUID id){
+        return repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Reservation introuvable"));
     }
 }

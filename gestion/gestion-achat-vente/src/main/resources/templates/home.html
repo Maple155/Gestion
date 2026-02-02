@@ -258,7 +258,7 @@
                 <h3>Stock</h3>
                 <ul>
                     <li><a href="/stock/mouvements/all">Mouvements Stock</a></li>
-                    <li><a href="/stock/reservations">Réservations Stock</a></li>
+                    <li><a href="/stock/reservations/all">Réservations Stock</a></li>
                     <li><a href="/stock/transferts">Transferts</a></li>
                 </ul>
             </div>
@@ -368,6 +368,58 @@
         </table>
     </div>
     <div th:if="${resStock != null}" class="stat-card" style="margin-top:30px;">
+    <h3>Liste des réservations</h3>
+
+    <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Référence</th>
+                <th>Article</th>
+                <th>Dépôt</th>
+                <th>Quantité Réservée</th>
+                <th>Quantité Restante</th>
+                <th>Statut</th>
+                <th>Date</th>
+                <th>Action</th>
+                <th>Modifier</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr th:each="res : ${resStock}">
+                <td th:text="${res.reference}"></td>
+                <td th:text="${res.article.libelle}"></td>
+                <td th:text="${res.depot.nom}"></td>
+                <td th:text="${res.quantiteReservee}"></td>
+                <td th:text="${res.quantiteRestante}"></td>
+                <td th:text="${res.statut}"></td>
+                <td th:text="${#temporals.format(res.dateReservation, 'dd/MM/yyyy HH:mm')}"></td>
+
+                <td>
+                    <a th:href="@{/stock/reservations/{id}(id=${res.id})}">
+                        <button>Détails</button>
+                    </a>
+                </td>
+
+                <td>
+                    <form th:action="@{/stock/reservations/{id}/statut(id=${res.id})}" method="post">
+                        <input type="hidden" name="_method" value="put"/>
+                        <select name="statut">
+                            <option th:each="s : ${T(com.gestion.stock.entity.ReservationStock.ReservationStatus).values()}"
+                                    th:value="${s}"
+                                    th:text="${s}"
+                                    th:selected="${s == res.statut}">
+                            </option>
+                        </select>
+                        <button type="submit">OK</button>
+                    </form>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div th:if="${mvftStock != null}" class="stat-card" style="margin-top:30px;">
 <h3>Liste des mouvements</h3>
 
 <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
@@ -418,58 +470,7 @@
 </table>
 </div>
 
-<div th:if="${mvtStock != null}" class="stat-card" style="margin-top:30px;">
-<h3>Liste des mouvements</h3>
-
-<table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-<thead>
-<tr>
-<th>Référence</th>
-<th>Article</th>
-<th>Dépôt</th>
-<th>Quantité</th>
-<th>Statut</th>
-<th>Date</th>
-<th>Action</th>
-<th>Modifier</th>
-</tr>
-</thead>
-
-<tbody>
-<tr th:each="mvt : ${mvtStock}">
-<td th:text="${mvt.reference}"></td>
-<td th:text="${mvt.article.libelle}"></td>
-<td th:text="${mvt.depot.nom}"></td>
-<td th:text="${mvt.quantite}"></td>
-<td th:text="${mvt.statut}"></td>
-<td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}"></td>
-
-<td>
-    <a th:href="@{/stock/mouvements/{id}(id=${mvt.id})}">
-        <button>Détails</button>
-    </a>
-</td>
-<td>
-<form th:action="@{/stock/mouvements/{id}/statut(id=${mvt.id})}" method="post">
-<select name="statut">
-    <option th:each="s : ${T(com.gestion.stock.entity.StockMovement.MovementStatus).values()}"
-            th:value="${s}"
-            th:text="${s}"
-            th:selected="${s == mvt.statut}">
-    </option>
-</select>
-
-<button type="submit">OK</button>
-</form>
-</td>
-
-</tr>
-</tbody>
-
-</table>
-</div>
-
-<div th:if="${mvtStock != null}" class="stat-card" style="margin-top:30px;">
+<div th:if="${mvfftStock != null}" class="stat-card" style="margin-top:30px;">
 <h3>Liste des mouvements</h3>
 
 <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
