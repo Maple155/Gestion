@@ -38,8 +38,12 @@ public class MouvementController {
     private final ArticleService articleService;
     private final DepotService depotService;
     private final LotService lotService;
+    private final StockMovementService stockMovementService;
 
     @GetMapping("/")
+    public String getAll(Model model){
+        model.addAttribute("mvtStock", stockMovementService.findAll());
+    }
     /**
      * Journal des mouvements
      */
