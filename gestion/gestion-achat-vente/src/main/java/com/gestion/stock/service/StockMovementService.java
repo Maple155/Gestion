@@ -22,9 +22,9 @@ public class StockMovementService {
     }
 
     public StockMovement findById(UUID id) {
-    return repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Mouvement introuvable"));
-}
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Mouvement introuvable"));
+    }
 
 
     @Transactional

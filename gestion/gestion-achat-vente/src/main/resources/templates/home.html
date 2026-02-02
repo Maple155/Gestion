@@ -259,7 +259,7 @@
                 <ul>
                     <li><a href="/stock/mouvements/all">Mouvements Stock</a></li>
                     <li><a href="/stock/reservations/all">Réservations Stock</a></li>
-                    <li><a href="/stock/transferts">Transferts</a></li>
+                    <li><a href="/stock/transferts/all">Transferts</a></li>
                 </ul>
             </div>
 
@@ -419,45 +419,51 @@
     </table>
 </div>
 
-<div th:if="${mvftStock != null}" class="stat-card" style="margin-top:30px;">
-<h3>Liste des mouvements</h3>
+<div th:if="${transferts != null}" class="stat-card" style="margin-top:30px;">
+<h3>Liste des Transferts</h3>
 
 <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
 <thead>
 <tr>
 <th>Référence</th>
-<th>Article</th>
-<th>Dépôt</th>
-<th>Quantité</th>
+<th>Dépôt source</th>
+<th>Dépôt destination</th>
 <th>Statut</th>
-<th>Date</th>
+<th>Date demande</th>
+<th>Motif</th>
 <th>Action</th>
-<th>Modifier</th>
+<th>Modifier statut</th>
 </tr>
 </thead>
 
 <tbody>
-<tr th:each="mvt : ${mvtStock}">
-<td th:text="${mvt.reference}"></td>
-<td th:text="${mvt.article.libelle}"></td>
-<td th:text="${mvt.depot.nom}"></td>
-<td th:text="${mvt.quantite}"></td>
-<td th:text="${mvt.statut}"></td>
-<td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}"></td>
+<tr th:each="trf : ${transferts}">
+
+<td th:text="${trf.reference}"></td>
+<td th:text="${trf.depotSource.nom}"></td>
+<td th:text="${trf.depotDestination.nom}"></td>
+<td th:text="${trf.statut}"></td>
+
+<td th:text="${#temporals.format(trf.dateDemande, 'dd/MM/yyyy HH:mm')}"></td>
+
+<td th:text="${trf.motif}"></td>
 
 <td>
-    <a th:href="@{/stock/mouvements/{id}(id=${mvt.id})}">
+    <a th:href="@{/stock/transferts/{id}(id=${trf.id})}">
         <button>Détails</button>
     </a>
 </td>
+
 <td>
-<form th:action="@{/stock/mouvements/{id}/statut(id=${mvt.id})}" method="post">
+<form th:action="@{/stock/transferts/{id}/statut(id=${trf.id})}" method="post">
 <select name="statut">
-    <option th:each="s : ${T(com.gestion.stock.entity.StockMovement.MovementStatus).values()}"
-            th:value="${s}"
-            th:text="${s}"
-            th:selected="${s == mvt.statut}">
-    </option>
+
+<option th:each="s : ${T(com.gestion.stock.entity.Transfert.TransfertStatut).values()}"
+        th:value="${s}"
+        th:text="${s}"
+        th:selected="${s == trf.statut}">
+</option>
+
 </select>
 
 <button type="submit">OK</button>
@@ -466,9 +472,9 @@
 
 </tr>
 </tbody>
-
 </table>
 </div>
+
 
 <div th:if="${mvfftStock != null}" class="stat-card" style="margin-top:30px;">
 <h3>Liste des mouvements</h3>
