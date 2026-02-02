@@ -29,7 +29,7 @@ public class LigneTransfert {
     @Column(name = "quantite_demandee", nullable = false)
     private Integer quantiteDemandee;
     
-    @Column(name = "quantite_expediee")
+    @Column(name = "quantite_expedie")
     private Integer quantiteExpediee = 0;
     
     @Column(name = "quantite_recue")
@@ -47,8 +47,6 @@ public class LigneTransfert {
     @JoinColumn(name = "emplacement_destination_id")
     private Emplacement emplacementDestination;
     
+    @Column(name = "notes")
     private String notes;
-    
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

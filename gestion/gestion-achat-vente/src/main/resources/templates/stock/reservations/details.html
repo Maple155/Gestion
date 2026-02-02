@@ -182,11 +182,11 @@
                                    class="form-control" 
                                    id="quantitePrelevee" 
                                    name="quantitePrelevee"
-                                   th:max="${reservation.quantiteReservee - reservation.quantitePrelevee}"
+                                   th:max="${reservation.quantiteReservee - (reservation.quantitePrelevee != null ? reservation.quantitePrelevee : 0)}"
                                    min="1"
                                    required>
                             <div class="form-text">
-                                Maximum: <span th:text="${reservation.quantiteReservee - reservation.quantitePrelevee}">10</span>
+                                Maximum: <span th:text="${reservation.quantiteReservee - (reservation.quantitePrelevee != null ? reservation.quantitePrelevee : 0)}">0</span>
                             </div>
                         </div>
                     </div>

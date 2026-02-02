@@ -61,16 +61,11 @@ public class Inventaire {
     @Column(name = "valeur_ecart_total", precision = 15, scale = 2)
     private BigDecimal valeurEcartTotal = BigDecimal.ZERO;
     
-    @Column(name = "taux_precision")
-    private BigDecimal tauxPrecision = BigDecimal.ZERO;
-    
+    @Column(name = "observations")
     private String observations;
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-    
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
     
     public enum TypeInventaire {
         ANNUEL, TOURNANT, PARTIEL, CONTROLE, CYCLIQUE
