@@ -1,0 +1,1222 @@
+<!-- templates/stock/inventaires/details.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${title}">Détails Inventaire</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"
+    />
+    <style>
+      .inventaire-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+      }
+      .stat-card {
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #dee2e6;
+      }
+      .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+      }
+      .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+      }
+      .badge-statut {
+        padding: 8px 12px;
+        font-size: 0.9em;
+      }
+      .action-buttons {
+        position: sticky;
+        top: 20px;
+        z-index: 100;
+      }
+      .ligne-valide {
+        background-color: #d1e7dd !important;
+      }
+      .ligne-ecart {
+        background-color: #fff3cd !important;
+      }
+      .ligne-exclue {
+        background-color: #f8d7da !important;
+        text-decoration: line-through;
+      }
+      .tab-content {
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        padding: 20px;
+      }
+      .nav-tabs {
+        border-bottom: 1px solid #dee2e6;
+      }
+      .nav-tabs .nav-link.active {
+        background-color: white;
+        border-color: #dee2e6 #dee2e6 white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Gestion Stock</a>
+        <div class="navbar-nav ms-auto">
+          <a class="nav-link text-white" th:href="@{/logout}">Déconnexion</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+      <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-2 col-md-3">
+          <div class="list-group">
+            <a
+              th:href="@{/stock/dashboard}"
+              class="list-group-item list-group-item-action"
+            >
+              <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+            <a
+              th:href="@{/stock/inventaires/liste}"
+              class="list-group-item list-group-item-action active"
+              th:classappend="${activePage == 'stock-inventaires'} ? 'active' : ''"
+            >
+              <i class="bi bi-clipboard-check me-2"></i>Inventaires
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <i class="bi bi-box-seam me-2"></i>Stocks
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <i class="bi bi-arrow-left-right me-2"></i>Transferts
+            </a>
+            <a href="#" class="list-group-item list-group-item-action">
+              <i class="bi bi-bar-chart me-2"></i>Rapports
+            </a>
+          </div>
+
+          <!-- Actions rapides -->
+          <div class="action-buttons mt-4">
+            <div class="card">
+              <div class="card-header bg-light">
+                <i class="bi bi-lightning me-2"></i>Actions
+              </div>
+              <div class="card-body p-2">
+                <a
+                  th:href="@{/stock/inventaires/comptage/{inventaireId}(inventaireId=${inventaire.id})}"
+                  th:if="${inventaire.statut.name() == 'EN_COURS'}"
+                  class="btn btn-warning w-100 mb-2"
+                >
+                  <i class="bi bi-clipboard-data me-1"></i>Comptage
+                </a>
+                <a
+                  th:href="@{/stock/inventaires/demarrer/{id}(id=${inventaire.id})}"
+                  th:if="${inventaire.statut.name() == 'PLANIFIE' and canEdit}"
+                  class="btn btn-success w-100 mb-2"
+                >
+                  <i class="bi bi-play-circle me-1"></i>Démarrer
+                </a>
+                <button
+                  th:if="${inventaire.statut.name() == 'EN_COURS' and canClose}"
+                  class="btn btn-primary w-100 mb-2"
+                  data-bs-toggle="modal"
+                  data-bs-target="#cloturerModal"
+                >
+                  <i class="bi bi-check-circle me-1"></i>Clôturer
+                </button>
+                <button
+                  th:if="${inventaire.statut.name() != 'CLOTURE' and inventaire.statut.name() != 'ANNULE' and canCancel}"
+                  class="btn btn-danger w-100 mb-2"
+                  data-bs-toggle="modal"
+                  data-bs-target="#annulerModal"
+                >
+                  <i class="bi bi-x-circle me-1"></i>Annuler
+                </button>
+                <a
+                  th:href="@{/stock/inventaires/export-lignes/{inventaireId}(inventaireId=${inventaire.id}, format='CSV')}"
+                  class="btn btn-outline-secondary w-100 mb-2"
+                >
+                  <i class="bi bi-download me-1"></i>Exporter
+                </a>
+                <a
+                  th:href="@{/stock/inventaires/rapport/{id}(id=${inventaire.id})}"
+                  class="btn btn-info w-100 mb-2"
+                >
+                  <i class="bi bi-printer me-1"></i>Rapport
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="col-lg-10 col-md-9">
+          <!-- En-tête inventaire -->
+          <div class="inventaire-header">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h1 class="h3 mb-1">
+                  <i class="bi bi-clipboard-check me-2"></i>
+                  [[${inventaire.reference}]]
+                </h1>
+                <p class="mb-0 opacity-75">
+                  [[${inventaire.type}]] - [[${inventaire.depot?.nom ?: 'Tous
+                  dépôts'}]]
+                  <span th:if="${inventaire.zone}">
+                    / [[${inventaire.zone?.libelle}]]</span
+                  >
+                  <span th:if="${inventaire.categorie}">
+                    / [[${inventaire.categorie?.libelle}]]</span
+                  >
+                </p>
+              </div>
+              <div class="text-end">
+                <span
+                  th:switch="${inventaire.statut.name()}"
+                  class="badge-statut"
+                >
+                  <span th:case="'EN_COURS'" class="badge bg-warning"
+                    >En cours</span
+                  >
+                  <span th:case="'CLOTURE'" class="badge bg-success"
+                    >Clôturé</span
+                  >
+                  <span th:case="'PLANIFIE'" class="badge bg-info"
+                    >Planifié</span
+                  >
+                  <span th:case="'ANNULE'" class="badge bg-danger">Annulé</span>
+                </span>
+                <p class="mt-2 mb-0">
+                  <small
+                    >Responsable: [[${inventaire.responsable?.nom}]]
+                    [[${inventaire.responsable?.prenom}]]</small
+                  >
+                </p>
+              </div>
+            </div>
+
+            <div class="row mt-4">
+              <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-calendar-date fs-4 me-3"></i>
+                  <div>
+                    <div class="fw-bold">Date début</div>
+                    <div>
+                      [[${#temporals.format(inventaire.dateDebut,
+                      'dd/MM/yyyy')}]]
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-calendar-check fs-4 me-3"></i>
+                  <div>
+                    <div class="fw-bold">Date fin</div>
+                    <div th:if="${inventaire.dateFin}">
+                      [[${#temporals.format(inventaire.dateFin, 'dd/MM/yyyy')}]]
+                    </div>
+                    <div th:unless="${inventaire.dateFin}" class="text-muted">
+                      Non définie
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-box fs-4 me-3"></i>
+                  <div>
+                    <div class="fw-bold">Articles à compter</div>
+                    <div>[[${inventaire.nombreArticlesComptes}]]</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-cash-coin fs-4 me-3"></i>
+                  <div>
+                    <div class="fw-bold">Écart total</div>
+                    <div
+                      th:class="${inventaire.valeurEcartTotal != null and inventaire.valeurEcartTotal > 0} ? 'text-danger' : 'text-success'"
+                    >
+                      [[${inventaire.valeurEcartTotal != null ?
+                      #numbers.formatDecimal(inventaire.valeurEcartTotal, 1, 2)
+                      : '0,00'}]] €
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistiques -->
+          <div class="row mb-4">
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div class="stat-number text-primary" th:text="${lignesTotal}">
+                  0
+                </div>
+                <div class="stat-label">Lignes total</div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div
+                  class="stat-number text-success"
+                  th:text="${lignesValidees}"
+                >
+                  0
+                </div>
+                <div class="stat-label">Validées</div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div
+                  class="stat-number text-warning"
+                  th:text="${lignesComptees}"
+                >
+                  0
+                </div>
+                <div class="stat-label">Comptées</div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div
+                  class="stat-number text-danger"
+                  th:text="${lignesAvecEcart}"
+                >
+                  0
+                </div>
+                <div class="stat-label">Avec écart</div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div
+                  class="stat-number text-secondary"
+                  th:text="${lignesExclues}"
+                >
+                  0
+                </div>
+                <div class="stat-label">Exclues</div>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="stat-card">
+                <div
+                  class="stat-number"
+                  th:class="${precision >= 95} ? 'text-success' : 'text-warning'"
+                  th:text="${precision != null ? #numbers.formatDecimal(precision, 1, 2) + '%' : 'N/A'}"
+                >
+                  N/A
+                </div>
+                <div class="stat-label">Précision</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="inventaireTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="lignes-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#lignes"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-list-check me-1"></i>Lignes d'inventaire
+                <span class="badge bg-primary ms-1" th:text="${lignesTotal}"
+                  >0</span
+                >
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="ajustements-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#ajustements"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-arrow-left-right me-1"></i>Ajustements
+                <span class="badge bg-info ms-1" th:text="${ajustements.size()}"
+                  >0</span
+                >
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="statistiques-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#statistiques"
+                type="button"
+                role="tab"
+              >
+                <i class="bi bi-bar-chart me-1"></i>Statistiques
+              </button>
+            </li>
+          </ul>
+
+          <!-- Contenu des tabs -->
+          <div class="tab-content" id="inventaireTabsContent">
+            <!-- Tab Lignes -->
+            <div class="tab-pane fade show active" id="lignes" role="tabpanel">
+              <div class="d-flex justify-content-between mb-3">
+                <div>
+                  <form
+                    method="get"
+                    th:action="@{/stock/inventaires/details/{id}(id=${inventaire.id})}"
+                    class="row g-2"
+                  >
+                    <div class="col-auto">
+                      <select
+                        class="form-select form-select-sm"
+                        name="statutLigne"
+                      >
+                        <option value="">Tous statuts</option>
+                        <option
+                          th:each="statut : ${statutsLigne}"
+                          th:value="${statut}"
+                          th:text="${statut}"
+                          th:selected="${statut == param.statutLigne}"
+                        ></option>
+                      </select>
+                    </div>
+                    <div class="col-auto">
+                      <select
+                        class="form-select form-select-sm"
+                        name="avecEcart"
+                      >
+                        <option value="">Tous</option>
+                        <option value="true" th:selected="${avecEcart == true}">
+                          Avec écart
+                        </option>
+                        <option
+                          value="false"
+                          th:selected="${avecEcart == false}"
+                        >
+                          Sans écart
+                        </option>
+                      </select>
+                    </div>
+                    <div class="col-auto">
+                      <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-funnel"></i> Filtrer
+                      </button>
+                      <a
+                        th:href="@{/stock/inventaires/details/{id}(id=${inventaire.id})}"
+                        class="btn btn-sm btn-outline-secondary"
+                      >
+                        <i class="bi bi-x"></i>
+                      </a>
+                    </div>
+                  </form>
+                </div>
+                <div class="text-end">
+                  <small class="text-muted">
+                    [[${totalElements}]] ligne(s) - Page [[${page +
+                    1}]]/[[${totalPages}]]
+                  </small>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-hover" id="lignesTable">
+                  <thead>
+                    <tr>
+                      <th width="50">
+                        <input type="checkbox" id="selectAll" />
+                      </th>
+                      <th>Article</th>
+                      <th>Emplacement</th>
+                      <th>Lot</th>
+                      <th class="text-end">Théorique</th>
+                      <th class="text-end">Compté 1</th>
+                      <th class="text-end">Compté 2</th>
+                      <th class="text-end">Final</th>
+                      <th class="text-end">Écart</th>
+                      <th class="text-end">Valeur écart</th>
+                      <th>Statut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      th:each="ligne : ${lignes}"
+                      th:classappend="${(ligne.statut.name() == 'VALIDE' or ligne.statut.name() == 'AJUSTE') ? 'ligne-valide' : 
+                                                     (ligne.statut.name() == 'EXCLU' ? 'ligne-exclue' : 
+                                                     ((ligne.ecart != null and ligne.ecart != 0) ? 'ligne-ecart' : ''))}"
+                    >
+                      <td>
+                        <input
+                          type="checkbox"
+                          class="ligne-checkbox"
+                          th:value="${ligne.id}"
+                          th:disabled="${ligne.statut.name() != 'COMPTE'}"
+                        />
+                      </td>
+                      <td>
+                        <strong th:text="${ligne.article?.codeArticle}"></strong
+                        ><br />
+                        <small
+                          class="text-muted"
+                          th:text="${ligne.article?.libelle}"
+                        ></small>
+                      </td>
+                      <td>
+                        <span th:text="${ligne.emplacement?.code}"></span>
+                        <small th:if="${ligne.lot}" class="d-block text-muted">
+                          [[${ligne.lot?.numeroLot}]]
+                        </small>
+                      </td>
+                      <td>
+                        <span th:text="${ligne.lot?.numeroLot}"></span>
+                        <small
+                          th:if="${ligne.lot?.datePeremption}"
+                          class="d-block text-muted"
+                        >
+                          DLC: [[${#temporals.format(ligne.lot.datePeremption,
+                          'dd/MM/yyyy')}]]
+                        </small>
+                      </td>
+                      <td
+                        class="text-end"
+                        th:text="${ligne.quantiteTheorique}"
+                      ></td>
+                      <td class="text-end">
+                        <span th:text="${ligne.quantiteComptee1}"></span>
+                        <small
+                          th:if="${ligne.compteur1Id}"
+                          class="d-block text-muted"
+                        >
+                          <i class="bi bi-person"></i> [[${ligne.compteur1Id}]]
+                        </small>
+                      </td>
+                      <td class="text-end">
+                        <span th:text="${ligne.quantiteComptee2}"></span>
+                        <small
+                          th:if="${ligne.compteur2Id}"
+                          class="d-block text-muted"
+                        >
+                          <i class="bi bi-person"></i> [[${ligne.compteur2Id}]]
+                        </small>
+                      </td>
+                      <td
+                        class="text-end fw-bold"
+                        th:text="${ligne.quantiteCompteeFinale}"
+                      ></td>
+                      <td class="text-end">
+                        <span
+                          th:if="${ligne.ecart != null and ligne.ecart != 0}"
+                          th:class="${ligne.ecart > 0} ? 'text-success' : 'text-danger'"
+                          th:text="${ligne.ecart > 0 ? '+' + ligne.ecart : ligne.ecart}"
+                        >
+                        </span>
+                        <span
+                          th:if="${ligne.ecart == null or ligne.ecart == 0}"
+                          class="text-muted"
+                          >0</span
+                        >
+                      </td>
+                      <td class="text-end">
+                        <span
+                          th:if="${ligne.ecartValeur != null and ligne.ecartValeur != 0}"
+                          th:class="${ligne.ecartValeur > 0} ? 'text-success' : 'text-danger'"
+                          th:text="${#numbers.formatDecimal(ligne.ecartValeur, 1, 2) + ' €'}"
+                        >
+                        </span>
+                        <span
+                          th:if="${ligne.ecartValeur == null or ligne.ecartValeur == 0}"
+                          class="text-muted"
+                          >0 €</span
+                        >
+                      </td>
+                      <td>
+                        <span th:switch="${ligne.statut.name()}" class="badge">
+                          <span th:case="'A_COMPTER'" class="badge bg-secondary"
+                            >À compter</span
+                          >
+                          <span th:case="'COMPTE'" class="badge bg-info"
+                            >Compté</span
+                          >
+                          <span
+                            th:case="'ECART_A_RECOMPTER'"
+                            class="badge bg-warning"
+                            >Écart</span
+                          >
+                          <span th:case="'VALIDE'" class="badge bg-success"
+                            >Validé</span
+                          >
+                          <span th:case="'AJUSTE'" class="badge bg-primary"
+                            >Ajusté</span
+                          >
+                          <span th:case="'EXCLU'" class="badge bg-danger"
+                            >Exclu</span
+                          >
+                        </span>
+                      </td>
+                      <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button
+                            th:if="${ligne.statut.name() == 'COMPTE' or ligne.statut.name() == 'ECART_A_RECOMPTER'}"
+                            class="btn btn-outline-primary"
+                            data-bs-toggle="modal"
+                            data-bs-target="#validerModal"
+                            th:data-ligne-id="${ligne.id}"
+                            th:data-article="${ligne.article?.libelle}"
+                            th:data-theorique="${ligne.quantiteTheorique}"
+                            th:data-final="${ligne.quantiteCompteeFinale}"
+                            th:data-ecart="${ligne.ecart}"
+                            onclick="prepareValidation(this)"
+                          >
+                            <i class="bi bi-check-lg"></i>
+                          </button>
+                          <a
+                            th:href="@{/stock/inventaires/comptage/{id}(id=${inventaire.id}, articleId=${ligne.article?.id}, emplacementId=${ligne.emplacement?.id})}"
+                            th:if="${inventaire.statut.name() == 'EN_COURS' and (ligne.statut.name() == 'A_COMPTER' or ligne.statut.name() == 'ECART_A_RECOMPTER')}"
+                            class="btn btn-outline-warning"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Batch actions -->
+              <div th:if="${canEdit}" class="card mt-3">
+                <div class="card-body py-2">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <span id="selectedCount">0</span> ligne(s) sélectionnée(s)
+                    </div>
+                    <div class="btn-group">
+                      <button
+                        class="btn btn-sm btn-success"
+                        id="batchValiderBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#batchValiderModal"
+                        disabled
+                      >
+                        <i class="bi bi-check-circle me-1"></i> Valider
+                      </button>
+                      <button
+                        class="btn btn-sm btn-outline-secondary"
+                        id="batchExporterBtn"
+                        disabled
+                      >
+                        <i class="bi bi-download me-1"></i> Exporter
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pagination -->
+              <div th:if="${totalPages > 1}" class="mt-3">
+                <nav aria-label="Pagination">
+                  <ul class="pagination justify-content-center">
+                    <li
+                      class="page-item"
+                      th:classappend="${page == 0} ? 'disabled' : ''"
+                    >
+                      <a
+                        class="page-link"
+                        th:href="@{/stock/inventaires/details/{id}(id=${inventaire.id}, page=${page-1}, size=${size}, statutLigne=${statutLigne}, avecEcart=${avecEcart})}"
+                      >
+                        <i class="bi bi-chevron-left"></i>
+                      </a>
+                    </li>
+
+                    <li
+                      th:each="pageNum : ${#numbers.sequence(0, totalPages-1)}"
+                      class="page-item"
+                      th:classappend="${page == pageNum} ? 'active' : ''"
+                    >
+                      <a
+                        class="page-link"
+                        th:href="@{/stock/inventaires/details/{id}(id=${inventaire.id}, page=${pageNum}, size=${size}, statutLigne=${statutLigne}, avecEcart=${avecEcart})}"
+                      >
+                        [[${pageNum + 1}]]
+                      </a>
+                    </li>
+
+                    <li
+                      class="page-item"
+                      th:classappend="${page == totalPages-1} ? 'disabled' : ''"
+                    >
+                      <a
+                        class="page-link"
+                        th:href="@{/stock/inventaires/details/{id}(id=${inventaire.id}, page=${page+1}, size=${size}, statutLigne=${statutLigne}, avecEcart=${avecEcart})}"
+                      >
+                        <i class="bi bi-chevron-right"></i>
+                      </a>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+
+            <!-- Tab Ajustements -->
+            <div class="tab-pane fade" id="ajustements" role="tabpanel">
+              <div
+                th:if="${not #lists.isEmpty(ajustements)}"
+                class="table-responsive"
+              >
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Article</th>
+                      <th class="text-end">Quantité</th>
+                      <th class="text-end">Valeur</th>
+                      <th>Valideur</th>
+                      <th>Motif</th>
+                      <th>Justification</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="ajustement : ${ajustements}">
+                      <td>
+                        [[${#temporals.format(ajustement.dateValidation,
+                        'dd/MM/yyyy HH:mm')}]]
+                      </td>
+                      <td>
+                        <strong
+                          th:text="${ajustement.ligneInventaire.article?.codeArticle}"
+                        ></strong
+                        ><br />
+                        <small
+                          th:text="${ajustement.ligneInventaire.article?.libelle}"
+                        ></small>
+                      </td>
+                      <td class="text-end">
+                        <span
+                          th:class="${ajustement.quantiteAjustee > 0} ? 'text-success' : 'text-danger'"
+                          th:text="${ajustement.quantiteAjustee > 0 ? '+' + ajustement.quantiteAjustee : ajustement.quantiteAjustee}"
+                        >
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <span
+                          th:class="${ajustement.valeurAjustement > 0} ? 'text-success' : 'text-danger'"
+                          th:text="${#numbers.formatDecimal(ajustement.valeurAjustement, 1, 2) + ' €'}"
+                        >
+                        </span>
+                      </td>
+                      <td>[[${ajustement.valideurId}]]</td>
+                      <td>[[${ajustement.motif}]]</td>
+                      <td>[[${ajustement.justification}]]</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div
+                th:if="${#lists.isEmpty(ajustements)}"
+                class="text-center py-5"
+              >
+                <i class="bi bi-check2-circle display-4 text-muted mb-3"></i>
+                <h5 class="text-muted">Aucun ajustement</h5>
+                <p class="text-muted">
+                  Aucun ajustement n'a été créé pour cet inventaire.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tab Statistiques -->
+            <div class="tab-pane fade" id="statistiques" role="tabpanel">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <i class="bi bi-cash-stack me-2"></i>Valeur des stocks
+                    </div>
+                    <div class="card-body">
+                      <table class="table table-sm">
+                        <tr>
+                          <td>Valeur théorique totale :</td>
+                          <td class="text-end fw-bold">
+                            [[${#numbers.formatDecimal(valeurTotaleTheorique, 1,
+                            2)}]] €
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Valeur comptée totale :</td>
+                          <td class="text-end fw-bold">
+                            [[${#numbers.formatDecimal(valeurTotaleComptee, 1,
+                            2)}]] €
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Écart total valeur :</td>
+                          <td
+                            th:class="${valeurTotaleEcart != null and valeurTotaleEcart > 0} ? 'text-danger text-end fw-bold' : 'text-success text-end fw-bold'"
+                          >
+                            [[${#numbers.formatDecimal(valeurTotaleEcart, 1,
+                            2)}]] €
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>Taux de précision :</td>
+                          <td
+                            class="text-end fw-bold"
+                            th:class="${precision >= 95} ? 'text-success' : 'text-warning'"
+                            th:text="${#numbers.formatDecimal(precision, 1, 2) + '%'}"
+                          ></td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card">
+                    <div class="card-header">
+                      <i class="bi bi-pie-chart me-2"></i>Répartition par statut
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-6">
+                          <div class="text-center">
+                            <div
+                              class="display-6 fw-bold text-primary"
+                              th:text="${lignesTotal}"
+                            >
+                              0
+                            </div>
+                            <div class="text-muted">Total</div>
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <div class="text-center">
+                            <div
+                              class="display-6 fw-bold text-success"
+                              th:text="${lignesValidees}"
+                            >
+                              0
+                            </div>
+                            <div class="text-muted">Validées</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row mt-3">
+                        <div class="col-4">
+                          <div class="text-center">
+                            <div
+                              class="h4 fw-bold text-info"
+                              th:text="${lignesComptees}"
+                            >
+                              0
+                            </div>
+                            <div class="text-muted small">Comptées</div>
+                          </div>
+                        </div>
+                        <div class="col-4">
+                          <div class="text-center">
+                            <div
+                              class="h4 fw-bold text-warning"
+                              th:text="${lignesAvecEcart}"
+                            >
+                              0
+                            </div>
+                            <div class="text-muted small">Écarts</div>
+                          </div>
+                        </div>
+                        <div class="col-4">
+                          <div class="text-center">
+                            <div
+                              class="h4 fw-bold text-danger"
+                              th:text="${lignesExclues}"
+                            >
+                              0
+                            </div>
+                            <div class="text-muted small">Exclues</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Validation ligne -->
+    <div class="modal fade" id="validerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form th:action="@{/stock/inventaires/valider-ligne}" method="post">
+            <input type="hidden" id="ligneId" name="ligneId" />
+            <div class="modal-header">
+              <h5 class="modal-title">Valider ligne d'inventaire</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Article</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="articleName"
+                  readonly
+                />
+              </div>
+              <div class="row mb-3">
+                <div class="col-6">
+                  <label class="form-label">Quantité théorique</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="quantiteTheorique"
+                    readonly
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Quantité comptée finale</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="quantiteFinale"
+                    name="quantiteFinale"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Écart</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="ecartValue"
+                  readonly
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label"
+                  >Cause de l'écart (si applicable)</label
+                >
+                <textarea
+                  class="form-control"
+                  name="causeEcart"
+                  rows="2"
+                  placeholder="Perte, vol, erreur de saisie, casse, etc."
+                ></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Décision</label>
+                <select class="form-select" name="decision" required>
+                  <option value="ACCEPTER">
+                    Accepter le comptage (créer ajustement si écart)
+                  </option>
+                  <option value="AJUSTER">Ajuster le stock</option>
+                  <option value="EXCLURE">Exclure de l'inventaire</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annuler
+              </button>
+              <button type="submit" class="btn btn-primary">Valider</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Validation batch -->
+    <div class="modal fade" id="batchValiderModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="batchValidationForm">
+            <div class="modal-header">
+              <h5 class="modal-title">Validation multiple</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p>
+                Valider <span id="batchCount">0</span> ligne(s) sélectionnée(s)
+              </p>
+              <div class="mb-3">
+                <label class="form-label"
+                  >Décision pour toutes les lignes</label
+                >
+                <select class="form-select" id="batchDecision" required>
+                  <option value="ACCEPTER">Accepter les comptages</option>
+                  <option value="AJUSTER">Ajuster les stocks</option>
+                  <option value="EXCLURE">Exclure des inventaires</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Cause de l'écart (commune)</label>
+                <textarea
+                  class="form-control"
+                  id="batchCauseEcart"
+                  rows="2"
+                  placeholder="Perte, vol, erreur de saisie, etc."
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="submitBatchValidation()"
+              >
+                Valider en lot
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Clôture inventaire -->
+    <div class="modal fade" id="cloturerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form
+            th:action="@{/stock/inventaires/cloturer/{id}(id=${inventaire.id})}"
+            method="post"
+          >
+            <div class="modal-header">
+              <h5 class="modal-title">Clôturer l'inventaire</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Attention : Cette action est irréversible. Vérifiez que toutes
+                les lignes sont validées.
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Motif de clôture</label>
+                <textarea
+                  class="form-control"
+                  name="motifCloture"
+                  rows="3"
+                  required
+                  placeholder="Inventaire terminé, toutes les lignes validées..."
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annuler
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Clôturer définitivement
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Annulation inventaire -->
+    <div class="modal fade" id="annulerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form
+            th:action="@{/stock/inventaires/annuler/{id}(id=${inventaire.id})}"
+            method="post"
+          >
+            <div class="modal-header">
+              <h5 class="modal-title">Annuler l'inventaire</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-octagon me-2"></i>
+                Attention : Cette action supprimera toutes les lignes de
+                l'inventaire.
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Motif d'annulation *</label>
+                <textarea
+                  class="form-control"
+                  name="motifAnnulation"
+                  rows="3"
+                  required
+                  placeholder="Erreur de planification, changement de périmètre..."
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annuler
+              </button>
+              <button type="submit" class="btn btn-danger">
+                Annuler l'inventaire
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+      // Gestion de la sélection des lignes
+      document
+        .getElementById("selectAll")
+        .addEventListener("change", function () {
+          const checkboxes = document.querySelectorAll(
+            ".ligne-checkbox:not(:disabled)"
+          );
+          checkboxes.forEach((cb) => (cb.checked = this.checked));
+          updateSelectedCount();
+        });
+
+      document.querySelectorAll(".ligne-checkbox").forEach((cb) => {
+        cb.addEventListener("change", updateSelectedCount);
+      });
+
+      function updateSelectedCount() {
+        const selected = document.querySelectorAll(".ligne-checkbox:checked");
+        const count = selected.length;
+        document.getElementById("selectedCount").textContent = count;
+        document.getElementById("batchValiderBtn").disabled = count === 0;
+        document.getElementById("batchExporterBtn").disabled = count === 0;
+        document.getElementById("batchCount").textContent = count;
+      }
+
+      // Préparation de la validation d'une ligne
+      function prepareValidation(button) {
+        const ligneId = button.getAttribute("data-ligne-id");
+        const article = button.getAttribute("data-article");
+        const theorique = button.getAttribute("data-theorique");
+        const final = button.getAttribute("data-final");
+        const ecart = button.getAttribute("data-ecart");
+
+        document.getElementById("ligneId").value = ligneId;
+        document.getElementById("articleName").value = article;
+        document.getElementById("quantiteTheorique").value = theorique;
+        document.getElementById("quantiteFinale").value = final || "";
+        document.getElementById("ecartValue").value =
+          ecart > 0 ? "+" + ecart : ecart;
+      }
+
+      // Validation batch via AJAX
+      function submitBatchValidation() {
+        const selected = Array.from(
+          document.querySelectorAll(".ligne-checkbox:checked")
+        ).map((cb) => cb.value);
+
+        const decision = document.getElementById("batchDecision").value;
+        const causeEcart = document.getElementById("batchCauseEcart").value;
+
+        fetch("/stock/inventaires/valider-batch", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ligneIds: selected,
+            decision: decision,
+            causeEcart: causeEcart,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              alert(
+                data.message +
+                  " - " +
+                  data.nombreValidees +
+                  " ligne(s) validée(s)"
+              );
+              location.reload();
+            } else {
+              alert("Erreur : " + data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("Erreur lors de la validation batch");
+          });
+      }
+
+    // Initialiser DataTables
+    $(document).ready(function () {
+        $("#lignesTable").DataTable({
+        pageLength: 50,
+        lengthMenu: [10, 25, 50, 100],
+        language: {
+            url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json",
+        },
+        order: [&lbrack;0, "asc"&rbrack;],
+        });
+    });
+    </script>
+  </body>
+</html>

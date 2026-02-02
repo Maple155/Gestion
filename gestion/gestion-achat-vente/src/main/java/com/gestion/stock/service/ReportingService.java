@@ -44,7 +44,7 @@ public class ReportingService {
         long articlesRupture = stockRepository.findArticlesEnRupture().size();
         
         // 4. Taux de précision stock (dernier inventaire)
-        Double tauxPrecisionMoyen = inventaireRepository.getTauxPrecisionMoyen();
+        Double tauxPrecisionMoyen = 0.0;
         
         // 5. Rotation de stock moyenne
         BigDecimal rotationMoyenne = calculerRotationMoyenne();
