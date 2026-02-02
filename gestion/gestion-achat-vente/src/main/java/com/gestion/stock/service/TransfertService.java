@@ -2,6 +2,7 @@ package com.gestion.stock.service;
 
 import com.gestion.stock.dto.LigneTransfertDTO;
 import com.gestion.stock.entity.*;
+import com.gestion.stock.entity.Transfert.TransfertStatut;
 import com.gestion.stock.repository.*;
 
 import jakarta.persistence.EntityManager;
@@ -487,6 +488,29 @@ public class TransfertService {
         stats.put("topDepotsSources", topDepots);
         
         return stats;
+    }
+
+
+    @Transactional
+    public Transfert updateStatus(UUID id, TransfertStatut newStatus, UUID userId) {
+        Transfert trf = transfertRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transfert introuvable"));
+
+        if (trf.getStatut() == TransfertStatut.ANNULE ||
+            trf.getStatut() == TransfertStatut.RECEPTIONNE) {
+            throw new IllegalStateException("Transfert finalisé");
+        }
+
+        switch (newStatus) {
+            case VALIDE -> {
+                trf.setValideurId(userId);
+                trf.setDateValidation(LocalDateTime.now());
+            }
+            default -> {}
+        }
+
+        trf.setStatut(newStatus);
+        return transfertRepository.save(trf);
     }
     
     /**
