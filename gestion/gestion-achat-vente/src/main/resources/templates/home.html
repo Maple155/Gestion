@@ -1,5 +1,3 @@
-<html lang="fr" xmlns:th="http://www.thymeleaf.org">
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -223,6 +221,137 @@
             margin-top: 10px;
         }
 
+        /* Table Styles */
+        .stat-card h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e8eef3;
+        }
+
+        .stat-card table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+            border: none;
+        }
+
+        .stat-card table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-card table thead th {
+            padding: 15px 12px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+
+        .stat-card table thead th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        .stat-card table thead th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        .stat-card table tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #e8eef3;
+        }
+
+        .stat-card table tbody tr:hover {
+            background: #f8f9fc;
+            transform: scale(1.01);
+        }
+
+        .stat-card table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .stat-card table tbody td {
+            padding: 15px 12px;
+            color: #3c4858;
+            font-size: 14px;
+            border: none;
+        }
+
+        .stat-card table tbody td:first-child {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        /* Button Styles */
+        .stat-card button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-card button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card button:active {
+            transform: translateY(0);
+        }
+
+        /* Select Styles */
+        .stat-card select {
+            padding: 8px 12px;
+            border: 1px solid #e8eef3;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #3c4858;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 8px;
+        }
+
+        .stat-card select:hover {
+            border-color: #667eea;
+        }
+
+        .stat-card select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Form Styles */
+        .stat-card form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Status Badge Styles (optional enhancement) */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -242,6 +371,15 @@
 
             .stats-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .stat-card table {
+                font-size: 12px;
+            }
+
+            .stat-card table thead th,
+            .stat-card table tbody td {
+                padding: 10px 8px;
             }
         }
     </style>
@@ -317,226 +455,199 @@
                     <div class="stat-value">--</div>
                 </div>
             </div>
+
+            <!-- Mouvements Stock Table -->
             <div th:if="${mvtStock != null}" class="stat-card" style="margin-top:30px;">
-        <h3>Liste des mouvements</h3>
-    
-        <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-    <thead>
-    <tr>
-        <th>Référence</th>
-        <th>Article</th>
-        <th>Dépôt</th>
-        <th>Quantité</th>
-        <th>Statut</th>
-        <th>Date</th>
-        <th>Action</th>
-        <th>Modifier</th>
-    </tr>
-    </thead>
+                <h3>Liste des mouvements</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Article</th>
+                            <th>Dépôt</th>
+                            <th>Quantité</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Modifier</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="mvt : ${mvtStock}">
+                            <td th:text="${mvt.reference}"></td>
+                            <td th:text="${mvt.article.libelle}"></td>
+                            <td th:text="${mvt.depot.nom}"></td>
+                            <td th:text="${mvt.quantite}"></td>
+                            <td th:text="${mvt.statut}"></td>
+                            <td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td>
+                                <a th:href="@{/stock/mouvements/{id}(id=${mvt.id})}">
+                                    <button>Détails</button>
+                                </a>
+                            </td>
+                            <td>
+                                <form th:action="@{/stock/mouvements/{id}/statut(id=${mvt.id})}" method="post">
+                                    <select name="statut">
+                                        <option th:each="s : ${T(com.gestion.stock.entity.StockMovement.MovementStatus).values()}"
+                                                th:value="${s}"
+                                                th:text="${s}"
+                                                th:selected="${s == mvt.statut}">
+                                        </option>
+                                    </select>
+                                    <button type="submit">OK</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-    <tbody>
-    <tr th:each="mvt : ${mvtStock}">
-        <td th:text="${mvt.reference}"></td>
-        <td th:text="${mvt.article.libelle}"></td>
-        <td th:text="${mvt.depot.nom}"></td>
-        <td th:text="${mvt.quantite}"></td>
-        <td th:text="${mvt.statut}"></td>
-        <td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}"></td>
+            <!-- Réservations Stock Table -->
+            <div th:if="${resStock != null}" class="stat-card" style="margin-top:30px;">
+                <h3>Liste des réservations</h3>
 
-        <td>
-            <a th:href="@{/stock/mouvements/{id}(id=${mvt.id})}">
-                <button>Détails</button>
-            </a>
-        </td>
-        <td>
-    <form th:action="@{/stock/mouvements/{id}/statut(id=${mvt.id})}" method="post">
-        <select name="statut">
-            <option th:each="s : ${T(com.gestion.stock.entity.StockMovement.MovementStatus).values()}"
-                    th:value="${s}"
-                    th:text="${s}"
-                    th:selected="${s == mvt.statut}">
-            </option>
-        </select>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Article</th>
+                            <th>Dépôt</th>
+                            <th>Quantité Réservée</th>
+                            <th>Quantité Restante</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Modifier</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="res : ${resStock}">
+                            <td th:text="${res.reference}"></td>
+                            <td th:text="${res.article.libelle}"></td>
+                            <td th:text="${res.depot.nom}"></td>
+                            <td th:text="${res.quantiteReservee}"></td>
+                            <td th:text="${res.quantiteRestante}"></td>
+                            <td th:text="${res.statut}"></td>
+                            <td th:text="${#temporals.format(res.dateReservation, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td>
+                                <a th:href="@{/stock/reservations/{id}(id=${res.id})}">
+                                    <button>Détails</button>
+                                </a>
+                            </td>
+                            <td>
+                                <form th:action="@{/stock/reservations/{id}/statut(id=${res.id})}" method="post">
+                                    <input type="hidden" name="_method" value="put"/>
+                                    <select name="statut">
+                                        <option th:each="s : ${T(com.gestion.stock.entity.ReservationStock.ReservationStatus).values()}"
+                                                th:value="${s}"
+                                                th:text="${s}"
+                                                th:selected="${s == res.statut}">
+                                        </option>
+                                    </select>
+                                    <button type="submit">OK</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        <button type="submit">OK</button>
-    </form>
-</td>
+            <!-- Transferts Table -->
+            <div th:if="${transferts != null}" class="stat-card" style="margin-top:30px;">
+                <h3>Liste des Transferts</h3>
 
-    </tr>
-    </tbody>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Dépôt source</th>
+                            <th>Dépôt destination</th>
+                            <th>Statut</th>
+                            <th>Date demande</th>
+                            <th>Motif</th>
+                            <th>Action</th>
+                            <th>Modifier statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="trf : ${transferts}">
+                            <td th:text="${trf.reference}"></td>
+                            <td th:text="${trf.depotSource.nom}"></td>
+                            <td th:text="${trf.depotDestination.nom}"></td>
+                            <td th:text="${trf.statut}"></td>
+                            <td th:text="${#temporals.format(trf.dateDemande, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${trf.motif}"></td>
+                            <td>
+                                <a th:href="@{/stock/transferts/{id}(id=${trf.id})}">
+                                    <button>Détails</button>
+                                </a>
+                            </td>
+                            <td>
+                                <form th:action="@{/stock/transferts/{id}/statut(id=${trf.id})}" method="post">
+                                    <select name="statut">
+                                        <option th:each="s : ${T(com.gestion.stock.entity.Transfert.TransfertStatut).values()}"
+                                                th:value="${s}"
+                                                th:text="${s}"
+                                                th:selected="${s == trf.statut}">
+                                        </option>
+                                    </select>
+                                    <button type="submit">OK</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
-        </table>
-    </div>
-    <div th:if="${resStock != null}" class="stat-card" style="margin-top:30px;">
-    <h3>Liste des réservations</h3>
+            <!-- Bons de Commande Table -->
+            <div th:if="${bdc != null}" class="stat-card" style="margin-top:30px;">
+                <h3>Liste des Bons de commande</h3>
 
-    <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th>Référence</th>
-                <th>Article</th>
-                <th>Dépôt</th>
-                <th>Quantité Réservée</th>
-                <th>Quantité Restante</th>
-                <th>Statut</th>
-                <th>Date</th>
-                <th>Action</th>
-                <th>Modifier</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            <tr th:each="res : ${resStock}">
-                <td th:text="${res.reference}"></td>
-                <td th:text="${res.article.libelle}"></td>
-                <td th:text="${res.depot.nom}"></td>
-                <td th:text="${res.quantiteReservee}"></td>
-                <td th:text="${res.quantiteRestante}"></td>
-                <td th:text="${res.statut}"></td>
-                <td th:text="${#temporals.format(res.dateReservation, 'dd/MM/yyyy HH:mm')}"></td>
-
-                <td>
-                    <a th:href="@{/stock/reservations/{id}(id=${res.id})}">
-                        <button>Détails</button>
-                    </a>
-                </td>
-
-                <td>
-                    <form th:action="@{/stock/reservations/{id}/statut(id=${res.id})}" method="post">
-                        <input type="hidden" name="_method" value="put"/>
-                        <select name="statut">
-                            <option th:each="s : ${T(com.gestion.stock.entity.ReservationStock.ReservationStatus).values()}"
-                                    th:value="${s}"
-                                    th:text="${s}"
-                                    th:selected="${s == res.statut}">
-                            </option>
-                        </select>
-                        <button type="submit">OK</button>
-                    </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-<div th:if="${transferts != null}" class="stat-card" style="margin-top:30px;">
-<h3>Liste des Transferts</h3>
-
-<table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-<thead>
-<tr>
-<th>Référence</th>
-<th>Dépôt source</th>
-<th>Dépôt destination</th>
-<th>Statut</th>
-<th>Date demande</th>
-<th>Motif</th>
-<th>Action</th>
-<th>Modifier statut</th>
-</tr>
-</thead>
-
-<tbody>
-<tr th:each="trf : ${transferts}">
-
-<td th:text="${trf.reference}"></td>
-<td th:text="${trf.depotSource.nom}"></td>
-<td th:text="${trf.depotDestination.nom}"></td>
-<td th:text="${trf.statut}"></td>
-
-<td th:text="${#temporals.format(trf.dateDemande, 'dd/MM/yyyy HH:mm')}"></td>
-
-<td th:text="${trf.motif}"></td>
-
-<td>
-    <a th:href="@{/stock/transferts/{id}(id=${trf.id})}">
-        <button>Détails</button>
-    </a>
-</td>
-
-<td>
-<form th:action="@{/stock/transferts/{id}/statut(id=${trf.id})}" method="post">
-<select name="statut">
-
-<option th:each="s : ${T(com.gestion.stock.entity.Transfert.TransfertStatut).values()}"
-        th:value="${s}"
-        th:text="${s}"
-        th:selected="${s == trf.statut}">
-</option>
-
-</select>
-
-<button type="submit">OK</button>
-</form>
-</td>
-
-</tr>
-</tbody>
-</table>
-</div>
-
-<div th:if="${bdc != null}" class="stat-card" style="margin-top:30px;">
-    <h3>Liste des Bons de commande</h3>
-
-    <table border="1" width="100%" style="margin-top:15px; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th>Référence</th>
-                <th>Proforma</th>
-                <th>Montant TTC</th>
-                <th>Statut</th>
-                <th>Date émission</th>
-                <th>Date livraison estimée</th>
-                <th>Action</th>
-                <th>Modifier Status</th>
-            </tr>
-        </thead>
-
-       <tbody>
-    <tr th:each="mvt : ${bdc}">
-        <td th:text="${mvt.referenceBc}"></td>
-        <td th:text="${mvt.proforma.id}"></td>
-        <td th:text="${mvt.montantFormate}"></td>
-
-        <td th:text="${mvt.statutFinance}"></td>
-        <td th:text="${#temporals.format(mvt.dateEmission, 'dd/MM/yyyy HH:mm')}"></td>
-        <td th:text="${mvt.dateLivraisonEstimee != null ? #temporals.format(mvt.dateLivraisonEstimee, 'dd/MM/yyyy') : '-'}"></td>
-        <td>
-            <a th:href="@{/achat/bons/{id}(id=${mvt.id})}">
-                <button>Détails</button>
-            </a>
-        </td>
-      <td>
-    <form th:action="@{/achat/bons/{id}/statut-finance(id=${mvt.id})}" method="post">
-        <select name="statutFinance">
-            <option th:each="s : ${T(com.gestion.achat.enums.StatutFinance).values()}"
-                    th:value="${s}"
-                    th:text="${s}"
-                    th:selected="${s == mvt.statutFinance}">
-            </option>
-        </select>
-        <button type="submit">OK</button>
-    </form>
-</td>
-
-
-    </tr>
-</tbody>
-
-    </table>
-</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Référence</th>
+                            <th>Proforma</th>
+                            <th>Montant TTC</th>
+                            <th>Statut</th>
+                            <th>Date émission</th>
+                            <th>Date livraison estimée</th>
+                            <th>Action</th>
+                            <th>Modifier Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="mvt : ${bdc}">
+                            <td th:text="${mvt.referenceBc}"></td>
+                            <td th:text="${mvt.proforma.id}"></td>
+                            <td th:text="${mvt.montantFormate}"></td>
+                            <td th:text="${mvt.statutFinance}"></td>
+                            <td th:text="${#temporals.format(mvt.dateEmission, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${mvt.dateLivraisonEstimee != null ? #temporals.format(mvt.dateLivraisonEstimee, 'dd/MM/yyyy') : '-'}"></td>
+                            <td>
+                                <a th:href="@{/achat/bons/{id}(id=${mvt.id})}">
+                                    <button>Détails</button>
+                                </a>
+                            </td>
+                            <td>
+                                <form th:action="@{/achat/bons/{id}/statut-finance(id=${mvt.id})}" method="post">
+                                    <select name="statutFinance">
+                                        <option th:each="s : ${T(com.gestion.achat.enums.StatutFinance).values()}"
+                                                th:value="${s}"
+                                                th:text="${s}"
+                                                th:selected="${s == mvt.statutFinance}">
+                                        </option>
+                                    </select>
+                                    <button type="submit">OK</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
 
         </div>
-
-
-        </div>
-
     </div>
-
-
-    </div>
-
-
-
 </body>
 </html>
