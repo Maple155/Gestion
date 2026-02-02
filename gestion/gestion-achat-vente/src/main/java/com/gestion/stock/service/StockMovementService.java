@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.gestion.stock.entity.StockMovement;
 import com.gestion.stock.entity.StockMovement.MovementStatus;
 import com.gestion.stock.repository.StockMovementRepository;
-import java.util.list;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @Service

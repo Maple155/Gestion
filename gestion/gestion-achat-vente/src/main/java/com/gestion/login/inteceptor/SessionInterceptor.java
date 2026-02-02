@@ -61,7 +61,8 @@ public class SessionInterceptor implements HandlerInterceptor {
         if (uri.startsWith("/stock/") || uri.startsWith("/achats/")) {
             return userRole.equals("ADMIN") || 
                    userRole.equals("GESTIONNAIRE_STOCK") || 
-                   userRole.equals("RESPONSABLE_STOCK");
+                   userRole.equals("RESPONSABLE_STOCK") ||
+                   userRole.equalsIgnoreCase("MANAGER");
         }
         
         if (uri.startsWith("/comptabilite/")) {

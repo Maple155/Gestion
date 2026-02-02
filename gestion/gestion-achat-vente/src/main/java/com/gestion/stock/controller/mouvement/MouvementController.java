@@ -40,9 +40,9 @@ public class MouvementController {
     private final LotService lotService;
     private final StockMovementService stockMovementService;
 
-    @GetMapping("/")
+    @GetMapping("/all")
     public String getAll(Model model){
-        model.addAttribute("mvtStock", stockMovementService.findAll());
+        model.addAttribute("mvtStock", stockMovementService.getAll());
         return "home";
     }
     /**
