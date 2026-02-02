@@ -43,6 +43,7 @@ public class MouvementController {
     @GetMapping("/")
     public String getAll(Model model){
         model.addAttribute("mvtStock", stockMovementService.findAll());
+        return "home";
     }
     /**
      * Journal des mouvements
