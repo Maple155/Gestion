@@ -21,6 +21,12 @@ public class StockMovementService {
         return repository.findAll();
     }
 
+    public StockMovement findById(UUID id) {
+    return repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Mouvement introuvable"));
+}
+
+
     @Transactional
     public StockMovement updateStatus(UUID id, MovementStatus newStatus) {
         StockMovement movement = repository.findById(id)

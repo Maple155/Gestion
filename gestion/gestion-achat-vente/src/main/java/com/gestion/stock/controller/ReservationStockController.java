@@ -12,7 +12,7 @@ import com.gestion.stock.service.ReservationStockService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@RestController
+@Controller
 @RequestMapping("/api/reservations")
 @RequiredArgsConstructor
 public class ReservationStockController {
@@ -20,10 +20,10 @@ public class ReservationStockController {
     private final ReservationStockService service;
 
     @PutMapping("/{id}/statut")
-    public ResponseEntity<ReservationStock> updateStatus(
+    public String updateStatus(
             @PathVariable UUID id,
-            @RequestBody @Valid UpdateReservationStatusRequest request) {
-
-        return ResponseEntity.ok(service.updateStatus(id, request.getStatut()));
+            @RequestParam("statut") ReservationStock.ReservationStatus statut) {
+        ReservationStock updated = service.updateStatus(id, request.getStatut());
+        return "home";
     }
 }
