@@ -428,7 +428,7 @@
                         <div class="stat-icon purple">📦</div>
                     </div>
                     <h4>Mouvements Stock</h4>
-                    <div class="stat-value">--</div>
+                    <div class="stat-value" th:text="${mvtStock != null ? #lists.size(mvtStock) : 0}">0</div>
                 </div>
 
                 <div class="stat-card">
@@ -436,7 +436,7 @@
                         <div class="stat-icon blue">📋</div>
                     </div>
                     <h4>Réservations</h4>
-                    <div class="stat-value">--</div>
+                    <div class="stat-value" th:text="${resStock != null ? #lists.size(resStock) : 0}">0</div>
                 </div>
 
                 <div class="stat-card">
@@ -444,7 +444,7 @@
                         <div class="stat-icon green">🔄</div>
                     </div>
                     <h4>Transferts</h4>
-                    <div class="stat-value">--</div>
+                    <div class="stat-value" th:text="${transferts != null ? #lists.size(transferts) : 0}">0</div>
                 </div>
 
                 <div class="stat-card">
@@ -452,7 +452,7 @@
                         <div class="stat-icon orange">🛒</div>
                     </div>
                     <h4>Bons de commande</h4>
-                    <div class="stat-value">--</div>
+                    <div class="stat-value" th:text="${bdc != null ? #lists.size(bdc) : 0}">0</div>
                 </div>
             </div>
 
