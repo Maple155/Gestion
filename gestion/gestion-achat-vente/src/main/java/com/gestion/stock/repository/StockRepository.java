@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -131,4 +132,12 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
         void updateValeurStock(@Param("articleId") UUID articleId,
                         @Param("depotId") UUID depotId,
                         @Param("valeur") BigDecimal valeur);
+
+        @Query("SELECT s FROM Stock s WHERE s.article.stockMinimum IS NOT NULL " +
+                        "AND s.quantiteTheorique < s.article.stockMinimum")
+        List<Stock> findStocksCritiques();
+
+        @Query("SELECT s FROM Stock s WHERE s.dateDernierMouvement < :dateLimite " +
+                        "AND s.quantiteTheorique > 0")
+        List<Stock> findStocksObsoletes(@Param("dateLimite") LocalDateTime dateLimite);
 }

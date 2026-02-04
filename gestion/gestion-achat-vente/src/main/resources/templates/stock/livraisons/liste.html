@@ -1,0 +1,164 @@
+<!-- templates/stock/livraisons/liste.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Historique Livraisons</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+</head>
+<body>
+ 
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/stock">Stock</a></li>
+                        <li class="breadcrumb-item active">Livraisons</li>
+                    </ol>
+                </nav>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1><i class="bi bi-truck"></i> Historique des Livraisons</h1>
+                    <a href="/stock/livraisons/nouvelle" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Nouvelle Livraison
+                    </a>
+                </div>
+                
+                <!-- Filtres -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="bi bi-funnel"></i> Filtres
+                    </div>
+                    <div class="card-body">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-3">
+                                <label for="dateDebut" class="form-label">Date début</label>
+                                <input type="date" class="form-control" id="dateDebut" name="dateDebut" 
+                                       th:value="${dateDebut}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="dateFin" class="form-label">Date fin</label>
+                                <input type="date" class="form-control" id="dateFin" name="dateFin" 
+                                       th:value="${dateFin}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="depotId" class="form-label">Dépôt</label>
+                                <select class="form-select" id="depotId" name="depotId">
+                                    <option value="">Tous les dépôts</option>
+                                    <!-- À remplir avec la liste des dépôts -->
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-filter"></i> Filtrer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Statistiques -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">Nombre de livraisons</h5>
+                                <h2 th:text="${stats.nombreLivraisons}">0</h2>
+                                <p class="card-text">sur la période</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <h5 class="card-title">Articles livrés</h5>
+                                <h2 th:text="${stats.totalArticles}">0</h2>
+                                <p class="card-text">quantité totale</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-info">
+                            <div class="card-body">
+                                <h5 class="card-title">Valeur livrée</h5>
+                                <h2 th:text="${#numbers.formatDecimal(stats.totalValeur, 0, 'COMMA', 2, 'POINT')}">0</h2>
+                                <p class="card-text">€ HT</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-white bg-warning">
+                            <div class="card-body">
+                                <h5 class="card-title">Moyenne / livraison</h5>
+                                <h2 th:text="${stats.moyenneParLivraison}">0</h2>
+                                <p class="card-text">articles</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tableau des livraisons -->
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-list-ul"></i> Dernières livraisons
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Référence</th>
+                                        <th>Date</th>
+                                        <th>Article</th>
+                                        <th>Dépôt</th>
+                                        <th>Quantité</th>
+                                        <th>Coût unitaire</th>
+                                        <th>Commande client</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="mvt : ${historique}">
+                                        <td th:text="${mvt.reference}">MVT-2026-000001</td>
+                                        <td th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:30</td>
+                                        <td th:text="${mvt.article.codeArticle}">ART-001</td>
+                                        <td th:text="${mvt.depot.nom}">Dépôt Principal</td>
+                                        <td><span class="badge bg-primary" th:text="${mvt.quantite}">100</span></td>
+                                        <td th:text="${#numbers.formatDecimal(mvt.coutUnitaire, 0, 'COMMA', 2, 'POINT')}">25,50</td>
+                                        <td>
+                                            <span class="badge bg-info" th:text="${mvt.commandeClientId}">
+                                                CMD-2026-0001
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a th:href="@{/stock/livraisons/details/{id}(id=${mvt.id})}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a th:href="@{/stock/livraisons/bon-livraison/{id}(id=${mvt.id})}" 
+                                               class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-printer"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${historique.empty}">
+                                        <td colspan="8" class="text-center text-muted">
+                                            <i class="bi bi-inbox"></i> Aucune livraison trouvée
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

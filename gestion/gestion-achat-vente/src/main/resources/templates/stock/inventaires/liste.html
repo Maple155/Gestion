@@ -61,7 +61,7 @@
             <!-- Sidebar -->
             <div class="col-lg-2 col-md-3">
                 <div class="list-group">
-                    <a th:href="@{/stock/dashboard}" class="list-group-item list-group-item-action">
+                    <a th:href="@{/stock/inventaires/dashboard}" class="list-group-item list-group-item-action">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
                     <a th:href="@{/stock/inventaires/liste}" 
@@ -219,9 +219,9 @@
                                 </thead>
                                 <tbody>
                                     <tr th:each="inv : ${inventaires}" 
-                                        th:classappend="${inv.statut.name() == 'EN_COURS'} ? 'inventaire-en-cours' :
-                                                         ${inv.statut.name() == 'CLOTURE'} ? 'inventaire-cloture' :
-                                                         'inventaire-planifie'}">
+                                    th:class="${(inv.statut.name() == 'EN_COURS') ? 'inventaire-en-cours' : 
+                                               (inv.statut.name() == 'CLOTURE') ? 'inventaire-cloture' : 
+                                               'inventaire-planifie'}">
                                         <td>
                                             <strong>[[${inv.reference}]]</strong><br>
                                             <small class="text-muted" th:text="${inv.responsable?.nom} + ' ' + ${inv.responsable?.prenom}"></small>

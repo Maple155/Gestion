@@ -91,7 +91,7 @@
         <div class="col-lg-2 col-md-3">
           <div class="list-group">
             <a
-              th:href="@{/stock/dashboard}"
+              th:href="@{/stock/inventaires/dashboard}"
               class="list-group-item list-group-item-action"
             >
               <i class="bi bi-speedometer2 me-2"></i>Dashboard
@@ -1125,98 +1125,114 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
-    <script>
-      // Gestion de la sélection des lignes
-      document
-        .getElementById("selectAll")
-        .addEventListener("change", function () {
-          const checkboxes = document.querySelectorAll(
-            ".ligne-checkbox:not(:disabled)"
-          );
-          checkboxes.forEach((cb) => (cb.checked = this.checked));
-          updateSelectedCount();
-        });
+    <script th:inline="none">
+      // Attendre que le DOM soit complètement chargé
+      document.addEventListener("DOMContentLoaded", function() {
+        
+        // Fonction de mise à jour du compteur
+        function updateSelectedCount() {
+          const selected = document.querySelectorAll(".ligne-checkbox:checked");
+          const count = selected.length;
+          const selectedCountEl = document.getElementById("selectedCount");
+          const batchValiderBtn = document.getElementById("batchValiderBtn");
+          const batchExporterBtn = document.getElementById("batchExporterBtn");
+          const batchCountEl = document.getElementById("batchCount");
+          
+          if (selectedCountEl) selectedCountEl.textContent = count;
+          if (batchValiderBtn) batchValiderBtn.disabled = count === 0;
+          if (batchExporterBtn) batchExporterBtn.disabled = count === 0;
+          if (batchCountEl) batchCountEl.textContent = count;
+        }
 
-      document.querySelectorAll(".ligne-checkbox").forEach((cb) => {
-        cb.addEventListener("change", updateSelectedCount);
+        // Gestion de la sélection des lignes
+        const selectAllEl = document.getElementById("selectAll");
+        if (selectAllEl) {
+          selectAllEl.addEventListener("change", function () {
+            const checkboxes = document.querySelectorAll(
+              ".ligne-checkbox:not(:disabled)"
+            );
+            checkboxes.forEach((cb) => (cb.checked = this.checked));
+            updateSelectedCount();
+          });
+        }
+
+        document.querySelectorAll(".ligne-checkbox").forEach((cb) => {
+          cb.addEventListener("change", updateSelectedCount);
+        });
+        
+        // Rendre les fonctions globales pour qu'elles soient accessibles depuis le HTML
+        window.updateSelectedCount = updateSelectedCount;
+        window.prepareValidation = prepareValidation;
+        window.submitBatchValidation = submitBatchValidation;
+        
+        // Préparation de la validation d'une ligne
+        function prepareValidation(button) {
+          const ligneId = button.getAttribute("data-ligne-id");
+          const article = button.getAttribute("data-article");
+          const theorique = button.getAttribute("data-theorique");
+          const final = button.getAttribute("data-final");
+          const ecart = button.getAttribute("data-ecart");
+
+          document.getElementById("ligneId").value = ligneId;
+          document.getElementById("articleName").value = article;
+          document.getElementById("quantiteTheorique").value = theorique;
+          document.getElementById("quantiteFinale").value = final || "";
+          document.getElementById("ecartValue").value =
+            ecart > 0 ? "+" + ecart : ecart;
+        }
+
+        // Validation batch via AJAX
+        function submitBatchValidation() {
+          const selected = Array.from(
+            document.querySelectorAll(".ligne-checkbox:checked")
+          ).map((cb) => cb.value);
+
+          const decision = document.getElementById("batchDecision").value;
+          const causeEcart = document.getElementById("batchCauseEcart").value;
+
+          fetch("/stock/inventaires/valider-batch", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ligneIds: selected,
+              decision: decision,
+              causeEcart: causeEcart,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                alert(
+                  data.message +
+                    " - " +
+                    data.nombreValidees +
+                    " ligne(s) validée(s)"
+                );
+                location.reload();
+              } else {
+                alert("Erreur : " + data.message);
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("Erreur lors de la validation batch");
+            });
+        }
       });
 
-      function updateSelectedCount() {
-        const selected = document.querySelectorAll(".ligne-checkbox:checked");
-        const count = selected.length;
-        document.getElementById("selectedCount").textContent = count;
-        document.getElementById("batchValiderBtn").disabled = count === 0;
-        document.getElementById("batchExporterBtn").disabled = count === 0;
-        document.getElementById("batchCount").textContent = count;
-      }
-
-      // Préparation de la validation d'une ligne
-      function prepareValidation(button) {
-        const ligneId = button.getAttribute("data-ligne-id");
-        const article = button.getAttribute("data-article");
-        const theorique = button.getAttribute("data-theorique");
-        const final = button.getAttribute("data-final");
-        const ecart = button.getAttribute("data-ecart");
-
-        document.getElementById("ligneId").value = ligneId;
-        document.getElementById("articleName").value = article;
-        document.getElementById("quantiteTheorique").value = theorique;
-        document.getElementById("quantiteFinale").value = final || "";
-        document.getElementById("ecartValue").value =
-          ecart > 0 ? "+" + ecart : ecart;
-      }
-
-      // Validation batch via AJAX
-      function submitBatchValidation() {
-        const selected = Array.from(
-          document.querySelectorAll(".ligne-checkbox:checked")
-        ).map((cb) => cb.value);
-
-        const decision = document.getElementById("batchDecision").value;
-        const causeEcart = document.getElementById("batchCauseEcart").value;
-
-        fetch("/stock/inventaires/valider-batch", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ligneIds: selected,
-            decision: decision,
-            causeEcart: causeEcart,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              alert(
-                data.message +
-                  " - " +
-                  data.nombreValidees +
-                  " ligne(s) validée(s)"
-              );
-              location.reload();
-            } else {
-              alert("Erreur : " + data.message);
-            }
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("Erreur lors de la validation batch");
-          });
-      }
-
-    // Initialiser DataTables
-    $(document).ready(function () {
+      // Initialiser DataTables
+      $(document).ready(function () {
         $("#lignesTable").DataTable({
-        pageLength: 50,
-        lengthMenu: [10, 25, 50, 100],
-        language: {
+          pageLength: 50,
+          lengthMenu: [10, 25, 50, 100],
+          language: {
             url: "//cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json",
-        },
-        order: [&lbrack;0, "asc"&rbrack;],
+          },
+          order: [[0, "asc"]]
         });
-    });
+      });
     </script>
   </body>
 </html>

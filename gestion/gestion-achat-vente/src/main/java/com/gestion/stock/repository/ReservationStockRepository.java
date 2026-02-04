@@ -27,4 +27,10 @@ public interface ReservationStockRepository extends JpaRepository<ReservationSto
     
     @Query("SELECT r FROM ReservationStock r WHERE r.dateExpiration < :now AND r.statut = 'ACTIVE'")
     List<ReservationStock> findReservationsExpirees(@Param("now") LocalDateTime now);
+
+    @Query("SELECT r FROM ReservationStock r WHERE r.depot.id = :depotId AND r.statut = :statut")
+    List<ReservationStock> findByDepotIdAndStatut(UUID depotId, ReservationStock.ReservationStatus statut);
+    
+    @Query("SELECT r FROM ReservationStock r WHERE r.article.id = :articleId AND r.statut = 'ACTIVE'")
+    List<ReservationStock> findActiveByArticleId(UUID articleId);
 }

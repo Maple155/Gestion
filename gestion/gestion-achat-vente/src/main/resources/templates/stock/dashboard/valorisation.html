@@ -3,224 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Valorisation</title>
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        .kpi-card {
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        .kpi-card:hover {
-            transform: translateY(-5px);
-        }
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .kpi-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .alert-badge {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-        }
-        .valorisation-methode {
-            border-left: 4px solid;
-            padding-left: 15px;
-        }
-        .valorisation-fifo { border-color: #28a745; }
-        .valorisation-fefo { border-color: #ffc107; }
-        .valorisation-cump { border-color: #17a2b8; }
-        .movement-entree { color: #28a745; }
-        .movement-sortie { color: #dc3545; }
-        .badge-lot { font-size: 0.7rem; }
-    </style>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
-    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
-    
-    <div class="container-fluid mt-4">
-        <div class="row mb-4">
-            <div class="col">
-                <h1><i class="bi bi-calculator"></i> Dashboard Valorisation</h1>
-                <p class="text-muted">Analyse détaillée des méthodes FIFO, FEFO et CUMP</p>
-            </div>
-        </div>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+        <!-- Sidebar Stock -->
+        <div th:replace="~{fragments/sidebar_stock}"></div>
         
-        <!-- KPI Valorisation -->
-        <div class="row mb-4">
-            <!-- FIFO -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="bi bi-sort-numeric-down"></i> FIFO</h5>
-                    </div>
-                    <div class="card-body">
-                        <h3 th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 €'}">
-                            1.250.000 €
-                        </h3>
-                        <p class="text-muted">
-                            <span th:text="${detailFifo != null ? detailFifo['nombreArticles'] : 0}">45</span> articles
-                            <br>
-                            <span th:text="${detailFifo != null ? detailFifo['nombreLots'] : 0}">120</span> lots actifs
-                            <br>
-                            Coût moyen: 
-                            <span th:text="${detailFifo != null && detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
-                                25,50 €
-                            </span>
-                        </p>
-                        <a href="/stock/valorisation/fifo" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-arrow-right"></i> Détails FIFO
-                        </a>
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Top Header -->
+            <header class="top-header px-8 py-4 bg-white border-b border-slate-200 sticky top-0 z-10">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <i data-lucide="trending-up" class="w-5 h-5 text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Dashboard Valorisation</h1>
+                            <p class="text-sm text-slate-500">
+                                Analyse détaillée des méthodes FIFO, FEFO et CUMP
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- FEFO -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0"><i class="bi bi-calendar-x"></i> FEFO</h5>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="p-8">
+                <!-- KPI Valorisation -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- FIFO -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="bg-emerald-600 px-6 py-4 text-white">
+                            <h5 class="text-lg font-bold flex items-center">
+                                <i class="bi bi-sort-numeric-down mr-2"></i> FIFO
+                            </h5>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-4"
+                                th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 €'}">
+                                1.250.000 €
+                            </h3>
+                            <div class="space-y-2 text-sm text-slate-600">
+                                <div class="flex justify-between">
+                                    <span>Articles:</span>
+                                    <span class="font-bold" th:text="${detailFifo != null ? detailFifo['nombreArticles'] : 0}">45</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Lots actifs:</span>
+                                    <span class="font-bold" th:text="${detailFifo != null ? detailFifo['nombreLots'] : 0}">120</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Coût moyen:</span>
+                                    <span class="font-bold text-emerald-600"
+                                          th:text="${detailFifo != null && detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
+                                        25,50 €
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="/stock/valorisation/fifo" 
+                               class="mt-6 inline-flex items-center justify-center w-full bg-emerald-50 text-emerald-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-100 transition-colors">
+                                <i class="bi bi-arrow-right mr-2"></i> Détails FIFO
+                            </a>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <h3 th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 €'}">
-                            50.000 €
-                        </h3>
-                        <p class="text-muted">
-                            <span th:text="${detailFefo != null ? detailFefo['nombreArticles'] : 0}">12</span> articles périssables
-                            <br>
-                            <span th:text="${detailFefo != null ? detailFefo['lotsProchePeremption'] : 0}">8</span> lots < 30 jours
-                            <br>
-                            Risque péremption: 
-                            <span th:text="${detailFefo != null && detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
-                                4.500 €
-                            </span>
-                        </p>
-                        <a href="/stock/valorisation/fefo/alertes" class="btn btn-outline-warning btn-sm">
-                            <i class="bi bi-exclamation-triangle"></i> Alertes FEFO
-                        </a>
+
+                    <!-- FEFO -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="bg-amber-600 px-6 py-4 text-white">
+                            <h5 class="text-lg font-bold flex items-center">
+                                <i class="bi bi-calendar-x mr-2"></i> FEFO
+                            </h5>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-4"
+                                th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 €'}">
+                                50.000 €
+                            </h3>
+                            <div class="space-y-2 text-sm text-slate-600">
+                                <div class="flex justify-between">
+                                    <span>Articles périssables:</span>
+                                    <span class="font-bold" th:text="${detailFefo != null ? detailFefo['nombreArticles'] : 0}">12</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Lots < 30 jours:</span>
+                                    <span class="font-bold text-rose-600" 
+                                          th:text="${detailFefo != null ? detailFefo['lotsProchePeremption'] : 0}">8</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Risque péremption:</span>
+                                    <span class="font-bold text-amber-600"
+                                          th:text="${detailFefo != null && detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
+                                        4.500 €
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="/stock/valorisation/fefo/alertes" 
+                               class="mt-6 inline-flex items-center justify-center w-full bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-amber-100 transition-colors">
+                                <i class="bi bi-exclamation-triangle mr-2"></i> Alertes FEFO
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- CUMP -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="bg-cyan-600 px-6 py-4 text-white">
+                            <h5 class="text-lg font-bold flex items-center">
+                                <i class="bi bi-graph-up mr-2"></i> CUMP
+                            </h5>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="text-2xl font-bold text-slate-800 mb-4"
+                                th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 €'}">
+                                1.200.000 €
+                            </h3>
+                            <div class="space-y-2 text-sm text-slate-600">
+                                <div class="flex justify-between">
+                                    <span>Articles:</span>
+                                    <span class="font-bold" th:text="${detailCump != null ? detailCump['nombreArticles'] : 0}">1.177</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Écart moyen:</span>
+                                    <span th:class="${detailCump != null && detailCump['ecartMoyen'] != null && detailCump['ecartMoyen'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
+                                          class="font-bold"
+                                          th:text="${detailCump != null && detailCump['ecartMoyen'] != null ? detailCump['ecartMoyen'] + '%' : 'N/A'}">
+                                        1,2%
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Dernière mise à jour:</span>
+                                    <span class="font-bold"
+                                          th:text="${detailCump != null && detailCump['dateMaj'] != null ? #temporals.format(detailCump['dateMaj'], 'dd/MM HH:mm') : 'N/A'}">
+                                        15/03 14:30
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="/stock/valorisation/cump" 
+                               class="mt-6 inline-flex items-center justify-center w-full bg-cyan-50 text-cyan-700 px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-cyan-100 transition-colors">
+                                <i class="bi bi-calculator mr-2"></i> Calculer CUMP
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- CUMP -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> CUMP</h5>
-                    </div>
-                    <div class="card-body">
-                        <h3 th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 €'}">
-                            1.200.000 €
-                        </h3>
-                        <p class="text-muted">
-                            <span th:text="${detailCump != null ? detailCump['nombreArticles'] : 0}">1.177</span> articles
-                            <br>
-                            Écart moyen: 
-                            <span th:text="${detailCump != null && detailCump['ecartMoyen'] != null ? detailCump['ecartMoyen'] + '%' : 'N/A'}">1,2</span>
-                            <br>
-                            Dernière mise à jour: 
-                            <span th:text="${detailCump != null && detailCump['dateMaj'] != null ? #temporals.format(detailCump['dateMaj'], 'dd/MM HH:mm') : 'N/A'}">
-                                15/03 14:30
-                            </span>
-                        </p>
-                        <a href="/stock/valorisation/cump" class="btn btn-outline-info btn-sm">
-                            <i class="bi bi-calculator"></i> Calculer CUMP
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Comparaison Graphique -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-bar-chart"></i> Comparaison des Méthodes
+
+                <!-- Comparaison Graphique -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h5 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="bi bi-bar-chart mr-2"></i> Comparaison des Méthodes
                         </h5>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-8">
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-2">
                                 <canvas id="comparaisonChart" height="100"></canvas>
                             </div>
-                            <div class="col-md-4">
-                                <h6>Impact sur la Marge</h6>
-                                <table class="table table-sm">
-                                    <tbody>
-                                        <tr>
-                                            <td>Coût Moyen Sorties FIFO</td>
-                                            <td class="text-end" 
-                                                th:text="${valorisation != null && valorisation['coutSortiesFifo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFifo']) : 'N/A'}">
-                                                22,50 €
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>Coût Moyen Sorties FEFO</td>
-                                            <td class="text-end" 
-                                                th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
-                                                24,30 €
-                                            </td>
-                                        </tr>
-                                        <tr class="table-primary">
-                                            <td><strong>Différence</strong></td>
-                                            <td class="text-end">
-                                                <strong th:class="${valorisation != null && valorisation['differenceCout'] != null ? (valorisation['differenceCout'].compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'text-danger' : 'text-success') : ''}"
-                                                        th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
-                                                    +1,80 €
-                                                </strong>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div>
+                                <h6 class="text-sm font-bold text-slate-700 mb-4">Impact sur la Marge</h6>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                        <span class="text-sm text-slate-600">Coût Moyen Sorties FIFO</span>
+                                        <span class="font-bold text-slate-800"
+                                              th:text="${valorisation != null && valorisation['coutSortiesFifo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFifo']) : 'N/A'}">
+                                            22,50 €
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                        <span class="text-sm text-slate-600">Coût Moyen Sorties FEFO</span>
+                                        <span class="font-bold text-slate-800"
+                                              th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
+                                            24,30 €
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <span class="text-sm font-bold text-blue-700">Différence</span>
+                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0} ? 'text-rose-600' : 'text-emerald-600'"
+                                              class="font-bold text-lg">
+                                            <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0}">+</span>
+                                            <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
+                                                +1,80 €
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Tableau détaillé -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-table"></i> Détail par Article
+
+                <!-- Tableau détaillé -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h5 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="bi bi-table mr-2"></i> Détail par Article
                         </h5>
                     </div>
-                    <div class="card-body">
-                        <table class="table table-hover">
-                            <thead>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
                                 <tr>
-                                    <th>Article</th>
-                                    <th>Méthode</th>
-                                    <th>Quantité</th>
-                                    <th>Valorisation FIFO</th>
-                                    <th>Valorisation FEFO</th>
-                                    <th>Valorisation CUMP</th>
-                                    <th>Différence</th>
+                                    <th class="px-6 py-4 text-left">Article</th>
+                                    <th class="px-6 py-4 text-left">Méthode</th>
+                                    <th class="px-6 py-4 text-left">Quantité</th>
+                                    <th class="px-6 py-4 text-left">Valorisation FIFO</th>
+                                    <th class="px-6 py-4 text-left">Valorisation FEFO</th>
+                                    <th class="px-6 py-4 text-left">Valorisation CUMP</th>
+                                    <th class="px-6 py-4 text-left">Différence</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- Les données seront chargées via AJAX -->
+                            <tbody id="valorisationTableBody">
                                 <tr id="loadingRow">
-                                    <td colspan="7" class="text-center">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Chargement...</span>
+                                    <td colspan="7" class="px-6 py-8 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                            <p class="mt-4 text-sm text-slate-500">Chargement des données...</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -228,104 +233,176 @@
                         </table>
                     </div>
                 </div>
-            </div>
+            </main>
         </div>
     </div>
-    
+
     <script th:inline="javascript">
-        /*<![CDATA[*/
+        // Initialiser les icônes
+        lucide.createIcons();
+
         // Graphique de comparaison
         const comparaisonData = {
-            labels: ['FIFO', 'FEFO', 'CUMP'],
+            labels: ["FIFO", "FEFO", "CUMP"],
             datasets: [{
-                label: 'Valeur Stock',
+                label: "Valeur Stock",
                 data: [
                     /*[[${valorisation != null && valorisation['valeurFifo'] != null ? valorisation['valeurFifo'] : 0}]]*/,
                     /*[[${valorisation != null && valorisation['valeurFefo'] != null ? valorisation['valeurFefo'] : 0}]]*/,
                     /*[[${valorisation != null && valorisation['valeurCump'] != null ? valorisation['valeurCump'] : 0}]]*/
                 ],
                 backgroundColor: [
-                    'rgba(40, 167, 69, 0.5)',
-                    'rgba(255, 193, 7, 0.5)',
-                    'rgba(23, 162, 184, 0.5)'
+                    "rgba(40, 167, 69, 0.7)",
+                    "rgba(255, 193, 7, 0.7)",
+                    "rgba(23, 162, 184, 0.7)"
                 ],
-                borderColor: [
-                    '#28a745',
-                    '#ffc107',
-                    '#17a2b8'
-                ],
-                borderWidth: 1
-            }]
+                borderColor: ["#28a745", "#ffc107", "#17a2b8"],
+                borderWidth: 1,
+            }],
         };
-        
+
         window.onload = function() {
             // Graphique comparatif
-            const ctx = document.getElementById('comparaisonChart').getContext('2d');
+            const ctx = document.getElementById("comparaisonChart").getContext("2d");
             new Chart(ctx, {
-                type: 'bar',
+                type: "bar",
                 data: comparaisonData,
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: "rgba(0,0,0,0.05)"
+                            },
                             ticks: {
                                 callback: function(value) {
-                                    return new Intl.NumberFormat('fr-FR', {
-                                        style: 'currency',
-                                        currency: 'EUR',
-                                        notation: 'compact'
+                                    return new Intl.NumberFormat("fr-FR", {
+                                        style: "currency",
+                                        currency: "EUR",
+                                        notation: "compact",
                                     }).format(value);
                                 }
                             }
+                        },
+                        x: {
+                            grid: {
+                                color: "rgba(0,0,0,0.05)"
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
                 }
             });
-            
-            // Charger le tableau détaillé
+
             chargerTableauDetail();
         };
-        
+
         function chargerTableauDetail() {
-            fetch('/main/dashboard/api/valorisation/detail')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.querySelector('tbody');
-                    tbody.innerHTML = '';
+            fetch("/main/dashboard/api/valorisation/detail")
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("Erreur réseau: " + response.status);
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    const tbody = document.getElementById("valorisationTableBody");
                     
-                    data.forEach(item => {
-                        const valorisationFifo = item.valorisationFifo || 0;
-                        const valorisationFefo = item.valorisationFefo || 0;
-                        const valorisationCump = item.valorisationCump || 0;
-                        const diff = valorisationCump !== 0 ? (valorisationFifo - valorisationCump) / valorisationCump * 100 : 0;
-                        
-                        const row = `
+                    // Supprimer le loader
+                    const loadingRow = document.getElementById("loadingRow");
+                    if (loadingRow) loadingRow.remove();
+
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `
                             <tr>
-                                <td>
-                                    <strong>${item.codeArticle}</strong><br>
-                                    <small class="text-muted">${item.libelle}</small>
-                                </td>
-                                <td>
-                                    <span class="badge ${item.methode === 'FIFO' ? 'bg-success' : item.methode === 'FEFO' ? 'bg-warning' : 'bg-info'}">
-                                        ${item.methode}
-                                    </span>
-                                </td>
-                                <td>${item.quantite}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationFifo)}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationFefo)}</td>
-                                <td>${new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR'}).format(valorisationCump)}</td>
-                                <td class="${diff > 0 ? 'text-danger' : 'text-success'}">
-                                    ${diff.toFixed(2)}%
+                                <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+                                    Aucune donnée disponible. Vérifiez que vous avez des articles en stock.
                                 </td>
                             </tr>
                         `;
-                        tbody.innerHTML += row;
+                        return;
+                    }
+
+                    // Ajouter les lignes de données
+                    data.forEach((item) => {
+                        const valorisationFifo = parseFloat(item.valorisationFifo) || 0;
+                        const valorisationFefo = parseFloat(item.valorisationFefo) || 0;
+                        const valorisationCump = parseFloat(item.valorisationCump) || 0;
+
+                        // Calculer la différence
+                        let diffText = "N/A";
+                        let diffClass = "";
+                        
+                        if (valorisationCump > 0) {
+                            const diff = ((valorisationFifo - valorisationCump) / valorisationCump) * 100;
+                            diffText = diff.toFixed(2) + "%";
+                            diffClass = diff > 0 ? "text-rose-600" : diff < 0 ? "text-emerald-600" : "";
+                        }
+
+                        // Formater les valeurs monétaires
+                        const formatMonetaire = (valeur) => {
+                            return new Intl.NumberFormat("fr-FR", {
+                                style: "currency",
+                                currency: "EUR",
+                                minimumFractionDigits: 2,
+                            }).format(valeur);
+                        };
+
+                        const row = document.createElement("tr");
+                        row.className = "hover:bg-slate-50 transition-colors";
+                        row.innerHTML = `
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-slate-800">${item.codeArticle || "N/A"}</div>
+                                <div class="text-xs text-slate-500">${item.libelle || ""}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                                    item.methode === "FIFO" ? "bg-emerald-100 text-emerald-700" :
+                                    item.methode === "FEFO" ? "bg-amber-100 text-amber-700" :
+                                    "bg-cyan-100 text-cyan-700"
+                                }">
+                                    ${item.methode || "CUMP"}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-bold">${item.quantite || 0}</td>
+                            <td class="px-6 py-4 font-bold ${valorisationFifo > 0 ? 'text-emerald-600' : 'text-slate-400'}">
+                                ${formatMonetaire(valorisationFifo)}
+                            </td>
+                            <td class="px-6 py-4 font-bold ${valorisationFefo > 0 ? 'text-amber-600' : 'text-slate-400'}">
+                                ${formatMonetaire(valorisationFefo)}
+                            </td>
+                            <td class="px-6 py-4 font-bold ${valorisationCump > 0 ? 'text-cyan-600' : 'text-slate-400'}">
+                                ${formatMonetaire(valorisationCump)}
+                            </td>
+                            <td class="px-6 py-4 font-bold ${diffClass}">
+                                ${diffText}
+                            </td>
+                        `;
+                        tbody.appendChild(row);
                     });
                 })
-                .catch(err => console.error('Erreur chargement détail valorisation', err));
+                .catch((err) => {
+                    console.error("Erreur chargement détail valorisation", err);
+                    const tbody = document.getElementById("valorisationTableBody");
+                    const loadingRow = document.getElementById("loadingRow");
+                    if (loadingRow) loadingRow.remove();
+                    
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-6 py-8 text-center text-rose-600">
+                                Erreur de chargement des données<br>
+                                <small class="text-slate-500">Vérifiez la console pour plus de détails</small>
+                            </td>
+                        </tr>
+                    `;
+                });
         }
-        /*]]>*/
     </script>
 </body>
 </html>
