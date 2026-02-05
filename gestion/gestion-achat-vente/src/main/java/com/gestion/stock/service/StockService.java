@@ -406,4 +406,70 @@ public class StockService {
                                 .collect(Collectors.toList());
         }
 
+        @Transactional
+        public void mettreAJourStockDepuisLot(UUID articleId, UUID depotId, Integer quantite,
+                        BigDecimal coutUnitaire, Lot.LotStatus statut) {
+
+                if (statut != Lot.LotStatus.DISPONIBLE) {
+                        return; // Ne mettre à jour le stock que pour les lots disponibles
+                }
+
+                Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
+
+                if (stockOpt.isPresent()) {
+                        Stock stock = stockOpt.get();
+                        stock.setQuantiteTheorique(stock.getQuantiteTheorique() + quantite);
+                        stock.setQuantitePhysique(stock.getQuantitePhysique() + quantite);
+                        stock.setDateDernierMouvement(LocalDateTime.now());
+                        stockRepository.save(stock);
+                } else {
+                        // Créer un nouveau stock
+                        Article article = articleRepository.findById(articleId)
+                                        .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+                        Depot depot = depotRepository.findById(depotId)
+                                        .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
+
+                        Stock stock = Stock.builder()
+                                        .article(article)
+                                        .depot(depot)
+                                        .quantiteTheorique(quantite)
+                                        .quantitePhysique(quantite)
+                                        .quantiteReservee(0)
+                                        .valeurStockCump(coutUnitaire.multiply(BigDecimal.valueOf(quantite)))
+                                        .dateDernierMouvement(LocalDateTime.now())
+                                        .build();
+
+                        stockRepository.save(stock);
+                }
+        }
+
+        public List<Map<String, Object>> getStocksCritiques() {
+                // Retourner les stocks avec quantité < stock minimum
+                return stockRepository.findStocksCritiques().stream()
+                                .map(stock -> {
+                                        Map<String, Object> map = new HashMap<>();
+                                        map.put("codeArticle", stock.getArticle().getCodeArticle());
+                                        map.put("libelle", stock.getArticle().getLibelle());
+                                        map.put("quantite", stock.getQuantiteTheorique());
+                                        map.put("stockMinimum", stock.getArticle().getStockMinimum());
+                                        map.put("depotNom", stock.getDepot().getNom());
+                                        return map;
+                                })
+                                .collect(Collectors.toList());
+        }
+
+        public List<Map<String, Object>> getStocksObsoletes(int jours) {
+                LocalDateTime dateLimite = LocalDateTime.now().minusDays(jours);
+                return stockRepository.findStocksObsoletes(dateLimite).stream()
+                                .map(stock -> {
+                                        Map<String, Object> map = new HashMap<>();
+                                        map.put("codeArticle", stock.getArticle().getCodeArticle());
+                                        map.put("libelle", stock.getArticle().getLibelle());
+                                        map.put("quantite", stock.getQuantiteTheorique());
+                                        map.put("dernierMouvement", stock.getDateDernierMouvement());
+                                        map.put("valeur", stock.getValeurStockCump());
+                                        return map;
+                                })
+                                .collect(Collectors.toList());
+        }
 }

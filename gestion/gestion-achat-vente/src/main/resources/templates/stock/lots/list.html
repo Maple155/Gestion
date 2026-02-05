@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+  <head>
+    <title>Gestion des Lots</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+    rel="stylesheet"
+  />
+    <style>
+      .progress-thin {
+        height: 5px;
+        margin-top: 5px;
+      }
+      .badge-status {
+        font-size: 0.8em;
+        padding: 0.25em 0.6em;
+      }
+      .lot-table tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+      .urgent {
+        border-left: 4px solid #dc3545;
+      }
+      .warning {
+        border-left: 4px solid #ffc107;
+      }
+      .normal {
+        border-left: 4px solid #28a745;
+      }
+      .filter-card {
+        transition: all 0.3s;
+      }
+      .filter-card.collapsed .card-body {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <!-- En-tête avec titre et boutons -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-0">
+            <i class="bi bi-boxes text-primary"></i> Gestion des Lots
+          </h1>
+          <p class="text-muted mb-0">
+            Gestion complète des lots et traçabilité
+          </p>
+        </div>
+        <div>
+          <a th:href="@{/lots/nouveau}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nouveau Lot
+          </a>
+          <a th:href="@{/lots/alertes/peremption}" class="btn btn-warning">
+            <i class="bi bi-exclamation-triangle"></i> Alertes Péremption
+          </a>
+          <a th:href="@{/lots/series}" class="btn btn-info">
+            <i class="bi bi-upc-scan"></i> Numéros de Série
+          </a>
+        </div>
+      </div>
+
+      <!-- Messages flash -->
+      <div
+        th:if="${successMessage}"
+        class="alert alert-success alert-dismissible fade show"
+        role="alert"
+      >
+        <i class="bi bi-check-circle"></i>
+        <span th:text="${successMessage}"></span>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      <div
+        th:if="${errorMessage}"
+        class="alert alert-danger alert-dismissible fade show"
+        role="alert"
+      >
+        <i class="bi bi-exclamation-circle"></i>
+        <span th:text="${errorMessage}"></span>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+
+      <!-- Cartes de statistiques -->
+      <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-start border-primary border-4 py-2">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="text-xs fw-bold text-primary text-uppercase mb-1">
+                    Lots Totaux
+                  </div>
+                  <div class="h5 mb-0 fw-bold" th:text="${stats['totalLots']}">
+                    0
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="bi bi-box-seam fa-2x text-primary"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-start border-success border-4 py-2">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="text-xs fw-bold text-success text-uppercase mb-1">
+                    Disponibles
+                  </div>
+                  <div
+                    class="h5 mb-0 fw-bold"
+                    th:text="${stats['disponibles']}"
+                  >
+                    0
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="bi bi-check-circle fa-2x text-success"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-start border-warning border-4 py-2">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="text-xs fw-bold text-warning text-uppercase mb-1">
+                    Proche Péremption
+                  </div>
+                  <div
+                    class="h5 mb-0 fw-bold"
+                    th:text="${stats['prochePeremption']}"
+                  >
+                    0
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="bi bi-exclamation-triangle fa-2x text-warning"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-start border-danger border-4 py-2">
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col">
+                  <div class="text-xs fw-bold text-danger text-uppercase mb-1">
+                    Périmés
+                  </div>
+                  <div class="h5 mb-0 fw-bold" th:text="${stats['perimes']}">
+                    0
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="bi bi-x-circle fa-2x text-danger"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carte des filtres (collapsible) -->
+      <div class="card filter-card mb-4" id="filterCard">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-funnel"></i> Filtres de recherche
+          </h5>
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            onclick="toggleFilters()"
+          >
+            <i class="bi bi-chevron-up"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <form th:action="@{/lots}" method="get" class="row g-3">
+            <!-- Numéro de lot -->
+            <div class="col-md-3">
+              <label class="form-label">Numéro de lot</label>
+              <input
+                type="text"
+                class="form-control"
+                name="numeroLot"
+                th:value="${numeroLot}"
+                placeholder="LOT-2024-..."
+              />
+            </div>
+
+            <!-- Article -->
+            <div class="col-md-3">
+              <label class="form-label">Article</label>
+              <select class="form-select" name="articleId">
+                <option value="">Tous les articles</option>
+                <option
+                  th:each="article : ${articles}"
+                  th:value="${article.id}"
+                  th:text="${article.codeArticle + ' - ' + article.libelle}"
+                  th:selected="${articleId == article.id}"
+                ></option>
+              </select>
+            </div>
+
+            <!-- Dépôt -->
+            <div class="col-md-3">
+              <label class="form-label">Dépôt</label>
+              <select class="form-select" name="depotId">
+                <option value="">Tous les dépôts</option>
+                <option
+                  th:each="depot : ${depots}"
+                  th:value="${depot.id}"
+                  th:text="${depot.code + ' - ' + depot.nom}"
+                  th:selected="${depotId == depot.id}"
+                ></option>
+              </select>
+            </div>
+
+            <!-- Statut -->
+            <div class="col-md-3">
+              <label class="form-label">Statut</label>
+              <select class="form-select" name="statut">
+                <option value="">Tous les statuts</option>
+                <option
+                  th:each="statut : ${statuts}"
+                  th:value="${statut}"
+                  th:text="${statut}"
+                  th:selected="${statut == statut}"
+                ></option>
+              </select>
+            </div>
+
+            <!-- Dates de péremption -->
+            <div class="col-md-3">
+              <label class="form-label">Péremption du</label>
+              <input
+                type="date"
+                class="form-control"
+                name="datePeremptionFrom"
+                th:value="${datePeremptionFrom}"
+              />
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Péremption au</label>
+              <input
+                type="date"
+                class="form-control"
+                name="datePeremptionTo"
+                th:value="${datePeremptionTo}"
+              />
+            </div>
+
+            <!-- Proche péremption -->
+            <div class="col-md-3">
+              <div class="form-check mt-4 pt-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="prochePeremption"
+                  value="true"
+                  id="prochePeremption"
+                  th:checked="${prochePeremption}"
+                />
+                <label class="form-check-label" for="prochePeremption">
+                  Proche péremption (≤ 30 jours)
+                </label>
+              </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="col-md-12 mt-3">
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-search"></i> Rechercher
+                </button>
+                <a th:href="@{/lots}" class="btn btn-secondary">
+                  <i class="bi bi-x-circle"></i> Réinitialiser
+                </a>
+                <button
+                  type="button"
+                  class="btn btn-outline-info"
+                  onclick="exportLots()"
+                >
+                  <i class="bi bi-download"></i> Exporter
+                </button>
+              </div>
+            </div>
+
+            <!-- Paramètres cachés pour la pagination/tri -->
+            <input type="hidden" name="page" th:value="${currentPage}" />
+            <input type="hidden" name="size" th:value="${lots.size}" />
+            <input type="hidden" name="sortBy" th:value="${sortBy}" />
+            <input type="hidden" name="sortDir" th:value="${sortDir}" />
+          </form>
+        </div>
+      </div>
+
+      <!-- Tableau des lots -->
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-table"></i> Liste des lots
+            <span class="badge bg-primary ms-2" th:text="${totalItems}">0</span>
+          </h5>
+
+          <!-- Tri -->
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted">Trier par:</span>
+            <div class="btn-group btn-group-sm">
+              <a
+                th:href="@{/lots(page=0, size=${lots.size}, sortBy='numeroLot', sortDir='asc', 
+                                numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                datePeremptionTo=${datePeremptionTo})}"
+                class="btn btn-outline-secondary"
+                th:classappend="${sortBy == 'numeroLot'} ? 'active'"
+              >
+                N° Lot
+              </a>
+              <a
+                th:href="@{/lots(page=0, size=${lots.size}, sortBy='datePeremption', sortDir='asc', 
+                                numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                datePeremptionTo=${datePeremptionTo})}"
+                class="btn btn-outline-secondary"
+                th:classappend="${sortBy == 'datePeremption'} ? 'active'"
+              >
+                Péremption
+              </a>
+              <a
+                th:href="@{/lots(page=0, size=${lots.size}, sortBy='quantiteActuelle', sortDir='desc', 
+                                numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                datePeremptionTo=${datePeremptionTo})}"
+                class="btn btn-outline-secondary"
+                th:classappend="${sortBy == 'quantiteActuelle'} ? 'active'"
+              >
+                Quantité
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 lot-table">
+              <thead class="table-light">
+                <tr>
+                  <th>N° Lot</th>
+                  <th>Article</th>
+                  <th>Quantité</th>
+                  <th>Péremption</th>
+                  <th>Statut</th>
+                  <th>Emplacement</th>
+                  <th>Coût unitaire</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  th:each="lot : ${lots.content}"
+                  th:class="${lot.statut == 'PERIME' ? 'urgent' : 
+                                          (joursRestantsMap.get(lot.id) != null && 
+                                           joursRestantsMap.get(lot.id) <= 7 && 
+                                           joursRestantsMap.get(lot.id) >= 0) ? 'warning' : 'normal'}"
+                >
+                  <!-- Numéro de lot -->
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <strong th:text="${lot.numeroLot}"></strong>
+                      <span
+                        th:if="${joursRestantsMap.get(lot.id) != null && 
+                                                       joursRestantsMap.get(lot.id) < 0}"
+                        class="badge bg-danger ms-2 badge-status"
+                      >
+                        <i class="bi bi-exclamation-triangle"></i> Périmé
+                      </span>
+                      <span
+                        th:if="${joursRestantsMap.get(lot.id) != null && 
+                                                       joursRestantsMap.get(lot.id) >= 0 && 
+                                                       joursRestantsMap.get(lot.id) <= 7}"
+                        class="badge bg-warning ms-2 badge-status"
+                      >
+                        <i class="bi bi-clock"></i>
+                        [[${joursRestantsMap.get(lot.id)}]]j
+                      </span>
+                    </div>
+                    <small
+                      class="text-muted"
+                      th:if="${lot.bonReception != null}"
+                      th:text="'BR: ' + ${lot.bonReception.reference}"
+                    >
+                    </small>
+                  </td>
+
+                  <!-- Article -->
+                  <td>
+                    <div
+                      class="fw-semibold"
+                      th:text="${lot.article.codeArticle}"
+                    ></div>
+                    <small
+                      class="text-muted d-block"
+                      th:text="${lot.article.libelle}"
+                      style="font-size: 0.85em; max-width: 200px"
+                    >
+                    </small>
+                  </td>
+
+                  <!-- Quantité -->
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <span
+                        class="fw-bold"
+                        th:text="${lot.quantiteActuelle} + '/' + ${lot.quantiteInitiale}"
+                      >
+                      </span>
+                      <div class="ms-2" style="width: 80px">
+                        <div class="progress progress-thin">
+                          <div
+                            class="progress-bar"
+                            th:class="${(lot.quantiteActuelle == 0) ? 'bg-danger' : 
+                                                ((lot.quantiteActuelle / lot.quantiteInitiale) < 0.2) ? 'bg-warning' : 'bg-success'}"
+                            th:style="'width: ' + ${lot.quantiteActuelle * 100 / lot.quantiteInitiale} + '%;'"
+                            role="progressbar"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Péremption -->
+                  <td>
+                    <div th:if="${lot.datePeremption != null}">
+                      <span
+                        th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}"
+                      ></span>
+                      <br />
+                      <small
+                        th:class="${(joursRestantsMap.get(lot.id) <= 0) ? 'text-danger' : 
+                   (joursRestantsMap.get(lot.id) <= 30) ? 'text-warning' : 'text-success'}"
+                      >
+                        <span th:if="${joursRestantsMap.get(lot.id) > 0}">
+                          [[${joursRestantsMap.get(lot.id)}]] jours
+                        </span>
+                        <span th:if="${joursRestantsMap.get(lot.id) <= 0}">
+                          Dépassé
+                        </span>
+                      </small>
+                    </div>
+                    <div th:unless="${lot.datePeremption != null}">
+                      <span class="text-muted">N/A</span>
+                    </div>
+                  </td>
+
+                  <!-- Statut -->
+                  <td>
+                    <span th:switch="${lot.statut}" class="badge">
+                      <span
+                        th:case="DISPONIBLE"
+                        class="badge bg-success badge-status"
+                      >
+                        [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="QUARANTAINE"
+                        class="badge bg-warning text-dark badge-status"
+                      >
+                        [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="BLOQUE"
+                        class="badge bg-secondary badge-status"
+                      >
+                        [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="PERIME"
+                        class="badge bg-danger badge-status"
+                      >
+                        [[${lot.statut}]]
+                      </span>
+                      <span th:case="EPUISE" class="badge bg-info badge-status">
+                        [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="FUSIONNE"
+                        class="badge bg-dark badge-status"
+                      >
+                        [[${lot.statut}]]
+                      </span>
+                    </span>
+                  </td>
+
+                  <!-- Emplacement -->
+                  <td>
+                    <div th:if="${lot.emplacement != null}">
+                      <span th:text="${lot.emplacement.code}"></span>
+                      <br />
+                      <small class="text-muted">
+                        [[${lot.emplacement.zone.depot.nom}]]
+                      </small>
+                    </div>
+                    <div th:unless="${lot.emplacement != null}">
+                      <span class="text-muted">Non assigné</span>
+                    </div>
+                  </td>
+
+                  <!-- Coût unitaire -->
+                  <td>
+                    <span
+                      class="fw-semibold"
+                      th:text="${#numbers.formatDecimal(lot.coutUnitaire, 0, 'COMMA', 2, 'POINT')} + ' €'"
+                    >
+                    </span>
+                    <br />
+                    <small class="text-muted">
+                      [[${#numbers.formatDecimal(lot.coutUnitaire *
+                      lot.quantiteActuelle, 0, 'COMMA', 2, 'POINT')}]] €
+                    </small>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <a
+                        th:href="@{/lots/{id}(id=${lot.id})}"
+                        class="btn btn-outline-primary"
+                        title="Voir le détail"
+                      >
+                        <i class="bi bi-eye"></i>
+                      </a>
+
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary dropdown-toggle"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                        >
+                          <i class="bi bi-gear"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                          <li>
+                            <a
+                              class="dropdown-item"
+                              th:href="@{/lots/{id}/modifier(id=${lot.id})}"
+                            >
+                              <i class="bi bi-pencil"></i> Modifier
+                            </a>
+                          </li>
+
+                          <li th:if="${lot.statut == 'DISPONIBLE'}">
+                            <a
+                              class="dropdown-item text-warning"
+                              href="#"
+                              data-bs-toggle="modal"
+                              data-bs-target="#bloquerModal"
+                              th:data-lot-id="${lot.id}"
+                            >
+                              <i class="bi bi-lock"></i> Bloquer
+                            </a>
+                          </li>
+
+                          <li
+                            th:if="${lot.statut == 'BLOQUE' or lot.statut == 'QUARANTAINE'}"
+                          >
+                            <a
+                              class="dropdown-item text-success"
+                              th:href="@{/lots/{id}/debloquer(id=${lot.id})}"
+                              onclick="return confirm('Débloquer ce lot ?')"
+                            >
+                              <i class="bi bi-unlock"></i> Débloquer
+                            </a>
+                          </li>
+
+                          <li th:if="${lot.statut == 'DISPONIBLE'}">
+                            <a
+                              class="dropdown-item text-danger"
+                              href="#"
+                              data-bs-toggle="modal"
+                              data-bs-target="#quarantaineModal"
+                              th:data-lot-id="${lot.id}"
+                            >
+                              <i class="bi bi-shield-exclamation"></i> Mettre en
+                              quarantaine
+                            </a>
+                          </li>
+
+                          <li>
+                            <a
+                              class="dropdown-item"
+                              th:href="@{/lots/{id}/transferer(id=${lot.id})}"
+                            >
+                              <i class="bi bi-arrow-left-right"></i> Transférer
+                            </a>
+                          </li>
+
+                          <li
+                            th:if="${lot.statut == 'DISPONIBLE' and lot.quantiteActuelle > 0}"
+                          >
+                            <a
+                              class="dropdown-item"
+                              th:href="@{/lots/{id}/fusionner(id=${lot.id})}"
+                            >
+                              <i class="bi bi-merge"></i> Fusionner
+                            </a>
+                          </li>
+
+                          <li><hr class="dropdown-divider" /></li>
+
+                          <li>
+                            <a
+                              class="dropdown-item text-info"
+                              th:href="@{/lots/series(lotId=${lot.id})}"
+                            >
+                              <i class="bi bi-upc-scan"></i> Voir les séries
+                            </a>
+                          </li>
+
+                          <li th:if="${lot.quantiteActuelle == 0}">
+                            <a
+                              class="dropdown-item text-danger"
+                              href="#"
+                              data-bs-toggle="modal"
+                              data-bs-target="#supprimerModal"
+                              th:data-lot-id="${lot.id}"
+                            >
+                              <i class="bi bi-trash"></i> Supprimer
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Message si aucun résultat -->
+                <tr th:if="${#lists.isEmpty(lots.content)}">
+                  <td colspan="8" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="bi bi-inbox fa-2x mb-2"></i>
+                      <p class="mb-0">Aucun lot trouvé</p>
+                      <small
+                        >Essayez de modifier vos critères de recherche</small
+                      >
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div th:if="${totalPages > 1}" class="card-footer">
+          <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mb-0">
+              <!-- Première page -->
+              <li
+                class="page-item"
+                th:classappend="${currentPage == 0} ? 'disabled'"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/lots(page=0, size=${lots.size}, sortBy=${sortBy}, sortDir=${sortDir},
+                                        numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                        statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                        datePeremptionTo=${datePeremptionTo})}"
+                >
+                  <i class="bi bi-chevron-double-left"></i>
+                </a>
+              </li>
+
+              <!-- Page précédente -->
+              <li
+                class="page-item"
+                th:classappend="${currentPage == 0} ? 'disabled'"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/lots(page=${currentPage-1}, size=${lots.size}, sortBy=${sortBy}, sortDir=${sortDir},
+                                        numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                        statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                        datePeremptionTo=${datePeremptionTo})}"
+                >
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+              </li>
+
+              <!-- Pages numérotées -->
+              <li
+                th:each="i : ${#numbers.sequence(0, totalPages-1)}"
+                class="page-item"
+                th:classappend="${i == currentPage} ? 'active'"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/lots(page=${i}, size=${lots.size}, sortBy=${sortBy}, sortDir=${sortDir},
+                                        numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                        statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                        datePeremptionTo=${datePeremptionTo})}"
+                  th:text="${i+1}"
+                >
+                </a>
+              </li>
+
+              <!-- Page suivante -->
+              <li
+                class="page-item"
+                th:classappend="${currentPage == totalPages-1} ? 'disabled'"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/lots(page=${currentPage+1}, size=${lots.size}, sortBy=${sortBy}, sortDir=${sortDir},
+                                        numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                        statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                        datePeremptionTo=${datePeremptionTo})}"
+                >
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+
+              <!-- Dernière page -->
+              <li
+                class="page-item"
+                th:classappend="${currentPage == totalPages-1} ? 'disabled'"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/lots(page=${totalPages-1}, size=${lots.size}, sortBy=${sortBy}, sortDir=${sortDir},
+                                        numeroLot=${numeroLot}, articleId=${articleId}, depotId=${depotId}, 
+                                        statut=${statut}, datePeremptionFrom=${datePeremptionFrom}, 
+                                        datePeremptionTo=${datePeremptionTo})}"
+                >
+                  <i class="bi bi-chevron-double-right"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Modal : Bloquer un lot -->
+      <div class="modal fade" id="bloquerModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Bloquer un lot</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <form
+              th:action="@{/lots/{id}/bloquer(id=__lotId__)}"
+              method="post"
+              id="bloquerForm"
+            >
+              <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir bloquer ce lot ?</p>
+                <div class="mb-3">
+                  <label class="form-label">Motif du blocage</label>
+                  <textarea
+                    class="form-control"
+                    name="motif"
+                    rows="3"
+                    placeholder="Raison du blocage..."
+                    required
+                  ></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Annuler
+                </button>
+                <button type="submit" class="btn btn-warning">
+                  <i class="bi bi-lock"></i> Bloquer le lot
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal : Mettre en quarantaine -->
+      <div class="modal fade" id="quarantaineModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Mettre en quarantaine</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <form
+              th:action="@{/lots/{id}/mettre-en-quarantaine(id=__lotId__)}"
+              method="post"
+              id="quarantaineForm"
+            >
+              <div class="modal-body">
+                <div class="alert alert-warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  Le lot sera retiré de la vente jusqu'à inspection.
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Motif de la quarantaine</label>
+                  <textarea
+                    class="form-control"
+                    name="motif"
+                    rows="3"
+                    required
+                    placeholder="Ex: Produit suspect, contrôle qualité..."
+                  ></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Annuler
+                </button>
+                <button type="submit" class="btn btn-warning">
+                  <i class="bi bi-shield-exclamation"></i> Mettre en quarantaine
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal : Supprimer un lot -->
+      <div class="modal fade" id="supprimerModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Supprimer un lot</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <form
+              th:action="@{/lots/{id}/supprimer(id=__lotId__)}"
+              method="post"
+              id="supprimerForm"
+            >
+              <div class="modal-body">
+                <div class="alert alert-danger">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  Attention ! Cette action est irréversible.
+                </div>
+                <p>Le lot doit être vide (quantité = 0) pour être supprimé.</p>
+                <div class="mb-3">
+                  <label class="form-label">Motif de la suppression</label>
+                  <textarea
+                    class="form-control"
+                    name="motif"
+                    rows="3"
+                    required
+                  ></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Annuler
+                </button>
+                <button type="submit" class="btn btn-danger">
+                  <i class="bi bi-trash"></i> Supprimer définitivement
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts -->
+    <script>
+      // Toggle les filtres
+      function toggleFilters() {
+        const card = document.getElementById("filterCard");
+        const icon = card.querySelector(".bi-chevron-up");
+        card.classList.toggle("collapsed");
+        icon.classList.toggle("bi-chevron-up");
+        icon.classList.toggle("bi-chevron-down");
+      }
+
+      // Gestion des modals
+      document.addEventListener("DOMContentLoaded", function () {
+        // Modal bloquer
+        const bloquerModal = document.getElementById("bloquerModal");
+        bloquerModal.addEventListener("show.bs.modal", function (event) {
+          const button = event.relatedTarget;
+          const lotId = button.getAttribute("data-lot-id");
+          const form = document.getElementById("bloquerForm");
+          form.action = form.action.replace("__lotId__", lotId);
+        });
+
+        // Modal quarantaine
+        const quarantaineModal = document.getElementById("quarantaineModal");
+        quarantaineModal.addEventListener("show.bs.modal", function (event) {
+          const button = event.relatedTarget;
+          const lotId = button.getAttribute("data-lot-id");
+          const form = document.getElementById("quarantaineForm");
+          form.action = form.action.replace("__lotId__", lotId);
+        });
+
+        // Modal suppression
+        const supprimerModal = document.getElementById("supprimerModal");
+        supprimerModal.addEventListener("show.bs.modal", function (event) {
+          const button = event.relatedTarget;
+          const lotId = button.getAttribute("data-lot-id");
+          const form = document.getElementById("supprimerForm");
+          form.action = form.action.replace("__lotId__", lotId);
+        });
+      });
+
+      // Export
+      function exportLots() {
+        const format = prompt("Format d'export (excel, csv, pdf):", "excel");
+        if (format && ["excel", "csv", "pdf"].includes(format.toLowerCase())) {
+          const url = `/lots/export?format=${format}&numeroLot=${encodeURIComponent(
+            "[[${numeroLot}]]"
+          )}&articleId=[[${articleId}]]&depotId=[[${depotId}]]&statut=[[${statut}]]&datePeremptionFrom=[[${datePeremptionFrom}]]&datePeremptionTo=[[${datePeremptionTo}]]`;
+          window.location.href = url;
+        }
+      }
+
+      // Auto-refresh pour les alertes
+      setInterval(function () {
+        // Recharger les compteurs d'alerte toutes les 5 minutes
+        const urgentCount = document.querySelectorAll(".urgent").length;
+        const warningCount = document.querySelectorAll(".warning").length;
+
+        if (urgentCount > 0 || warningCount > 0) {
+          // Mettre à jour les badges de notification
+          document.getElementById("urgentBadge").textContent = urgentCount;
+          document.getElementById("warningBadge").textContent = warningCount;
+        }
+      }, 300000); // 5 minutes
+    </script>
+  </body>
+</html>

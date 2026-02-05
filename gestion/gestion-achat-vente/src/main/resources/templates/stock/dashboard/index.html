@@ -1,561 +1,614 @@
 <!-- templates/stock/dashboard/index.html -->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title th:text="${title}">Dashboard Stock</title>
-    
+
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <style>
-        .kpi-card {
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        .kpi-card:hover {
-            transform: translateY(-5px);
-        }
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .kpi-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        .alert-badge {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-        }
-        .valorisation-methode {
-            border-left: 4px solid;
-            padding-left: 15px;
-        }
-        .valorisation-fifo { border-color: #28a745; }
-        .valorisation-fefo { border-color: #ffc107; }
-        .valorisation-cump { border-color: #17a2b8; }
-        .movement-entree { color: #28a745; }
-        .movement-sortie { color: #dc3545; }
-        .badge-lot { font-size: 0.7rem; }
+      .kpi-card {
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+      }
+      .kpi-card:hover {
+        transform: translateY(-5px);
+      }
+      .kpi-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .kpi-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+      }
+      .alert-badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+      }
+      .valorisation-methode {
+        border-left: 4px solid;
+        padding-left: 15px;
+      }
+      .valorisation-fifo {
+        border-color: #28a745;
+      }
+      .valorisation-fefo {
+        border-color: #ffc107;
+      }
+      .valorisation-cump {
+        border-color: #17a2b8;
+      }
+      .movement-entree {
+        color: #28a745;
+      }
+      .movement-sortie {
+        color: #dc3545;
+      }
+      .badge-lot {
+        font-size: 0.7rem;
+      }
     </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
-    
+  </head>
+  <body>
     <div class="container-fluid mt-4">
-        <!-- En-tête -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1><i class="bi bi-speedometer2"></i> Dashboard Stock</h1>
-                <p class="text-muted">
-                    <i class="bi bi-calendar"></i> 
-                    <span th:text="${#temporals.format(dateJour, 'dd MMMM yyyy')}"></span>
-                </p>
-            </div>
-            <div class="col-auto">
-                <div class="btn-group">
-                    <button class="btn btn-outline-primary" onclick="refreshDashboard()">
-                        <i class="bi bi-arrow-clockwise"></i> Actualiser
-                    </button>
-                    <button class="btn btn-primary" onclick="exportDashboard()">
-                        <i class="bi bi-download"></i> Exporter
-                    </button>
-                </div>
-            </div>
+      <!-- En-tête -->
+      <div class="row mb-4">
+        <div class="col">
+          <h1><i class="bi bi-speedometer2"></i> Dashboard Stock</h1>
+          <p class="text-muted">
+            <i class="bi bi-calendar"></i>
+            <span
+              th:text="${#temporals.format(dateJour, 'dd MMMM yyyy')}"
+            ></span>
+          </p>
         </div>
-        
-        <!-- Section 1: KPI Principaux -->
-        <div class="row mb-4">
-            <!-- Valeur Stock Total -->
-            <div class="col-md-3">
-                <div class="kpi-card bg-white">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="kpi-value text-primary" 
-                                 th:text="${#numbers.formatCurrency(kpis.valeurStockTotal)}">
-                                2.500.000 €
-                            </div>
-                            <div class="kpi-label">Valeur Stock Total</div>
-                        </div>
-                        <i class="bi bi-box-seam text-primary" style="font-size: 2rem;"></i>
-                    </div>
-                    <small class="text-success" th:if="${kpis.evolutionValeur > 0}">
-                        <i class="bi bi-arrow-up"></i> 
-                        <span th:text="${kpis.evolutionValeur}">+3.2%</span> vs mois dernier
-                    </small>
+        <div class="col-auto">
+          <div class="btn-group">
+            <button
+              class="btn btn-outline-primary"
+              onclick="refreshDashboard()"
+            >
+              <i class="bi bi-arrow-clockwise"></i> Actualiser
+            </button>
+            <button class="btn btn-primary" onclick="exportDashboard()">
+              <i class="bi bi-download"></i> Exporter
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 1: KPI Principaux -->
+      <div class="row mb-4">
+        <!-- Valeur Stock Total -->
+        <div class="col-md-3">
+          <div class="kpi-card bg-white">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div
+                  class="kpi-value text-primary"
+                  th:text="${#numbers.formatCurrency(kpis.valeurStockTotal)}"
+                >
+                  2.500.000 €
                 </div>
+                <div class="kpi-label">Valeur Stock Total</div>
+              </div>
+              <i
+                class="bi bi-box-seam text-primary"
+                style="font-size: 2rem"
+              ></i>
             </div>
-            
-            <!-- Taux de Précision -->
-            <div class="col-md-3">
-                <div class="kpi-card bg-white">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="kpi-value text-success" 
-                                 th:text="${kpis.tauxPrecision} + '%'">
-                                98.5%
-                            </div>
-                            <div class="kpi-label">Précision Stock</div>
-                        </div>
-                        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                    </div>
-                    <small class="text-muted">Dernier inventaire: 
-                        <small th:if="${kpis.dateDernierInventaire != null}">
-                            <span th:text="${#temporals.format(kpis.dateDernierInventaire, 'dd/MM/yyyy')}"></span>
-                        </small>
-                    </small>
+            <small class="text-success" th:if="${kpis.evolutionValeur > 0}">
+              <i class="bi bi-arrow-up"></i>
+              <span th:text="${kpis.evolutionValeur}">+3.2%</span> vs mois
+              dernier
+            </small>
+          </div>
+        </div>
+
+        <!-- Taux de Précision -->
+        <div class="col-md-3">
+          <div class="kpi-card bg-white">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div
+                  class="kpi-value text-success"
+                  th:text="${kpis.tauxPrecision} + '%'"
+                >
+                  98.5%
                 </div>
+                <div class="kpi-label">Précision Stock</div>
+              </div>
+              <i
+                class="bi bi-check-circle text-success"
+                style="font-size: 2rem"
+              ></i>
             </div>
-            
-            <!-- Rotation Stock -->
-            <div class="col-md-3">
-                <div class="kpi-card bg-white">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="kpi-value text-info" th:text="${kpis.rotationMoyenne != null ? kpis.rotationMoyenne : '0.0'}">
-                                4.2x
-                            </div>
-                            <div class="kpi-label">Rotation (12 mois)</div>
-                        </div>
-                        <i class="bi bi-arrow-repeat text-info" style="font-size: 2rem;"></i>
+            <small class="text-muted"
+              >Dernier inventaire:
+              <small th:if="${kpis.dateDernierInventaire != null}">
+                <span
+                  th:text="${#temporals.format(kpis.dateDernierInventaire, 'dd/MM/yyyy')}"
+                ></span>
+              </small>
+            </small>
+          </div>
+        </div>
+
+        <!-- Rotation Stock -->
+        <div class="col-md-3">
+          <div class="kpi-card bg-white">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div
+                  class="kpi-value text-info"
+                  th:text="${kpis.rotationMoyenne != null ? kpis.rotationMoyenne : '0.0'}"
+                >
+                  4.2x
+                </div>
+                <div class="kpi-label">Rotation (12 mois)</div>
+              </div>
+              <i
+                class="bi bi-arrow-repeat text-info"
+                style="font-size: 2rem"
+              ></i>
+            </div>
+            <small class="text-muted">
+              <i class="bi bi-info-circle"></i> Cible: 6x
+            </small>
+          </div>
+        </div>
+
+        <!-- Articles Actifs -->
+        <div class="col-md-3">
+          <div class="kpi-card bg-white">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div
+                  class="kpi-value text-warning"
+                  th:text="${kpis.nombreArticlesActifs}"
+                >
+                  1.234
+                </div>
+                <div class="kpi-label">Articles Actifs</div>
+              </div>
+              <i class="bi bi-tags text-warning" style="font-size: 2rem"></i>
+            </div>
+            <small>
+              <span
+                th:text="${kpis.articlesRupture}"
+                class="text-danger"
+              ></span>
+              en alerte stock
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Valorisation FIFO/FEFO -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">
+                <i class="bi bi-calculator"></i> Valorisation du Stock
+              </h5>
+              <a
+                href="/stock/dashboard/valorisation"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="bi bi-arrow-right"></i> Détails
+              </a>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- FIFO -->
+                <div class="col-md-4">
+                  <div class="valorisation-methode valorisation-fifo">
+                    <h6><i class="bi bi-sort-numeric-down"></i> FIFO</h6>
+                    <h4
+                      class="text-success"
+                      th:text="${#numbers.formatCurrency(valorisation.valeurFifo)}"
+                    >
+                      1.250.000 €
+                    </h4>
+                    <div class="progress mb-2" style="height: 10px">
+                      <div
+                        class="progress-bar bg-success"
+                        role="progressbar"
+                        th:style="'width: ' + ${valorisation.pourcentageFifo} + '%;'"
+                        th:attr="aria-valuenow=${valorisation.pourcentageFifo}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
                     </div>
                     <small class="text-muted">
-                        <i class="bi bi-info-circle"></i> Cible: 6x
+                      <span th:text="${valorisation.pourcentageFifo}">50</span>%
+                      du total
+                      <br />
+                      <span th:text="${valorisation.articlesFifo}">45</span>
+                      articles
                     </small>
+                  </div>
                 </div>
-            </div>
-            
-            <!-- Articles Actifs -->
-            <div class="col-md-3">
-                <div class="kpi-card bg-white">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="kpi-value text-warning" th:text="${kpis.nombreArticlesActifs}">
-                                1.234
-                            </div>
-                            <div class="kpi-label">Articles Actifs</div>
-                        </div>
-                        <i class="bi bi-tags text-warning" style="font-size: 2rem;"></i>
+
+                <!-- FEFO -->
+                <div class="col-md-4">
+                  <div class="valorisation-methode valorisation-fefo">
+                    <h6><i class="bi bi-calendar-x"></i> FEFO</h6>
+                    <h4
+                      class="text-warning"
+                      th:text="${#numbers.formatCurrency(valorisation.valeurFefo)}"
+                    >
+                      50.000 €
+                    </h4>
+                    <div class="progress mb-2" style="height: 10px">
+                      <div
+                        class="progress-bar bg-warning"
+                        role="progressbar"
+                        th:style="'width: ' + ${valorisation.pourcentageFefo} + '%;'"
+                        th:attr="aria-valuenow=${valorisation.pourcentageFefo}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
                     </div>
-                    <small>
-                        <span th:text="${kpis.articlesRupture}" class="text-danger"></span> en alerte stock
+                    <small class="text-muted">
+                      <span th:text="${valorisation.pourcentageFefo}">2</span>%
+                      du total
+                      <br />
+                      <span th:text="${valorisation.articlesFefo}">12</span>
+                      articles périssables
                     </small>
+                  </div>
                 </div>
+
+                <!-- CUMP -->
+                <div class="col-md-4">
+                  <div class="valorisation-methode valorisation-cump">
+                    <h6><i class="bi bi-graph-up"></i> CUMP</h6>
+                    <h4
+                      class="text-info"
+                      th:text="${#numbers.formatCurrency(valorisation.valeurCump)}"
+                    >
+                      1.200.000 €
+                    </h4>
+                    <div class="progress mb-2" style="height: 10px">
+                      <div
+                        class="progress-bar bg-info"
+                        role="progressbar"
+                        th:style="'width: ' + ${valorisation.pourcentageCump} + '%;'"
+                        th:attr="aria-valuenow=${valorisation.pourcentageCump}"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
+                    </div>
+                    <small class="text-muted">
+                      <span th:text="${valorisation.pourcentageCump}">48</span>%
+                      du total
+                      <br />
+                      <span th:text="${valorisation.articlesCump}">1.177</span>
+                      articles
+                    </small>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
         </div>
-        
-        <!-- Section 2: Valorisation FIFO/FEFO -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-calculator"></i> Valorisation du Stock
-                        </h5>
-                        <a href="/stock/dashboard/valorisation" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-arrow-right"></i> Détails
-                        </a>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- FIFO -->
-                            <div class="col-md-4">
-                                <div class="valorisation-methode valorisation-fifo">
-                                    <h6><i class="bi bi-sort-numeric-down"></i> FIFO</h6>
-                                    <h4 class="text-success" 
-                                        th:text="${#numbers.formatCurrency(valorisation.valeurFifo)}">
-                                        1.250.000 €
-                                    </h4>
-                                    <div class="progress mb-2" style="height: 10px;">
-                                        <div class="progress-bar bg-success" 
-                                             role="progressbar" 
-                                             th:style="'width: ' + ${valorisation.pourcentageFifo} + '%;'"
-                                             th:attr="aria-valuenow=${valorisation.pourcentageFifo}"
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
-                                        </div>
-                                    </div>
-                                    <small class="text-muted">
-                                        <span th:text="${valorisation.pourcentageFifo}">50</span>% du total
-                                        <br>
-                                        <span th:text="${valorisation.articlesFifo}">45</span> articles
-                                    </small>
-                                </div>
-                            </div>
-                            
-                            <!-- FEFO -->
-                            <div class="col-md-4">
-                                <div class="valorisation-methode valorisation-fefo">
-                                    <h6><i class="bi bi-calendar-x"></i> FEFO</h6>
-                                    <h4 class="text-warning" 
-                                        th:text="${#numbers.formatCurrency(valorisation.valeurFefo)}">
-                                        50.000 €
-                                    </h4>
-                                    <div class="progress mb-2" style="height: 10px;">
-                                        <div class="progress-bar bg-warning" 
-                                             role="progressbar" 
-                                             th:style="'width: ' + ${valorisation.pourcentageFefo} + '%;'"
-                                             th:attr="aria-valuenow=${valorisation.pourcentageFefo}"
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
-                                        </div>
-                                    </div>
-                                    <small class="text-muted">
-                                        <span th:text="${valorisation.pourcentageFefo}">2</span>% du total
-                                        <br>
-                                        <span th:text="${valorisation.articlesFefo}">12</span> articles périssables
-                                    </small>
-                                </div>
-                            </div>
-                            
-                            <!-- CUMP -->
-                            <div class="col-md-4">
-                                <div class="valorisation-methode valorisation-cump">
-                                    <h6><i class="bi bi-graph-up"></i> CUMP</h6>
-                                    <h4 class="text-info" 
-                                        th:text="${#numbers.formatCurrency(valorisation.valeurCump)}">
-                                        1.200.000 €
-                                    </h4>
-                                    <div class="progress mb-2" style="height: 10px;">
-                                        <div class="progress-bar bg-info" 
-                                             role="progressbar" 
-                                             th:style="'width: ' + ${valorisation.pourcentageCump} + '%;'"
-                                             th:attr="aria-valuenow=${valorisation.pourcentageCump}"
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
-                                        </div>
-                                    </div>
-                                    <small class="text-muted">
-                                        <span th:text="${valorisation.pourcentageCump}">48</span>% du total
-                                        <br>
-                                        <span th:text="${valorisation.articlesCump}">1.177</span> articles
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+      </div>
+
+      <!-- Section 3: Alertes & Derniers Mouvements -->
+      <div class="row mb-4">
+        <!-- Alertes -->
+        <div class="col-lg-4 mb-4 mb-lg-0">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle text-warning"></i> Alertes
+                <span
+                  class="badge bg-warning"
+                  th:text="${alertes.nombreAlertes}"
+                  >25</span
+                >
+              </h5>
             </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto">
+              <div
+                class="alert alert-warning"
+                th:if="${alertes.lotsProchePeremption > 0}"
+              >
+                <i class="bi bi-calendar-x"></i>
+                <strong th:text="${alertes.lotsProchePeremption}">8</strong>
+                lots proches péremption
+                <br />
+                <small
+                  >Valeur à risque:
+                  <span
+                    th:text="${#numbers.formatCurrency(alertes.valeurRisqueFefo)}"
+                  >
+                    12.500 €
+                  </span>
+                </small>
+                <a href="/stock/lots/alertes" class="stretched-link"></a>
+              </div>
+
+              <!-- Ruptures -->
+              <div
+                class="alert alert-danger"
+                th:if="${alertes.rupturesStock > 0}"
+              >
+                <i class="bi bi-x-circle"></i>
+                <strong th:text="${alertes.rupturesStock}">12</strong> articles
+                en rupture
+                <br />
+                <small>Commandes client affectées</small>
+                <a href="/stock/alertes" class="stretched-link"></a>
+              </div>
+
+              <!-- Surstocks -->
+              <div class="alert alert-info" th:if="${alertes.surstocks > 0}">
+                <i class="bi bi-arrow-up-circle"></i>
+                <strong th:text="${alertes.surstocks}">5</strong> articles en
+                surstock
+                <br />
+                <small
+                  >Immobilisation:
+                  <span
+                    th:text="${#numbers.formatCurrency(alertes.valeurSurstock)}"
+                  >
+                    85.000 €
+                  </span>
+                </small>
+                <a href="/stock/reporting/surstocks" class="stretched-link"></a>
+              </div>
+
+              <!-- Inventaires en attente -->
+              <div
+                class="alert alert-secondary"
+                th:if="${!inventairesEnCours.empty}"
+              >
+                <i class="bi bi-clipboard-check"></i>
+                <strong th:text="${inventairesEnCours.size()}">3</strong>
+                inventaires en attente
+                <br />
+                <small>Validation des écarts</small>
+                <a href="/stock/inventaires" class="stretched-link"></a>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <!-- Section 3: Alertes & Derniers Mouvements -->
-        <div class="row mb-4">
-            <!-- Alertes -->
-            <div class="col-lg-4 mb-4 mb-lg-0">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-exclamation-triangle text-warning"></i> Alertes
-                            <span class="badge bg-warning" th:text="${alertes.nombreAlertes}">25</span>
-                        </h5>
-                    </div>
-                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                        <!-- Alertes FEFO -->
-                        <div class="alert alert-warning" th:if="${alertes.lotsProchePeremption > 0}">
-                            <i class="bi bi-calendar-x"></i>
-                            <strong th:text="${alertes.lotsProchePeremption}">8</strong> lots proches péremption
-                            <br>
-                            <small>Valeur à risque: 
-                                <span th:text="${#numbers.formatCurrency(alertes.valeurRisqueFefo)}">
-                                    12.500 €
-                                </span>
-                            </small>
-                            <a href="/stock/lots/alertes" class="stretched-link"></a>
-                        </div>
-                        
-                        <!-- Ruptures -->
-                        <div class="alert alert-danger" th:if="${alertes.rupturesStock > 0}">
-                            <i class="bi bi-x-circle"></i>
-                            <strong th:text="${alertes.rupturesStock}">12</strong> articles en rupture
-                            <br>
-                            <small>Commandes client affectées</small>
-                            <a href="/stock/alertes" class="stretched-link"></a>
-                        </div>
-                        
-                        <!-- Surstocks -->
-                        <div class="alert alert-info" th:if="${alertes.surstocks > 0}">
-                            <i class="bi bi-arrow-up-circle"></i>
-                            <strong th:text="${alertes.surstocks}">5</strong> articles en surstock
-                            <br>
-                            <small>Immobilisation: 
-                                <span th:text="${#numbers.formatCurrency(alertes.valeurSurstock)}">
-                                    85.000 €
-                                </span>
-                            </small>
-                            <a href="/stock/reporting/surstocks" class="stretched-link"></a>
-                        </div>
-                        
-                        <!-- Inventaires en attente -->
-                        <div class="alert alert-secondary" th:if="${!inventairesEnCours.empty}">
-                            <i class="bi bi-clipboard-check"></i>
-                            <strong th:text="${inventairesEnCours.size()}">3</strong> inventaires en attente
-                            <br>
-                            <small>Validation des écarts</small>
-                            <a href="/stock/inventaires" class="stretched-link"></a>
-                        </div>
-                    </div>
-                </div>
+
+        <!-- Derniers Mouvements -->
+        <div class="col-lg-8">
+          <div class="card h-100">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
+              <h5 class="mb-0">
+                <i class="bi bi-arrow-left-right"></i> Derniers Mouvements
+              </h5>
+              <a
+                href="/stock/dashboard/mouvements"
+                class="btn btn-sm btn-outline-primary"
+              >
+                Voir tout
+              </a>
             </div>
-            
-            <!-- Derniers Mouvements -->
-            <div class="col-lg-8">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="bi bi-arrow-left-right"></i> Derniers Mouvements
-                        </h5>
-                        <a href="/stock/dashboard/mouvements" class="btn btn-sm btn-outline-primary">
-                            Voir tout
-                        </a>
-                    </div>
-                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Type</th>
-                                    <th>Article</th>
-                                    <th>Quantité</th>
-                                    <th>Dépôt</th>
-                                    <th>Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr th:each="mvt : ${derniersMouvements}">
-                                    <td>
-                                        <span th:if="${mvt.type.sens.name() == 'ENTREE'}" 
-                                              class="badge bg-success">Entrée</span>
-                                        <span th:if="${mvt.type.sens.name() == 'SORTIE'}" 
-                                              class="badge bg-danger">Sortie</span>
-                                    </td>
-                                    <td>
-                                        <a th:href="@{'/stock/articles/' + ${mvt.article.codeArticle}}"
-                                           th:text="${mvt.article.codeArticle}">
-                                            ART-001
-                                        </a>
-                                    </td>
-                                    <td th:text="${mvt.quantite}">100</td>
-                                    <td th:text="${mvt.depot.nom}">DEP-CENTRAL</td>
-                                    <td>
-                                        <small th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM HH:mm')}">
-                                            15/03 14:30
-                                        </small>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Article</th>
+                    <th>Quantité</th>
+                    <th>Dépôt</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="mvt : ${derniersMouvements}">
+                    <td>
+                      <span
+                        th:if="${mvt.type.sens.name() == 'ENTREE'}"
+                        class="badge bg-success"
+                        >Entrée</span
+                      >
+                      <span
+                        th:if="${mvt.type.sens.name() == 'SORTIE'}"
+                        class="badge bg-danger"
+                        >Sortie</span
+                      >
+                    </td>
+                    <td>
+                      <a
+                        th:href="@{'/stock/articles/' + ${mvt.article.codeArticle}}"
+                        th:text="${mvt.article.codeArticle}"
+                      >
+                        ART-001
+                      </a>
+                    </td>
+                    <td th:text="${mvt.quantite}">100</td>
+                    <td th:text="${mvt.depot.nom}">DEP-CENTRAL</td>
+                    <td>
+                      <small
+                        th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM HH:mm')}"
+                      >
+                        15/03 14:30
+                      </small>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
+          </div>
         </div>
-        
-        <!-- Section 4: Graphiques -->
-        <div class="row mb-4">
-            <!-- Évolution valeur stock -->
-            <div class="col-lg-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-graph-up"></i> Évolution Valeur Stock (12 mois)
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="evolutionChart" height="100"></canvas>
-                    </div>
-                </div>
+      </div>
+
+      <!-- Section 4: Graphiques -->
+      <div class="row mb-4">
+        <!-- Évolution valeur stock -->
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-graph-up"></i> Évolution Valeur Stock (12 mois)
+              </h5>
             </div>
-            
-            <!-- Top articles par valeur -->
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-trophy"></i> Top 5 Articles (Valeur)
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="list-group">
-                            <div th:each="article, iterStat : ${topArticles}" 
-                                 class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span th:text="${iterStat.index + 1} + '. '"></span>
-                                    <strong th:text="${article.code}">ART-001</strong>
-                                    <br>
-                                    <small class="text-muted" th:text="${article.libelle}">
-                                        Laptop Pro
-                                    </small>
-                                </div>
-                                <div class="text-end">
-                                    <span class="badge bg-primary rounded-pill">
-                                        <span th:text="${#numbers.formatCurrency(article.valeur)}">
-                                            22.500 €
-                                        </span>
-                                    </span>
-                                    <br>
-                                    <small th:text="${article.quantite} + ' unités'">50 unités</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="card-body">
+              <canvas id="evolutionChart" height="100"></canvas>
             </div>
+          </div>
         </div>
-        
-        <!-- Section 5: Actions rapides -->
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="bi bi-lightning-charge"></i> Actions Rapides
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/mouvements/entree" 
-                                   class="btn btn-success w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-box-arrow-in-down" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Entrée Stock</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/mouvements/sortie" 
-                                   class="btn btn-danger w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-box-arrow-up" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Sortie Stock</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/transferts/nouveau" 
-                                   class="btn btn-info w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-arrow-left-right" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Transfert</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/inventaires/nouveau" 
-                                   class="btn btn-warning w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-clipboard-check" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Inventaire</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/articles" 
-                                   class="btn btn-primary w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-search" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Rechercher</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/reporting" 
-                                   class="btn btn-secondary w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-graph-up" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Reporting</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
+        <!-- Top articles par valeur -->
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-trophy"></i> Top 5 Articles (Valeur)
+              </h5>
             </div>
+            <div class="card-body">
+              <div class="list-group">
+                <div
+                  th:each="article, iterStat : ${topArticles}"
+                  class="list-group-item d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <span th:text="${iterStat.index + 1} + '. '"></span>
+                    <strong th:text="${article.code}">ART-001</strong>
+                    <br />
+                    <small class="text-muted" th:text="${article.libelle}">
+                      Laptop Pro
+                    </small>
+                  </div>
+                  <div class="text-end">
+                    <span class="badge bg-primary rounded-pill">
+                      <span
+                        th:text="${#numbers.formatCurrency(article.valeur)}"
+                      >
+                        22.500 €
+                      </span>
+                    </span>
+                    <br />
+                    <small th:text="${article.quantite} + ' unités'"
+                      >50 unités</small
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
-    
+
     <!-- JavaScript -->
     <script th:inline="javascript">
-        // Données pour le graphique
         const evolutionData = {
             labels: [
-                /*[# th:each="item : ${evolution}"]*/
-                    /*[[${item.mois}]]*/,
-                /*[/]*/
+              /*[# th:each="item : ${evolution}"]*/
+              /*[[${item.mois}]]*/,
+              /*[/]*/
             ],
-            datasets: [{
-                label: 'Valeur Stock',
+            datasets: [
+              {
+                label: "Valeur Stock",
                 data: [
-                    /*[# th:each="item : ${evolution}"]*/
-                        /*[[${item.valeur}]]*/,
-                    /*[/]*/
+                  /*[# th:each="item : ${evolution}"]*/
+                  /*[[${item.valeur}]]*/,
+                  /*[/]*/
                 ],
-                borderColor: '#28a745',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderColor: "#28a745",
+                backgroundColor: "rgba(40, 167, 69, 0.1)",
                 fill: true,
-                tension: 0.4
-            }]
-        };
-        
-        // Initialiser le graphique
-        window.onload = function() {
-            const ctx = document.getElementById('evolutionChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: evolutionData,
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            ticks: {
-                                callback: function(value) {
-                                    return new Intl.NumberFormat('fr-FR', {
-                                        style: 'currency',
-                                        currency: 'EUR',
-                                        minimumFractionDigits: 0
-                                    }).format(value);
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return new Intl.NumberFormat('fr-FR', {
-                                        style: 'currency',
-                                        currency: 'EUR'
-                                    }).format(context.raw);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        };
-        
-        // Fonctions utilitaires
-        function refreshDashboard() {
-            fetch('/main/dashboard/api/kpi')
-                .then(response => response.json())
-                .then(data => {
-                    // Mettre à jour les KPI dynamiquement
-                    document.querySelector('[data-kpi="valeurStock"]').textContent = 
-                        new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' })
-                        .format(data.valeurStockTotal);
-                    // ... autres mises à jour
-                });
-        }
-        
-        function exportDashboard() {
-            // Implémenter l'export PDF/Excel
-            alert('Export en cours de développement...');
-        }
-        
-        // Actualisation auto toutes les 5 minutes
-        setInterval(refreshDashboard, 300000);
-    </script>
+                tension: 0.4,
+              },
+            ],
+          };
     
+          // Initialiser le graphique
+          window.onload = function () {
+            const ctx = document.getElementById("evolutionChart").getContext("2d");
+            new Chart(ctx, {
+              type: "line",
+              data: evolutionData,
+              options: {
+                responsive: true,
+                scales: {
+                  y: {
+                    beginAtZero: false,
+                    ticks: {
+                      callback: function (value) {
+                        return new Intl.NumberFormat("fr-FR", {
+                          style: "currency",
+                          currency: "EUR",
+                          minimumFractionDigits: 0,
+                        }).format(value);
+                      },
+                    },
+                  },
+                },
+                plugins: {
+                  tooltip: {
+                    callbacks: {
+                      label: function (context) {
+                        return new Intl.NumberFormat("fr-FR", {
+                          style: "currency",
+                          currency: "EUR",
+                        }).format(context.raw);
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          };
+
+function refreshDashboard() {
+        fetch("/main/dashboard/api/kpi")
+          .then((response) => response.json())
+          .then((data) => {
+            // Mettre à jour les KPI dynamiquement
+            document.querySelector('[data-kpi="valeurStock"]').textContent =
+              new Intl.NumberFormat("fr-FR", {
+                style: "currency",
+                currency: "EUR",
+              }).format(data.valeurStockTotal);
+            // ... autres mises à jour
+          });
+      }
+
+      function exportDashboard() {
+        // Implémenter l'export PDF/Excel
+        alert("Export en cours de développement...");
+      }
+
+      // Actualisation auto toutes les 5 minutes
+      setInterval(refreshDashboard, 300000);
+    </script>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+  </body>
 </html>

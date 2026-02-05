@@ -1,5 +1,6 @@
 package com.gestion.stock.repository;
 
+import com.gestion.stock.entity.MovementType;
 import com.gestion.stock.entity.StockMovement;
 
 import org.springframework.data.domain.Page;
@@ -258,4 +259,23 @@ public interface StockMovementRepository
 
        @Query(value = "SELECT nextval('seq_mouvement_stock')", nativeQuery = true)
        Long getNextSequenceValue();
+
+       @Query("SELECT m FROM StockMovement m WHERE m.type = :type " +
+                     "AND m.dateComptable BETWEEN :dateDebut AND :dateFin " +
+                     "AND m.statut = 'VALIDE'")
+       List<StockMovement> findByTypeAndDateComptableBetween(
+                     @Param("type") MovementType type,
+                     @Param("dateDebut") LocalDate dateDebut,
+                     @Param("dateFin") LocalDate dateFin);
+
+       // Method 2: Find movements by type, depot and date range
+       @Query("SELECT m FROM StockMovement m WHERE m.type = :type " +
+                     "AND m.depot.id = :depotId " +
+                     "AND m.dateComptable BETWEEN :dateDebut AND :dateFin " +
+                     "AND m.statut = 'VALIDE'")
+       List<StockMovement> findByTypeAndDepotAndDateComptableBetween(
+                     @Param("type") MovementType type,
+                     @Param("depotId") UUID depotId,
+                     @Param("dateDebut") LocalDate dateDebut,
+                     @Param("dateFin") LocalDate dateFin);
 }

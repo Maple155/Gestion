@@ -166,7 +166,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-primary bg-opacity-10">
                             <div class="kpi-value text-primary" 
-                                 th:text="${statsGlobales.inventairesRealises != null ? statsGlobales.inventairesRealises : '0'}">
+                                 th:text="${statsGlobales['inventairesRealises'] != null ? statsGlobales['inventairesRealises'] : '0'}">
                                 0
                             </div>
                             <div class="kpi-label">Inventaires réalisés</div>
@@ -181,7 +181,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-success bg-opacity-10">
                             <div class="kpi-value text-success" 
-                                 th:text="${statsGlobales.precisionMoyenneMois != null ? statsGlobales.precisionMoyenneMois + '%' : 'N/A'}">
+                                 th:text="${statsGlobales['precisionMoyenneMois'] != null ? statsGlobales['precisionMoyenneMois'] + '%' : 'N/A'}">
                                 N/A
                             </div>
                             <div class="kpi-label">Précision moyenne</div>
@@ -196,7 +196,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-info bg-opacity-10">
                             <div class="kpi-value text-info" 
-                                 th:text="${statsGlobales.articlesComptes != null ? statsGlobales.articlesComptes : '0'}">
+                                 th:text="${statsGlobales['articlesComptes'] != null ? statsGlobales['articlesComptes'] : '0'}">
                                 0
                             </div>
                             <div class="kpi-label">Articles comptés</div>
@@ -211,7 +211,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-warning bg-opacity-10">
                             <div class="kpi-value text-warning" 
-                                 th:text="${statsGlobales.valeurEcartMois != null ? statsGlobales.valeurEcartMois + ' €' : '0 €'}">
+                                 th:text="${statsGlobales['valeurEcartMois'] != null ? statsGlobales['valeurEcartMois'] + ' €' : '0 €'}">
                                 0 €
                             </div>
                             <div class="kpi-label">Écart total</div>
@@ -280,23 +280,23 @@
                                             <tbody>
                                                 <tr th:each="ecart : ${topEcarts}">
                                                     <td>
-                                                        <strong th:text="${ecart.articleCode}"></strong><br>
-                                                        <small th:text="${ecart.articleLibelle}" class="text-muted"></small>
+                                                        <strong th:text="${ecart['articleCode']}"></strong><br>
+                                                        <small th:text="${ecart['articleLibelle']}" class="text-muted"></small>
                                                     </td>
                                                     <td>
-                                                        <a th:href="@{/stock/inventaires/details/{id}(id=${ecart.inventaireId})}" 
+                                                        <a th:href="@{/stock/inventaires/details/{id}(id=${ecart['inventaireId']})}" 
                                                            class="text-decoration-none">
-                                                            [[${ecart.inventaireReference}]]
+                                                            [[${ecart['inventaireReference']}]]
                                                         </a>
                                                     </td>
                                                     <td class="text-end">
-                                                        <span th:class="${ecart.ecart > 0} ? 'text-success' : 'text-danger'"
-                                                              th:text="${ecart.ecart > 0 ? '+' + ecart.ecart : ecart.ecart}">
+                                                        <span th:class="${ecart['ecart'] > 0} ? 'text-success' : 'text-danger'"
+                                                              th:text="${ecart['ecart'] > 0 ? '+' + ecart['ecart'] : ecart['ecart']}">
                                                         </span>
                                                     </td>
                                                     <td class="text-end">
-                                                        <span th:class="${ecart.valeurEcart > 0} ? 'text-success' : 'text-danger'"
-                                                              th:text="${#numbers.formatDecimal(ecart.valeurEcart, 1, 2) + ' €'}">
+                                                        <span th:class="${ecart['valeurEcart'] > 0} ? 'text-success' : 'text-danger'"
+                                                              th:text="${#numbers.formatDecimal(ecart['valeurEcart'], 1, 2) + ' €'}">
                                                         </span>
                                                     </td>
                                                     <td>
