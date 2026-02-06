@@ -765,3 +765,7 @@ CREATE INDEX idx_inventaires_depot ON inventaires(depot_id);
 -- ALTER TABLE articles
 --   ALTER COLUMN updated_by TYPE uuid
 --   USING NULLIF(updated_by, '')::uuid;
+
+UPDATE inventaires 
+SET statut = 'PLANIFIE', 
+    created_at = NOW();

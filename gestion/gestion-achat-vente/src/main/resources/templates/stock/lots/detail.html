@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+>
+  <head>
+    <title th:text="${lot.numeroLot} + ' - Détail'">Détail du lot</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      .info-card {
+        transition: transform 0.2s;
+      }
+      .info-card:hover {
+        transform: translateY(-2px);
+      }
+      .timeline {
+        position: relative;
+        padding-left: 30px;
+      }
+      .timeline:before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+      }
+      .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+      }
+      .timeline-item:before {
+        content: "";
+        position: absolute;
+        left: -25px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #6c757d;
+      }
+      .timeline-item.success:before {
+        background: #28a745;
+      }
+      .timeline-item.warning:before {
+        background: #ffc107;
+      }
+      .timeline-item.danger:before {
+        background: #dc3545;
+      }
+      .timeline-item.info:before {
+        background: #17a2b8;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div>
+      <!-- En-tête avec navigation -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item">
+                <a th:href="@{/lots}">Lots</a>
+              </li>
+              <li class="breadcrumb-item active" aria-current="page">
+                <span th:text="${lot.numeroLot}"></span>
+              </li>
+            </ol>
+          </nav>
+          <h1 class="h3 mb-0">
+            <i class="bi bi-box-seam text-primary"></i>
+            Lot: <span th:text="${lot.numeroLot}"></span>
+          </h1>
+        </div>
+        <div class="btn-group">
+          <a
+            th:href="@{/lots/{id}/modifier(id=${lot.id})}"
+            class="btn btn-outline-primary"
+          >
+            <i class="bi bi-pencil"></i> Modifier
+          </a>
+        </div>
+      </div>
+
+      <!-- Messages flash -->
+      <div
+        th:if="${successMessage}"
+        class="alert alert-success alert-dismissible fade show"
+        role="alert"
+      >
+        <i class="bi bi-check-circle"></i>
+        <span th:text="${successMessage}"></span>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      <div
+        th:if="${errorMessage}"
+        class="alert alert-danger alert-dismissible fade show"
+        role="alert"
+      >
+        <i class="bi bi-exclamation-circle"></i>
+        <span th:text="${errorMessage}"></span>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+
+      <!-- Informations principales -->
+      <div class="row mb-4">
+        <div class="col-lg-8">
+          <div class="card info-card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-info-circle"></i> Informations du lot
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <!-- Statut -->
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Statut</label>
+                  <div>
+                    <span th:switch="${lot.statut}" class="badge">
+                      <span
+                        th:case="DISPONIBLE"
+                        class="badge bg-success py-2 px-3"
+                      >
+                        <i class="bi bi-check-circle"></i> [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="QUARANTAINE"
+                        class="badge bg-warning text-dark py-2 px-3"
+                      >
+                        <i class="bi bi-shield-exclamation"></i>
+                        [[${lot.statut}]]
+                      </span>
+                      <span
+                        th:case="BLOQUE"
+                        class="badge bg-secondary py-2 px-3"
+                      >
+                        <i class="bi bi-lock"></i> [[${lot.statut}]]
+                      </span>
+                      <span th:case="PERIME" class="badge bg-danger py-2 px-3">
+                        <i class="bi bi-x-circle"></i> [[${lot.statut}]]
+                      </span>
+                      <span th:case="EPUISE" class="badge bg-info py-2 px-3">
+                        <i class="bi bi-box"></i> [[${lot.statut}]]
+                      </span>
+                      <span th:case="FUSIONNE" class="badge bg-dark py-2 px-3">
+                        <i class="bi bi-merge"></i> [[${lot.statut}]]
+                      </span>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Quantité -->
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Quantité</label>
+                  <div class="h5 mb-0">
+                    <span
+                      th:text="${lot.quantiteActuelle} + '/' + ${lot.quantiteInitiale}"
+                    ></span>
+                  </div>
+                  <div class="progress" style="height: 6px">
+                    <div
+                      class="progress-bar"
+                      th:class="${(lot.quantiteActuelle == 0) ? 'bg-danger' : 
+                                                   (lot.quantiteActuelle/lot.quantiteInitiale < 0.2) ? 'bg-warning' : 'bg-success'}"
+                      th:style="'width: ' + ${lot.quantiteActuelle * 100 / lot.quantiteInitiale} + '%;'"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Péremption -->
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Péremption</label>
+                  <div>
+                    <div th:if="${lot.datePeremption != null}">
+                      <span
+                        th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}"
+                      ></span>
+                      <br />
+                      <small
+                        th:class="${(joursRestants <= 0) ? 'text-danger fw-bold' : 
+                                                          (joursRestants <= 7) ? 'text-warning' : 'text-success'}"
+                      >
+                        <span th:if="${joursRestants > 0}">
+                          [[${joursRestants}]] jours restants
+                        </span>
+                        <span th:if="${joursRestants <= 0}"> DÉPASSÉ </span>
+                      </small>
+                    </div>
+                    <div th:unless="${lot.datePeremption != null}">
+                      <span class="text-muted">Non défini</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Valeur -->
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Valeur stock</label>
+                  <div class="h5 mb-0 text-success">
+                    [[${#numbers.formatDecimal(valeurStock, 0, 'COMMA', 2,
+                    'POINT')}]] €
+                  </div>
+                  <small class="text-muted">
+                    [[${#numbers.formatDecimal(lot.coutUnitaire, 0, 'COMMA', 2,
+                    'POINT')}]] €/unité
+                  </small>
+                </div>
+              </div>
+
+              <hr />
+
+              <!-- Détails supplémentaires -->
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label text-muted">Article</label>
+                  <div>
+                    <strong th:text="${lot.article.codeArticle}"></strong>
+                    <div
+                      class="text-muted"
+                      th:text="${lot.article.libelle}"
+                    ></div>
+                  </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label text-muted">Emplacement</label>
+                  <div th:if="${lot.emplacement != null}">
+                    <strong th:text="${lot.emplacement.code}"></strong>
+                    <div class="text-muted">
+                      [[${lot.emplacement.zone.code}]] -
+                      [[${lot.emplacement.zone.depot.nom}]]
+                    </div>
+                  </div>
+                  <div th:unless="${lot.emplacement != null}">
+                    <span class="text-muted">Non assigné</span>
+                  </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label text-muted">Bon de réception</label>
+                  <div th:if="${lot.bonReception != null}">
+                    <a
+                      th:href="@{/bon-reception/{id}(id=${lot.bonReception.id})}"
+                      class="text-decoration-none"
+                    >
+                      [[${lot.bonReception.observations}]]
+                    </a>
+                    <div class="text-muted">
+                      [[${#temporals.format(lot.dateReception, 'dd/MM/yyyy')}]]
+                    </div>
+                  </div>
+                  <div th:unless="${lot.bonReception != null}">
+                    <span class="text-muted">Non lié</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dates -->
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Date fabrication</label>
+                  <div>
+                    <span
+                      th:if="${lot.dateFabrication != null}"
+                      th:text="${#temporals.format(lot.dateFabrication, 'dd/MM/yyyy')}"
+                    >
+                    </span>
+                    <span
+                      th:unless="${lot.dateFabrication != null}"
+                      class="text-muted"
+                      >N/A</span
+                    >
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Date réception</label>
+                  <div>
+                    <span
+                      th:text="${#temporals.format(lot.dateReception, 'dd/MM/yyyy')}"
+                    ></span>
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">DLUO</label>
+                  <div>
+                    <span
+                      th:if="${lot.dluo != null}"
+                      th:text="${#temporals.format(lot.dluo, 'dd/MM/yyyy')}"
+                    >
+                    </span>
+                    <span th:unless="${lot.dluo != null}" class="text-muted"
+                      >N/A</span
+                    >
+                  </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                  <label class="form-label text-muted">Créé le</label>
+                  <div>
+                    <span
+                      th:text="${#temporals.format(lot.createdAt, 'dd/MM/yyyy HH:mm')}"
+                    ></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Certificat de conformité -->
+              <div th:if="${lot.certificatConformite}" class="mb-3">
+                <label class="form-label text-muted"
+                  >Certificat de conformité</label
+                >
+                <div>
+                  <a
+                    th:href="${lot.certificatConformite}"
+                    target="_blank"
+                    class="btn btn-outline-info btn-sm"
+                  >
+                    <i class="bi bi-file-earmark-text"></i> Voir le certificat
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions rapides -->
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-lightning-charge"></i> Actions rapides
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="d-grid gap-2">
+                <!-- Changer statut -->
+                <div class="dropdown">
+                  <button
+                    class="btn btn-outline-secondary w-100 dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                  >
+                    <i class="bi bi-arrow-repeat"></i> Changer le statut
+                  </button>
+                  <ul class="dropdown-menu w-100">
+                    <li
+                      th:each="statut : ${T(com.gestion.stock.entity.Lot$LotStatus).values()}"
+                    >
+                      <form
+                        th:action="@{/lots/{id}/changer-statut(id=${lot.id})}"
+                        method="post"
+                        class="dropdown-item p-0"
+                      >
+                        <input
+                          type="hidden"
+                          name="nouveauStatut"
+                          th:value="${statut}"
+                        />
+                        <button
+                          type="submit"
+                          class="btn btn-link text-decoration-none w-100 text-start px-3 py-2"
+                          th:classappend="${lot.statut.name() == statut.name()} ? 'disabled text-muted' : ''"
+                        >
+                          <span th:text="${statut}"></span>
+                        </button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Transférer -->
+                <a
+                  th:href="@{/lots/{id}/transferer(id=${lot.id})}"
+                  class="btn btn-outline-primary"
+                >
+                  <i class="bi bi-arrow-left-right"></i> Transférer
+                  l'emplacement
+                </a>
+
+                <!-- Fusionner -->
+                <a
+                  th:if="${lot.statut == 'DISPONIBLE' and lot.quantiteActuelle > 0}"
+                  th:href="@{/lots/{id}/fusionner(id=${lot.id})}"
+                  class="btn btn-outline-warning"
+                >
+                  <i class="bi bi-merge"></i> Fusionner avec un autre lot
+                </a>
+
+                <!-- Numéros de série -->
+                <a
+                  th:href="@{/lots/series(lotId=${lot.id})}"
+                  class="btn btn-outline-info"
+                >
+                  <i class="bi bi-upc-scan"></i> Gérer les numéros de série
+                </a>
+
+                <!-- Historique -->
+                <button
+                  class="btn btn-outline-dark"
+                  onclick="document.getElementById('historiqueSection').scrollIntoView()"
+                >
+                  <i class="bi bi-clock-history"></i> Voir l'historique
+                </button>
+              </div>
+
+              <hr />
+
+              <!-- Actions dangereuses -->
+              <div class="d-grid gap-2">
+                <button
+                  th:if="${lot.quantiteActuelle == 0}"
+                  class="btn btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#supprimerModal"
+                >
+                  <i class="bi bi-trash"></i> Supprimer le lot
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historique des mouvements -->
+      <div class="card mb-4" id="historiqueSection">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-clock-history"></i> Historique des mouvements
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div
+              th:each="mouvement : ${mouvements}"
+              th:class="'timeline-item ' + 
+                                   ${mouvement.type.sens == 'ENTREE' ? 'success' : 'danger'}"
+            >
+              <div class="card mb-2">
+                <div class="card-body py-2">
+                  <div class="d-flex justify-content-between">
+                    <div>
+                      <strong th:text="${mouvement.reference}"></strong>
+                      <small class="text-muted ms-2">
+                        [[${#temporals.format(mouvement.dateMouvement,
+                        'dd/MM/yyyy HH:mm')}]]
+                      </small>
+                    </div>
+                    <div>
+                      <span
+                        th:class="${mouvement.type.sens == 'ENTREE'} ? 'text-success' : 'text-danger'"
+                      >
+                        [[${mouvement.quantite}]] unités
+                      </span>
+                      <span
+                        class="badge ms-2"
+                        th:class="${mouvement.type.sens == 'ENTREE'} ? 'bg-success' : 'bg-danger'"
+                      >
+                        [[${mouvement.type.sens}]]
+                      </span>
+                    </div>
+                  </div>
+                  <div class="text-muted" th:text="${mouvement.motif}"></div>
+                </div>
+              </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(mouvements)}" class="text-center py-4">
+              <div class="text-muted">
+                <i class="bi bi-clock fa-2x mb-2"></i>
+                <p class="mb-0">Aucun mouvement enregistré</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de suppression -->
+    <div class="modal fade" id="supprimerModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Supprimer le lot</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <form th:action="@{/lots/{id}/supprimer(id=${lot.id})}" method="post">
+            <div class="modal-body">
+              <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i>
+                Attention ! Cette action est irréversible.
+              </div>
+              <p>
+                Êtes-vous sûr de vouloir supprimer le lot
+                <strong th:text="${lot.numeroLot}"></strong> ?
+              </p>
+              <div class="mb-3">
+                <label class="form-label">Motif de la suppression</label>
+                <textarea
+                  class="form-control"
+                  name="motif"
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Annuler
+              </button>
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Supprimer définitivement
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  </body>
+</html>

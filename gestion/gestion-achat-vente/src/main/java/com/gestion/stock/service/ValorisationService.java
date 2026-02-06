@@ -335,38 +335,43 @@ public class ValorisationService {
         return analyse;
     }
 
-    // ValorisationService.java - Méthodes supplémentaires pour le dashboard
     public Map<String, Object> getSyntheseValorisation() {
         Map<String, Object> synthese = new HashMap<>();
 
-        // Récupérer tous les stocks
-        List<Stock> stocks = stockRepository.findAll();
+        // Calculer les valorisations réelles
+        BigDecimal valeurFifoTotal = calculerValorisationFIFOTotale();
+        BigDecimal valeurFefoTotal = calculerValorisationFEFOTotale();
 
-        BigDecimal valeurFifoTotal = BigDecimal.ZERO;
-        BigDecimal valeurFefoTotal = BigDecimal.ZERO;
+        // Récupérer tous les stocks pour CUMP et calculs
+        List<Stock> stocks = stockRepository.findAll();
         BigDecimal valeurCumpTotal = BigDecimal.ZERO;
 
+        // Compter les articles par méthode
         int articlesFifo = 0;
         int articlesFefo = 0;
         int articlesCump = 0;
 
         for (Stock stock : stocks) {
-            String methode = stock.getArticle().getMethodeValorisation();
-            BigDecimal valeur = stock.getValeurStockCump() != null ? stock.getValeurStockCump() : BigDecimal.ZERO;
+            Article article = stock.getArticle();
+            if (article != null) {
+                String methode = article.getMethodeValorisation();
 
-            switch (methode) {
-                case "FIFO":
-                    valeurFifoTotal = valeurFifoTotal.add(valeur);
-                    articlesFifo++;
-                    break;
-                case "FEFO":
-                    valeurFefoTotal = valeurFefoTotal.add(valeur);
-                    articlesFefo++;
-                    break;
-                case "CUMP":
-                    valeurCumpTotal = valeurCumpTotal.add(valeur);
-                    articlesCump++;
-                    break;
+                switch (methode) {
+                    case "FIFO":
+                        articlesFifo++;
+                        break;
+                    case "FEFO":
+                        articlesFefo++;
+                        break;
+                    case "CUMP":
+                    default:
+                        articlesCump++;
+                        // Pour CUMP, utiliser la valeur stock existante
+                        if (stock.getValeurStockCump() != null) {
+                            valeurCumpTotal = valeurCumpTotal.add(stock.getValeurStockCump());
+                        }
+                        break;
+                }
             }
         }
 
@@ -398,109 +403,137 @@ public class ValorisationService {
             synthese.put("pourcentageCump", BigDecimal.ZERO);
         }
 
-        BigDecimal coutSortiesFifo = BigDecimal.ZERO;
-        BigDecimal coutSortiesFefo = BigDecimal.ZERO;
-
-        List<Stock> fifoStocks = stocks.stream()
-                .filter(s -> s.getArticle() != null && "FIFO".equals(s.getArticle().getMethodeValorisation()))
-                .collect(Collectors.toList());
-
-        List<Stock> fefoStocks = stocks.stream()
-                .filter(s -> s.getArticle() != null && "FEFO".equals(s.getArticle().getMethodeValorisation()))
-                .collect(Collectors.toList());
-
-        if (!fifoStocks.isEmpty()) {
-            BigDecimal sum = fifoStocks.stream()
-                    .map(s -> s.getCoutUnitaireMoyen() != null ? s.getCoutUnitaireMoyen() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            coutSortiesFifo = sum.divide(BigDecimal.valueOf(fifoStocks.size()), 4, RoundingMode.HALF_UP);
-        }
-
-        if (!fefoStocks.isEmpty()) {
-            BigDecimal sum = fefoStocks.stream()
-                    .map(s -> s.getCoutUnitaireMoyen() != null ? s.getCoutUnitaireMoyen() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            coutSortiesFefo = sum.divide(BigDecimal.valueOf(fefoStocks.size()), 4, RoundingMode.HALF_UP);
-        }
-
-        BigDecimal differenceCout = coutSortiesFefo.subtract(coutSortiesFifo);
-
-        // Put into synthese map (so template can access them)
-        synthese.put("coutSortiesFifo", coutSortiesFifo);
-        synthese.put("coutSortiesFefo", coutSortiesFefo);
-        synthese.put("differenceCout", differenceCout);
-
         return synthese;
     }
 
     public Map<String, Object> getDetailValorisationParMethode(String methode) {
         Map<String, Object> detail = new HashMap<>();
 
-        // Récupérer les stocks par méthode
-        List<Stock> stocks = stockRepository.findByArticleMethodeValorisation(methode);
+        // Récupérer les articles par méthode
+        List<Article> articles = articleRepository.findByMethodeValorisation(methode);
 
-        BigDecimal valeurTotale = stocks.stream()
-                .map(s -> s.getValeurStockCump() != null ? s.getValeurStockCump() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal valeurTotale = BigDecimal.ZERO;
+        long nombreLots = 0;
+        BigDecimal coutMoyenTotal = BigDecimal.ZERO;
+        int countCout = 0;
 
-        long nombreLots = stocks.stream()
-                .flatMap(s -> lotRepository.findByArticleId(s.getArticle().getId()).stream())
-                .filter(l -> l.getStatut() == Lot.LotStatus.DISPONIBLE)
-                .count();
+        for (Article article : articles) {
+            // Récupérer les stocks pour cet article
+            List<Stock> stocks = stockRepository.findByArticleId(article.getId());
 
-        // Calculer coût moyen
-        BigDecimal coutMoyen = BigDecimal.ZERO;
-        if (!stocks.isEmpty()) {
-            BigDecimal sommeCout = stocks.stream()
-                    .map(s -> s.getCoutUnitaireMoyen() != null ? s.getCoutUnitaireMoyen() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            coutMoyen = sommeCout.divide(BigDecimal.valueOf(stocks.size()), 2, RoundingMode.HALF_UP);
+            for (Stock stock : stocks) {
+                BigDecimal valorisation = BigDecimal.ZERO;
+
+                switch (methode) {
+                    case "FIFO":
+                        valorisation = calculerValorisationFIFO(article.getId(), stock.getDepot().getId());
+                        break;
+                    case "FEFO":
+                        valorisation = calculerValorisationFEFO(article.getId(), stock.getDepot().getId());
+                        break;
+                    case "CUMP":
+                        valorisation = stock.getValeurStockCump() != null ? stock.getValeurStockCump()
+                                : BigDecimal.ZERO;
+                        break;
+                }
+
+                valeurTotale = valeurTotale.add(valorisation);
+
+                // Compter les lots disponibles
+                nombreLots += lotRepository.findByArticleIdAndStatut(
+                        article.getId(),
+                        Lot.LotStatus.DISPONIBLE).size();
+
+                // Calculer coût moyen
+                if (stock.getCoutUnitaireMoyen() != null) {
+                    coutMoyenTotal = coutMoyenTotal.add(stock.getCoutUnitaireMoyen());
+                    countCout++;
+                }
+            }
         }
 
+        // Calculer cout moyen
+        BigDecimal coutMoyen = countCout > 0
+                ? coutMoyenTotal.divide(BigDecimal.valueOf(countCout), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
         detail.put("valeurTotale", valeurTotale);
-        detail.put("nombreArticles", stocks.size());
+        detail.put("nombreArticles", articles.size());
         detail.put("nombreLots", nombreLots);
         detail.put("coutMoyen", coutMoyen);
 
-        // Ajouter des métriques spécifiques
+        // Métriques spécifiques FEFO
         if ("FEFO".equals(methode)) {
             LocalDate limite = LocalDate.now().plusDays(30);
             List<Lot> lotsProchePeremption = lotRepository.findLotsProchePeremption(limite);
-            detail.put("lotsProchePeremption", lotsProchePeremption.size());
+
+            // Filtrer par méthode FEFO
+            long lotsFefoProchePeremption = lotsProchePeremption.stream()
+                    .filter(lot -> {
+                        Article lotArticle = lot.getArticle();
+                        return lotArticle != null && "FEFO".equals(lotArticle.getMethodeValorisation());
+                    })
+                    .count();
+
+            detail.put("lotsProchePeremption", lotsFefoProchePeremption);
 
             BigDecimal valeurRisque = BigDecimal.ZERO;
             for (Lot lot : lotsProchePeremption) {
-                if (lot.getCoutUnitaire() != null && lot.getQuantiteActuelle() != null) {
-                    valeurRisque = valeurRisque.add(
-                            lot.getCoutUnitaire().multiply(BigDecimal.valueOf(lot.getQuantiteActuelle())));
+                Article lotArticle = lot.getArticle();
+                if (lotArticle != null && "FEFO".equals(lotArticle.getMethodeValorisation())) {
+                    if (lot.getCoutUnitaire() != null && lot.getQuantiteActuelle() != null) {
+                        valeurRisque = valeurRisque.add(
+                                lot.getCoutUnitaire().multiply(BigDecimal.valueOf(lot.getQuantiteActuelle())));
+                    }
                 }
             }
             detail.put("valeurRisque", valeurRisque);
         }
 
         if ("CUMP".equals(methode)) {
-            // Calcul d'un écart moyen fictif : ici on prend l'écart moyen des stocks si disponible
+            // Calcul d'écart moyen
             BigDecimal ecartMoyen = BigDecimal.ZERO;
-            if (!stocks.isEmpty()) {
-                // Exemple : écart moyen en pourcentage basé sur variance (vous pouvez remplacer par votre logique)
-                // Ici on met un calcul simple : si coutMoyen > 0, ecartMoyen = (coutMoyen - coutStandard)/(coutMoyen) * 100
-                BigDecimal coutStandardMoyen = stocks.stream()
-                        .map(s -> s.getArticle().getCoutStandard() != null ? s.getArticle().getCoutStandard() : BigDecimal.ZERO)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-                if (coutMoyen.compareTo(BigDecimal.ZERO) > 0) {
-                    try {
-                        BigDecimal moyenneCoutStandard = coutStandardMoyen.divide(BigDecimal.valueOf(stocks.size()), 4, RoundingMode.HALF_UP);
-                        ecartMoyen = moyenneCoutStandard.compareTo(BigDecimal.ZERO) != 0
-                                    ? moyenneCoutStandard.subtract(coutMoyen).abs()
-                                        .divide(coutMoyen, 4, RoundingMode.HALF_UP)
-                                        .multiply(BigDecimal.valueOf(100))
-                                    : BigDecimal.ZERO;
-                    } catch (Exception ex) {
-                        ecartMoyen = BigDecimal.ZERO;
+            if (!articles.isEmpty()) {
+                BigDecimal sommeEcart = BigDecimal.ZERO;
+                int countEcart = 0;
+
+                for (Article article : articles) {
+                    if (article.getCoutStandard() != null) {
+                        // Trouver le coût moyen des stocks pour cet article
+                        List<Stock> articleStocks = stockRepository.findByArticleId(article.getId());
+                        BigDecimal coutMoyenArticle = BigDecimal.ZERO;
+                        int countStocks = 0;
+
+                        for (Stock stock : articleStocks) {
+                            if (stock.getCoutUnitaireMoyen() != null) {
+                                coutMoyenArticle = coutMoyenArticle.add(stock.getCoutUnitaireMoyen());
+                                countStocks++;
+                            }
+                        }
+
+                        if (countStocks > 0) {
+                            coutMoyenArticle = coutMoyenArticle.divide(
+                                    BigDecimal.valueOf(countStocks), 4, RoundingMode.HALF_UP);
+
+                            if (coutMoyenArticle.compareTo(BigDecimal.ZERO) > 0) {
+                                BigDecimal ecart = article.getCoutStandard()
+                                        .subtract(coutMoyenArticle)
+                                        .abs()
+                                        .divide(coutMoyenArticle, 4, RoundingMode.HALF_UP)
+                                        .multiply(BigDecimal.valueOf(100));
+
+                                sommeEcart = sommeEcart.add(ecart);
+                                countEcart++;
+                            }
+                        }
                     }
                 }
+
+                ecartMoyen = countEcart > 0 ? sommeEcart.divide(BigDecimal.valueOf(countEcart), 2, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
             }
-            detail.put("ecartMoyen", ecartMoyen.setScale(2, RoundingMode.HALF_UP));
+
+            detail.put("ecartMoyen", ecartMoyen);
             detail.put("dateMaj", LocalDateTime.now());
         }
 
@@ -529,103 +562,103 @@ public class ValorisationService {
         return topArticles;
     }
 
-        /**
+    /**
      * Get évolution de la valorisation
      */
     public Map<String, Object> getEvolutionValorisation(int mois) {
         Map<String, Object> evolution = new HashMap<>();
-        
+
         LocalDate dateDebut = LocalDate.now().minusMonths(mois);
-        
+
         // Pour chaque mois, calculer la valorisation totale
         Map<String, BigDecimal> valorisationParMois = new TreeMap<>();
-        
+
         for (int i = 0; i <= mois; i++) {
             LocalDate dateMois = dateDebut.plusMonths(i);
             String cleMois = dateMois.getYear() + "-" + String.format("%02d", dateMois.getMonthValue());
-            
+
             // Simuler le calcul (dans un système réel, utiliser l'historique)
             BigDecimal valorisationMois = calculerValorisationMois(dateMois);
             valorisationParMois.put(cleMois, valorisationMois);
         }
-        
+
         evolution.put("mois", mois);
         evolution.put("valorisationParMois", valorisationParMois);
         evolution.put("dateDebut", dateDebut);
         evolution.put("dateFin", LocalDate.now());
-        
+
         return evolution;
     }
-    
+
     private BigDecimal calculerValorisationMois(LocalDate dateMois) {
         // Méthode simplifiée - dans un système réel, utiliser l'historique des coûts
         List<Stock> stocks = stockRepository.findAll();
-        
+
         return stocks.stream()
                 .map(Stock::getValeurStockCump)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
-    
+
     /**
      * Get détail valorisation d'un article
      */
     public Map<String, Object> getDetailValorisationArticle(UUID articleId) {
         Map<String, Object> detail = new HashMap<>();
-        
+
         Article article = articleRepository.findById(articleId)
                 .orElseThrow(() -> new RuntimeException("Article non trouvé"));
-        
+
         // Récupérer tous les stocks de cet article
         List<Stock> stocks = stockRepository.findAll().stream()
                 .filter(s -> s.getArticle().getId().equals(articleId))
                 .collect(Collectors.toList());
-        
+
         // Calculer la valorisation totale
         BigDecimal valorisationTotale = stocks.stream()
                 .map(Stock::getValeurStockCump)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         // Quantité totale
         Integer quantiteTotale = stocks.stream()
                 .mapToInt(Stock::getQuantiteTheorique)
                 .sum();
-        
+
         // Coût moyen pondéré
-        BigDecimal coutMoyen = quantiteTotale > 0 ?
-                valorisationTotale.divide(BigDecimal.valueOf(quantiteTotale), 4, RoundingMode.HALF_UP) :
-                BigDecimal.ZERO;
-        
+        BigDecimal coutMoyen = quantiteTotale > 0
+                ? valorisationTotale.divide(BigDecimal.valueOf(quantiteTotale), 4, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
         detail.put("article", article);
         detail.put("stocks", stocks);
         detail.put("valorisationTotale", valorisationTotale);
         detail.put("quantiteTotale", quantiteTotale);
         detail.put("coutMoyen", coutMoyen);
         detail.put("methodeValorisation", article.getMethodeValorisation());
-        
+
         return detail;
     }
 
     public List<Map<String, Object>> getValorisationDetailForDashboard() {
         List<Map<String, Object>> details = new ArrayList<>();
-        
+
         // Récupérer tous les articles
         List<Article> articles = articleRepository.findAll();
-        
+
         for (Article article : articles) {
             Map<String, Object> detail = new HashMap<>();
-            
+
             // Récupérer tous les stocks pour cet article
             List<Stock> stocks = stockRepository.findByArticleId(article.getId());
-            
+
             if (!stocks.isEmpty()) {
                 // Calculer les valorisations
                 BigDecimal valorisationFifo = BigDecimal.ZERO;
                 BigDecimal valorisationFefo = BigDecimal.ZERO;
                 BigDecimal valorisationCump = BigDecimal.ZERO;
                 Integer quantiteTotale = 0;
-                
+
                 for (Stock stock : stocks) {
                     // Pour chaque dépôt, calculer la valorisation
                     switch (article.getMethodeValorisation()) {
@@ -641,7 +674,7 @@ public class ValorisationService {
                     }
                     quantiteTotale += stock.getQuantiteTheorique();
                 }
-                
+
                 // S'assurer que toutes les méthodes ont une valeur (même si 0)
                 detail.put("codeArticle", article.getCodeArticle());
                 detail.put("libelle", article.getLibelle());
@@ -650,12 +683,54 @@ public class ValorisationService {
                 detail.put("valorisationFifo", valorisationFifo);
                 detail.put("valorisationFefo", valorisationFefo);
                 detail.put("valorisationCump", valorisationCump);
-                
+
                 details.add(detail);
             }
         }
-        
+
         // Limiter aux 50 premiers pour éviter des données trop lourdes
         return details.stream().limit(50).collect(Collectors.toList());
     }
+
+    public BigDecimal calculerValorisationFIFOTotale() {
+        log.info("Calcul valorisation FIFO totale");
+
+        List<Stock> stocks = stockRepository.findAll();
+        BigDecimal valeurTotale = BigDecimal.ZERO;
+
+        for (Stock stock : stocks) {
+            Article article = stock.getArticle();
+            if (article != null && "FIFO".equals(article.getMethodeValorisation())) {
+                BigDecimal valorisation = calculerValorisationFIFO(
+                        article.getId(),
+                        stock.getDepot().getId());
+                valeurTotale = valeurTotale.add(valorisation);
+            }
+        }
+
+        return valeurTotale;
+    }
+
+    /**
+     * CORRECTION : Calculer la valorisation FEFO totale
+     */
+    public BigDecimal calculerValorisationFEFOTotale() {
+        log.info("Calcul valorisation FEFO totale");
+
+        List<Stock> stocks = stockRepository.findAll();
+        BigDecimal valeurTotale = BigDecimal.ZERO;
+
+        for (Stock stock : stocks) {
+            Article article = stock.getArticle();
+            if (article != null && "FEFO".equals(article.getMethodeValorisation())) {
+                BigDecimal valorisation = calculerValorisationFEFO(
+                        article.getId(),
+                        stock.getDepot().getId());
+                valeurTotale = valeurTotale.add(valorisation);
+            }
+        }
+
+        return valeurTotale;
+    }
+
 }

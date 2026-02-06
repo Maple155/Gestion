@@ -152,7 +152,7 @@ public class LoginController {
                 case "ADMIN":
                 case "GESTIONNAIRE_STOCK":
                 case "RESPONSABLE_STOCK":
-                    return "redirect:/achats/demandes";
+                    return "redirect:/main/dashboard";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
                 case "MANAGER":

@@ -84,15 +84,15 @@ public interface InventaireRepository extends JpaRepository<Inventaire, UUID> {
             Pageable pageable);
 
     @Query("SELECT i FROM Inventaire i WHERE i.statut = :statut " +
-            "AND FUNCTION('MONTH', i.dateCloture) = :mois " +
-            "AND FUNCTION('YEAR', i.dateCloture) = :annee")
+            "AND EXTRACT(MONTH FROM i.dateCloture) = :mois " +
+            "AND EXTRACT(YEAR FROM i.dateCloture) = :annee")
     List<Inventaire> findByStatutAndDateCloture(@Param("statut") Inventaire.StatutInventaire statut,
             @Param("mois") Integer mois,
             @Param("annee") Integer annee);
 
     @Query("SELECT COUNT(i) FROM Inventaire i WHERE i.statut = :statut " +
-            "AND FUNCTION('MONTH', i.dateCloture) = :mois " +
-            "AND FUNCTION('YEAR', i.dateCloture) = :annee")
+            "AND EXTRACT(MONTH FROM i.dateCloture) = :mois " +
+            "AND EXTRACT(YEAR FROM i.dateCloture) = :annee")
     Long countByStatutAndDateCloture(@Param("statut") Inventaire.StatutInventaire statut,
             @Param("mois") Integer mois,
             @Param("annee") Integer annee);

@@ -41,4 +41,21 @@ public interface BonReceptionRepository extends JpaRepository<BonReception, UUID
     default List<BonReception> findBonsReceptionRecents() {
         return findBonsReceptionRecents(LocalDateTime.now().minusDays(30));
     }
+
+    // Ajouter ces méthodes manquantes
+    @Query("SELECT br FROM BonReception br ORDER BY br.dateReception DESC")
+    List<BonReception> findTopNByOrderByDateReceptionDesc(@Param("limit") int limit);
+
+    @Query("SELECT br FROM BonReception br " +
+            "JOIN br.bonCommande bc " +
+            "WHERE (:numeroBonCommande IS NULL OR bc.referenceBc LIKE %:numeroBonCommande%) " +
+            "AND (:dateFrom IS NULL OR br.dateReception >= :dateFrom) " +
+            "AND (:dateTo IS NULL OR br.dateReception <= :dateTo) " +
+            "AND (:conforme IS NULL OR br.conforme = :conforme) " +
+            "ORDER BY br.dateReception DESC")
+    List<BonReception> search(
+            @Param("numeroBonCommande") String numeroBonCommande,
+            @Param("dateFrom") LocalDateTime dateFrom,
+            @Param("dateTo") LocalDateTime dateTo,
+            @Param("conforme") Boolean conforme);
 }

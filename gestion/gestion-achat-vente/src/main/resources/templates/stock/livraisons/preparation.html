@@ -1,0 +1,610 @@
+<!-- templates/stock/livraisons/preparation.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Préparation Commande</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .order-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #0d6efd;
+        }
+        .order-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .order-card.completed {
+            border-left-color: #198754;
+            opacity: 0.8;
+        }
+        .order-card.urgent {
+            border-left-color: #dc3545;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .scan-input {
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        .item-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .progress-step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .progress-step.active {
+            background-color: #0d6efd;
+        }
+        .progress-step.completed {
+            background-color: #198754;
+        }
+        .progress-step.pending {
+            background-color: #6c757d;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/stock">Stock</a></li>
+                        <li class="breadcrumb-item"><a href="/stock/livraisons/liste">Livraisons</a></li>
+                        <li class="breadcrumb-item active">Préparation</li>
+                    </ol>
+                </nav>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1><i class="bi bi-clipboard-check"></i> Préparation de Commandes</h1>
+                    <div>
+                        <button id="btnScanner" class="btn btn-primary">
+                            <i class="bi bi-upc-scan"></i> Mode Scanner
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Mode Scanner (caché par défaut) -->
+                <div id="scannerMode" class="card mb-4" style="display: none;">
+                    <div class="card-header bg-primary text-white">
+                        <i class="bi bi-upc-scan"></i> Mode Scanner
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="scanInput" class="form-label">Scanner code-barre ou saisir référence</label>
+                                    <input type="text" class="form-control scan-input" id="scanInput" 
+                                           placeholder="Scannez ou tapez ici..." autofocus>
+                                    <div class="form-text">
+                                        Scannez un article, un lot ou entrez une référence manuellement
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="bi bi-info-circle"></i>
+                                    Le scanner détectera automatiquement le type d'élément scanné
+                                    et vous guidera vers l'action appropriée.
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="scanResult" class="alert" style="display: none;">
+                                    <!-- Résultat du scan dynamique -->
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header">
+                                        <i class="bi bi-lightning"></i> Actions rapides
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-primary" onclick="simulerScan('article')">
+                                                <i class="bi bi-box"></i> Simuler scan article
+                                            </button>
+                                            <button class="btn btn-outline-success" onclick="simulerScan('lot')">
+                                                <i class="bi bi-box-seam"></i> Simuler scan lot
+                                            </button>
+                                            <button class="btn btn-outline-warning" onclick="simulerScan('emplacement')">
+                                                <i class="bi bi-geo-alt"></i> Simuler scan emplacement
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Liste des commandes à préparer -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-list-task"></i> Commandes à préparer</span>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="switchUrgent">
+                                    <label class="form-check-label" for="switchUrgent">
+                                        <i class="bi bi-exclamation-triangle"></i> Urgentes seulement
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="ordersList">
+                                    <!-- Commandes chargées dynamiquement -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card order-card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h5 class="card-title">CMD-2026-0012</h5>
+                                                        <p class="card-text small text-muted mb-1">
+                                                            <i class="bi bi-clock"></i> Depuis: 2h
+                                                        </p>
+                                                        <p class="card-text small">
+                                                            <span class="badge bg-warning">Urgent</span>
+                                                            <span class="badge bg-info">3 articles</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="badge bg-secondary">À préparer</span>
+                                                        <div class="mt-2">
+                                                            <button class="btn btn-sm btn-primary">
+                                                                <i class="bi bi-play-circle"></i> Démarrer
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card order-card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h5 class="card-title">CMD-2026-0011</h5>
+                                                        <p class="card-text small text-muted mb-1">
+                                                            <i class="bi bi-clock"></i> Depuis: 4h
+                                                        </p>
+                                                        <p class="card-text small">
+                                                            <span class="badge bg-success">Normal</span>
+                                                            <span class="badge bg-info">5 articles</span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="badge bg-secondary">À préparer</span>
+                                                        <div class="mt-2">
+                                                            <button class="btn btn-sm btn-primary">
+                                                                <i class="bi bi-play-circle"></i> Démarrer
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-outline-secondary" onclick="chargerPlusCommandes()">
+                                        <i class="bi bi-arrow-clockwise"></i> Charger plus de commandes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Panneau de préparation en cours -->
+                    <div class="col-md-4">
+                        <div class="card sticky-top" style="top: 20px;">
+                            <div class="card-header">
+                                <i class="bi bi-clipboard-check"></i> Préparation en cours
+                            </div>
+                            <div class="card-body">
+                                <div id="currentOrder" style="display: none;">
+                                    <!-- Commande en cours chargée dynamiquement -->
+                                </div>
+                                
+                                <div id="noOrder" class="text-center text-muted py-5">
+                                    <i class="bi bi-clipboard display-1"></i>
+                                    <h4 class="mt-3">Aucune préparation en cours</h4>
+                                    <p>Sélectionnez une commande pour démarrer la préparation</p>
+                                </div>
+                                
+                                <!-- Progression -->
+                                <div class="mt-4" id="progressSection" style="display: none;">
+                                    <h6>Progression</h6>
+                                    <div class="d-flex justify-content-between mb-3">
+                                        <div class="text-center">
+                                            <div class="progress-step active">1</div>
+                                            <small>Recherche</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="progress-step pending">2</div>
+                                            <small>Prélèvement</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="progress-step pending">3</div>
+                                            <small>Vérification</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="progress-step pending">4</div>
+                                            <small>Emballage</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar" role="progressbar" style="width: 25%"></div>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-success" onclick="terminerPreparation()">
+                                            <i class="bi bi-check-circle"></i> Terminer la préparation
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="annulerPreparation()">
+                                            <i class="bi bi-x-circle"></i> Annuler
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Détails de la préparation (quand une commande est sélectionnée) -->
+                <div id="orderDetails" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-list-check"></i> Détails de la préparation
+                            <span id="orderTitle" class="ms-2"></span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Liste des articles à prélever -->
+                                <div class="col-md-8">
+                                    <h5><i class="bi bi-box"></i> Articles à prélever</h5>
+                                    <div class="item-list">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th width="50">#</th>
+                                                    <th>Article</th>
+                                                    <th>Emplacement</th>
+                                                    <th>Lot</th>
+                                                    <th>Quantité</th>
+                                                    <th>Statut</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="itemsList">
+                                                <!-- Items chargés dynamiquement -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Instructions et informations -->
+                                <div class="col-md-4">
+                                    <h5><i class="bi bi-info-circle"></i> Instructions</h5>
+                                    <div class="alert alert-warning">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        <strong>Important :</strong> Vérifiez les dates de péremption avant prélèvement.
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Commentaires préparation</label>
+                                        <textarea class="form-control" rows="3" 
+                                                  placeholder="Ajoutez des commentaires si nécessaire..."></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Contrôle qualité</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="checkQualite1">
+                                            <label class="form-check-label" for="checkQualite1">
+                                                Articles conformes
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="checkQualite2">
+                                            <label class="form-check-label" for="checkQualite2">
+                                                Emballage intact
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="checkQualite3">
+                                            <label class="form-check-label" for="checkQualite3">
+                                                Quantités correctes
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="btn btn-primary w-100" onclick="validerPreparation()">
+                                        <i class="bi bi-check-all"></i> Valider la préparation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let currentOrder = null;
+        let scannerMode = false;
+        
+        // Basculer mode scanner
+        document.getElementById('btnScanner').addEventListener('click', function() {
+            scannerMode = !scannerMode;
+            const scannerDiv = document.getElementById('scannerMode');
+            scannerDiv.style.display = scannerMode ? 'block' : 'none';
+            this.innerHTML = scannerMode ? 
+                '<i class="bi bi-upc-scan"></i> Mode Normal' : 
+                '<i class="bi bi-upc-scan"></i> Mode Scanner';
+            
+            if (scannerMode) {
+                document.getElementById('scanInput').focus();
+            }
+        });
+        
+        // Gestion du scan
+        document.getElementById('scanInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                processScan(this.value);
+                this.value = '';
+            }
+        });
+        
+        function processScan(value) {
+            const resultDiv = document.getElementById('scanResult');
+            
+            // Simulation de traitement
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'alert alert-info';
+            resultDiv.innerHTML = `
+                <i class="bi bi-search"></i>
+                <strong>Scan détecté:</strong> ${value}
+                <p class="mb-0 mt-1">Traitement en cours...</p>
+            `;
+            
+            // Simulation API call
+            setTimeout(() => {
+                resultDiv.className = 'alert alert-success';
+                resultDiv.innerHTML = `
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Article trouvé:</strong> ART-001 - Produit Test
+                    <p class="mb-0 mt-1">
+                        <button class="btn btn-sm btn-primary mt-1" onclick="ajouterAuPanier('ART-001')">
+                            <i class="bi bi-cart-plus"></i> Ajouter au panier
+                        </button>
+                    </p>
+                `;
+            }, 1000);
+        }
+        
+        function simulerScan(type) {
+            let value = '';
+            switch(type) {
+                case 'article': value = 'ART-001-123456789'; break;
+                case 'lot': value = 'LOT-2026-0001'; break;
+                case 'emplacement': value = 'A-01-02-03'; break;
+            }
+            document.getElementById('scanInput').value = value;
+            processScan(value);
+        }
+        
+        function ajouterAuPanier(articleCode) {
+            alert(`Article ${articleCode} ajouté au panier de préparation`);
+            // Ici, appeler l'API pour ajouter l'article à la préparation en cours
+        }
+        
+        // Gestion des commandes
+        function demarrerPreparation(orderId) {
+            currentOrder = orderId;
+            
+            // Cacher "aucune commande"
+            document.getElementById('noOrder').style.display = 'none';
+            document.getElementById('progressSection').style.display = 'block';
+            
+            // Afficher détails commande
+            document.getElementById('orderDetails').style.display = 'block';
+            document.getElementById('orderTitle').textContent = `- ${orderId}`;
+            
+            // Simuler chargement des items
+            chargerItemsCommande(orderId);
+            
+            // Mettre à jour le panneau de préparation
+            document.getElementById('currentOrder').style.display = 'block';
+            document.getElementById('currentOrder').innerHTML = `
+                <h5>${orderId}</h5>
+                <p class="small text-muted">
+                    <i class="bi bi-clock"></i> Commencé il y a 0 minute
+                </p>
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i>
+                    Scannez chaque article pour valider le prélèvement
+                </div>
+            `;
+        }
+        
+        function chargerItemsCommande(orderId) {
+            const items = [
+                { id: 1, article: 'ART-001', libelle: 'Produit Test 1', emplacement: 'A-01-02-03', lot: 'LOT-2026-0001', quantite: 10, statut: 'à prélever' },
+                { id: 2, article: 'ART-002', libelle: 'Produit Test 2', emplacement: 'A-02-01-01', lot: 'LOT-2026-0002', quantite: 5, statut: 'à prélever' },
+                { id: 3, article: 'ART-003', libelle: 'Produit Test 3', emplacement: 'B-01-01-01', lot: 'LOT-2026-0003', quantite: 3, statut: 'à prélever' }
+            ];
+            
+            const tbody = document.getElementById('itemsList');
+            tbody.innerHTML = '';
+            
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td>
+                        <strong>${item.article}</strong><br>
+                        <small class="text-muted">${item.libelle}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">${item.emplacement}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${item.lot}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">${item.quantite}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-warning">${item.statut}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-success" onclick="validerItem(${item.id})">
+                            <i class="bi bi-check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="problemeItem(${item.id})">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function validerItem(itemId) {
+            const btn = document.querySelector(`button[onclick="validerItem(${itemId})"]`);
+            btn.disabled = true;
+            btn.className = 'btn btn-sm btn-success';
+            btn.innerHTML = '<i class="bi bi-check-all"></i>';
+            
+            // Mettre à jour la progression
+            updateProgress();
+        }
+        
+        function problemeItem(itemId) {
+            const raison = prompt("Indiquez le problème rencontré :");
+            if (raison) {
+                alert(`Problème signalé pour l'item ${itemId}: ${raison}`);
+                // Ici, appeler l'API pour signaler le problème
+            }
+        }
+        
+        function updateProgress() {
+            const itemsValides = document.querySelectorAll('.btn-success').length;
+            const totalItems = document.querySelectorAll('button[onclick^="validerItem"]').length;
+            const pourcentage = (itemsValides / totalItems) * 100;
+            
+            // Mettre à jour la barre de progression
+            document.querySelector('.progress-bar').style.width = `${pourcentage}%`;
+            
+            // Mettre à jour les étapes
+            const steps = document.querySelectorAll('.progress-step');
+            steps.forEach((step, index) => {
+                step.className = 'progress-step';
+                if (pourcentage >= (index + 1) * 25) {
+                    step.classList.add('completed');
+                } else if (pourcentage >= index * 25) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.add('pending');
+                }
+            });
+        }
+        
+        function validerPreparation() {
+            if (confirm("Confirmez-vous la validation complète de cette préparation ?")) {
+                alert("Préparation validée avec succès !");
+                // Ici, appeler l'API pour valider la préparation
+                terminerPreparation();
+            }
+        }
+        
+        function terminerPreparation() {
+            if (confirm("Terminer cette préparation et passer à la suivante ?")) {
+                currentOrder = null;
+                document.getElementById('noOrder').style.display = 'block';
+                document.getElementById('progressSection').style.display = 'none';
+                document.getElementById('currentOrder').style.display = 'none';
+                document.getElementById('orderDetails').style.display = 'none';
+                alert("Préparation terminée. Prêt pour la suivante !");
+            }
+        }
+        
+        function annulerPreparation() {
+            if (confirm("Annuler cette préparation ? Toutes les validations seront perdues.")) {
+                terminerPreparation();
+            }
+        }
+        
+        function chargerPlusCommandes() {
+            // Simulation de chargement supplémentaire
+            const ordersList = document.getElementById('ordersList');
+            const newOrder = document.createElement('div');
+            newOrder.className = 'col-md-6 mb-3';
+            newOrder.innerHTML = `
+                <div class="card order-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title">CMD-2026-00XX</h5>
+                                <p class="card-text small text-muted mb-1">
+                                    <i class="bi bi-clock"></i> Depuis: Xh
+                                </p>
+                                <p class="card-text small">
+                                    <span class="badge bg-success">Normal</span>
+                                    <span class="badge bg-info">X articles</span>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-secondary">À préparer</span>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-primary" onclick="demarrerPreparation('CMD-2026-00XX')">
+                                        <i class="bi bi-play-circle"></i> Démarrer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            ordersList.appendChild(newOrder);
+        }
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ajouter des écouteurs d'événements aux boutons existants
+            document.querySelectorAll('.order-card .btn-primary').forEach(btn => {
+                const orderId = btn.closest('.card').querySelector('.card-title').textContent;
+                btn.onclick = () => demarrerPreparation(orderId);
+            });
+        });
+    </script>
+</body>
+</html>

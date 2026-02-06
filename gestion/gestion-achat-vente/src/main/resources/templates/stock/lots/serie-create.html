@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      >
+<head>
+    <title>Nouveau Numéro de Série</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div >
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/lots}">Lots</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/lots/series}">Séries</a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">Nouvelle série</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-plus-circle text-success"></i>
+                    Créer un nouveau numéro de série
+                </h1>
+            </div>
+            <div>
+                <a th:href="@{/lots/series}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Annuler
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages flash -->
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Formulaire -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Informations de la série</h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/lots/series/nouveau}" method="post" th:object="${serieDTO}">
+                    <div class="row">
+                        <!-- Numéro de série -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Numéro de série <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace" 
+                                       th:field="*{numeroSerie}" required
+                                       placeholder="SERIE-2024-001" 
+                                       th:classappend="${#fields.hasErrors('numeroSerie')} ? 'is-invalid'">
+                                <button type="button" class="btn btn-outline-secondary" onclick="genererNumeroSerie()">
+                                    <i class="bi bi-shuffle"></i> Générer
+                                </button>
+                            </div>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('numeroSerie')}"
+                                 th:errors="*{numeroSerie}"></div>
+                            <small class="text-muted">Format recommandé: SERIE-YYYY-NNN</small>
+                        </div>
+                        
+                        <!-- Article -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Article <span class="text-danger">*</span></label>
+                            <select class="form-select" th:field="*{article.id}" required
+                                    th:classappend="${#fields.hasErrors('article.id')} ? 'is-invalid'"
+                                    onchange="loadArticleInfo(this.value)">
+                                <option value="">Sélectionnez un article</option>
+                                <option th:each="article : ${articles}"
+                                        th:value="${article.id}"
+                                        th:selected="${article.id == article.id}"
+                                        th:text="${article.codeArticle + ' - ' + article.libelle}">
+                                </option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('article.id')}"
+                                 th:errors="*{article.id}"></div>
+                            
+                            <!-- Info article -->
+                            <div id="articleInfo" class="mt-2">
+                                <small>
+                                    <span id="articleGestionSerie" class="badge bg-info d-none">Géré par série</span>
+                                    <span id="articleUnite" class="text-muted"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Lot (optionnel) -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Lot associé</label>
+                            <select class="form-select" th:field="*{lot.id}" id="lotSelect">
+                                <option value="">Aucun lot associé</option>
+                                <option th:each="lot : ${lots}"
+                                        th:value="${lot.id}"
+                                        th:text="${lot.numeroLot} + ' (' + ${lot.quantiteActuelle} + ' restants)'">
+                                </option>
+                            </select>
+                            <small class="text-muted">Optionnel - pour la traçabilité</small>
+                        </div>
+                        
+                        <!-- Emplacement -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Emplacement</label>
+                            <select class="form-select" th:field="*{emplacement.id}">
+                                <option value="">Non assigné</option>
+                                <option th:each="emplacement : ${emplacements}"
+                                        th:value="${emplacement.id}"
+                                        th:text="${emplacement.code + ' - ' + emplacement.zone.depot.nom}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Bon de réception -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bon de réception</label>
+                            <select class="form-select" th:field="*{bonReception.id}">
+                                <option value="">Non lié</option>
+                                <option th:each="bon : ${bonsReception}"
+                                        th:value="${bon.id}"
+                                        th:text="${bon.observations + ' - ' + #temporals.format(bon.dateReception, 'dd/MM/yyyy')}">
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <!-- Date de réception -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date de réception</label>
+                            <input type="datetime-local" class="form-control" th:field="*{dateReception}"
+                            th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd''T''HH:mm')}">
+                        </div>
+                    </div>
+                    
+                    <!-- Statut initial -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Statut initial</label>
+                            <select class="form-select" th:field="*{statut}">
+                                <option th:each="statut : ${statutsSerie}"
+                                        th:value="${statut}"
+                                        th:text="${statut}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Champ de scan multiple -->
+                    <div class="mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-upc-scan"></i> Saisie multiple (optionnel)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Scanner plusieurs numéros de série</label>
+                                    <textarea class="form-control" id="multipleScan" rows="4" 
+                                              placeholder="Scanner ou saisir un numéro de série par ligne..."></textarea>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="ajouterScan()">
+                                        <i class="bi bi-plus"></i> Ajouter au champ principal
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="effacerScanMultiple()">
+                                        <i class="bi bi-trash"></i> Effacer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </button>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Créer la série
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="creerEtScanner()">
+                                <i class="bi bi-upc-scan"></i> Créer et scanner suivant
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <script >
+        // Générer un numéro de série automatique
+        function genererNumeroSerie() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            document.querySelector('input[name="numeroSerie"]').value = `SERIE-${year}-${random}`;
+        }
+        
+        // Charger les informations de l'article
+        function loadArticleInfo(articleId) {
+            if (!articleId) {
+                document.getElementById('articleInfo').innerHTML = '';
+                return;
+            }
+            
+            axios.get(`/api/articles/${articleId}`)
+                .then(response => {
+                    const article = response.data;
+                    const articleInfo = document.getElementById('articleInfo');
+                    
+                    let html = '';
+                    if (article.gestionParSerie) {
+                        html += `<span class="badge bg-info me-2">Géré par série</span>`;
+                    }
+                    if (article.uniteMesure) {
+                        html += `<span class="text-muted">${article.uniteMesure.libelle}</span>`;
+                    }
+                    
+                    articleInfo.innerHTML = html;
+                    
+                    // Charger les lots correspondant à cet article
+                    loadLotsByArticle(articleId);
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+        }
+        
+        // Charger les lots par article
+        function loadLotsByArticle(articleId) {
+            if (!articleId) {
+                document.getElementById('lotSelect').innerHTML = `
+                    <option value="">Aucun lot associé</option>
+                `;
+                return;
+            }
+            
+            axios.get(`/api/lots/article/${articleId}/disponibles`)
+                .then(response => {
+                    const lots = response.data;
+                    const select = document.getElementById('lotSelect');
+                    
+                    let options = '<option value="">Aucun lot associé</option>';
+                    lots.forEach(lot => {
+                        options += `<option value="${lot.id}">${lot.numeroLot} (${lot.quantiteActuelle} restants)</option>`;
+                    });
+                    
+                    select.innerHTML = options;
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+        }
+        
+        // Gestion du scan multiple
+        function ajouterScan() {
+            const scanInput = document.getElementById('multipleScan');
+            const mainInput = document.querySelector('input[name="numeroSerie"]');
+            
+            const lines = scanInput.value.split('\n').filter(line => line.trim() !== '');
+            if (lines.length > 0) {
+                // Prendre le premier numéro non vide
+                const premierNumero = lines[0].trim();
+                mainInput.value = premierNumero;
+                
+                // Effacer la ligne utilisée
+                scanInput.value = lines.slice(1).join('\n');
+            }
+        }
+        
+        function effacerScanMultiple() {
+            document.getElementById('multipleScan').value = '';
+        }
+        
+        // Créer et scanner suivant
+        function creerEtScanner() {
+            const form = document.querySelector('form');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // Changer le bouton
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Création en cours...';
+            submitBtn.disabled = true;
+            
+            // Soumettre le formulaire
+            form.submit();
+            
+            // Préparer pour le suivant
+            setTimeout(() => {
+                document.querySelector('input[name="numeroSerie"]').value = '';
+                document.getElementById('multipleScan').value = '';
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                document.querySelector('input[name="numeroSerie"]').focus();
+            }, 1000);
+        }
+        
+        // Scanner automatique (simulation)
+        document.addEventListener('DOMContentLoaded', function() {
+            const numeroSerieInput = document.querySelector('input[name="numeroSerie"]');
+            const multipleScan = document.getElementById('multipleScan');
+            
+            // Focus sur le champ principal
+            numeroSerieInput.focus();
+            
+            // Simuler un scan avec la touche Entrée
+            numeroSerieInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' && this.value.trim()) {
+                    event.preventDefault();
+                    if (confirm('Scanner le numéro suivant ?')) {
+                        // Sauvegarder le numéro actuel dans le champ multiple
+                        if (multipleScan.value) {
+                            multipleScan.value += '\n' + this.value;
+                        } else {
+                            multipleScan.value = this.value;
+                        }
+                        
+                        // Générer un nouveau numéro
+                        genererNumeroSerie();
+                    }
+                }
+            });
+            
+            // Pré-remplir le numéro de série si vide
+            if (!numeroSerieInput.value) {
+                genererNumeroSerie();
+            }
+        });
+    </script>
+</body>
+</html>

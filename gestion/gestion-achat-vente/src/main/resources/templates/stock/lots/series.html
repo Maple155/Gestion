@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      >
+<head>
+    <title>Gestion des Numéros de Série</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+        .scan-input {
+            font-family: monospace;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+        .qr-code {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .serie-table tbody tr {
+            transition: background-color 0.2s;
+        }
+        .badge-statut {
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div >
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-upc-scan text-info"></i>
+                    Numéros de Série
+                </h1>
+                <p class="text-muted mb-0">Gestion des articles sérialisés</p>
+            </div>
+            <div>
+                <a th:href="@{/lots}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Lots
+                </a>
+                <a th:href="@{/lots/series/nouveau}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Nouvelle série
+                </a>
+                <button class="btn btn-primary" onclick="initScanner()">
+                    <i class="bi bi-upc-scan"></i> Scanner
+                </button>
+            </div>
+        </div>
+
+        <!-- Scanner (masqué par défaut) -->
+        <div class="card mb-4 d-none" id="scannerSection">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-camera"></i> Scanner un numéro de série</h5>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Numéro de série scanné</label>
+                            <input type="text" class="form-control scan-input" id="scanInput"
+                                   placeholder="Attente du scan..." autofocus>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" onclick="processScan()">
+                                <i class="bi bi-check-circle"></i> Valider
+                            </button>
+                            <button class="btn btn-secondary" onclick="hideScanner()">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center">
+                            <div class="qr-code mx-auto mb-2 d-flex align-items-center justify-content-center">
+                                <i class="bi bi-upc-scan fa-2x text-muted"></i>
+                            </div>
+                            <small class="text-muted">Prêt à scanner</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/lots/series}" method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Numéro de série</label>
+                        <input type="text" class="form-control" name="numeroSerie"
+                               th:value="${numeroSerie}" placeholder="SERIE-...">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Article</label>
+                        <select class="form-select" name="articleId">
+                            <option value="">Tous les articles</option>
+                            <option th:each="article : ${articles}"
+                                    th:value="${article.id}"
+                                    th:text="${article.codeArticle + ' - ' + article.libelle}"
+                                    th:selected="${articleId == article.id}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Statut</label>
+                        <select class="form-select" name="statut">
+                            <option value="">Tous les statuts</option>
+                            <option th:each="statut : ${statutsSerie}"
+                                    th:value="${statut}"
+                                    th:text="${statut}"
+                                    th:selected="${statut == statut}">
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Rechercher
+                            </button>
+                            <a th:href="@{/lots/series}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tableau des séries -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-table"></i> Séries enregistrées
+                    <span class="badge bg-primary ms-2" th:text="${series.totalElements}">0</span>
+                </h5>
+                
+                <!-- Export -->
+                <button class="btn btn-outline-info btn-sm" onclick="exportSeries()">
+                    <i class="bi bi-download"></i> Exporter
+                </button>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 serie-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>N° Série</th>
+                                <th>Article</th>
+                                <th>Lot</th>
+                                <th>Statut</th>
+                                <th>Emplacement</th>
+                                <th>Date réception</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="serie : ${series.content}">
+                                <!-- Numéro de série -->
+                                <td>
+                                    <strong class="font-monospace" th:text="${serie.numeroSerie}"></strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-qr-code"></i>
+                                        Code-barres
+                                    </small>
+                                </td>
+                                
+                                <!-- Article -->
+                                <td>
+                                    <div class="fw-semibold" th:text="${serie.article.codeArticle}"></div>
+                                    <small class="text-muted" th:text="${serie.article.libelle}"></small>
+                                </td>
+                                
+                                <!-- Lot -->
+                                <td>
+                                    <div th:if="${serie.lot != null}">
+                                        <a th:href="@{/lots/{id}(id=${serie.lot.id})}"
+                                           class="text-decoration-none">
+                                            [[${serie.lot.numeroLot}]]
+                                        </a>
+                                    </div>
+                                    <div th:unless="${serie.lot != null}">
+                                        <span class="text-muted">Non assigné</span>
+                                    </div>
+                                </td>
+                                
+                                <!-- Statut -->
+                                <td>
+                                    <span th:switch="${serie.statut}" class="badge badge-statut">
+                                        <span th:case="EN_STOCK" class="badge bg-success">
+                                            [[${serie.statut}]]
+                                        </span>
+                                        <span th:case="VENDU" class="badge bg-primary">
+                                            [[${serie.statut}]]
+                                        </span>
+                                        <span th:case="RETOUR" class="badge bg-warning text-dark">
+                                            [[${serie.statut}]]
+                                        </span>
+                                        <span th:case="SAV" class="badge bg-info">
+                                            [[${serie.statut}]]
+                                        </span>
+                                        <span th:case="REBUT" class="badge bg-danger">
+                                            [[${serie.statut}]]
+                                        </span>
+                                    </span>
+                                </td>
+                                
+                                <!-- Emplacement -->
+                                <td>
+                                    <div th:if="${serie.emplacement != null}">
+                                        [[${serie.emplacement.code}]]
+                                        <br>
+                                        <small class="text-muted">
+                                            [[${serie.emplacement.zone.depot.nom}]]
+                                        </small>
+                                    </div>
+                                    <div th:unless="${serie.emplacement != null}">
+                                        <span class="text-muted">Non assigné</span>
+                                    </div>
+                                </td>
+                                
+                                <!-- Date réception -->
+                                <td>
+                                    <div th:if="${serie.dateReception != null}">
+                                        [[${#temporals.format(serie.dateReception, 'dd/MM/yyyy')}]]
+                                    </div>
+                                    <div th:unless="${serie.dateReception != null}">
+                                        <span class="text-muted">N/A</span>
+                                    </div>
+                                </td>
+                                
+                                <!-- Actions -->
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a th:href="@{/lots/series/{id}(id=${serie.id})}"
+                                           class="btn btn-outline-primary" title="Voir">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a th:href="@{/lots/series/{id}/modifier(id=${serie.id})}"
+                                           class="btn btn-outline-secondary" title="Modifier">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info dropdown-toggle"
+                                                data-bs-toggle="dropdown">
+                                            <i class="bi bi-gear"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="#"
+                                                   onclick="genererEtiquette('[[${serie.numeroSerie}]]')">
+                                                    <i class="bi bi-printer"></i> Imprimer étiquette
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="#"
+                                                   onclick="genererQRCode('[[${serie.numeroSerie}]]')">
+                                                    <i class="bi bi-qr-code"></i> Générer QR Code
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li th:if="${serie.statut == 'EN_STOCK'}">
+                                                <a class="dropdown-item text-primary"
+                                                   th:href="@{#}"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#vendreModal"
+                                                   th:data-serie-id="${serie.id}"
+                                                   th:data-serie-numero="${serie.numeroSerie}">
+                                                    <i class="bi bi-cart-check"></i> Marquer comme vendu
+                                                </a>
+                                            </li>
+                                            <li th:if="${serie.statut == 'VENDU'}">
+                                                <a class="dropdown-item text-warning"
+                                                   th:href="@{#}"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#retourModal"
+                                                   th:data-serie-id="${serie.id}"
+                                                   th:data-serie-numero="${serie.numeroSerie}">
+                                                    <i class="bi bi-arrow-counterclockwise"></i> Retour client
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger"
+                                                   th:href="@{#}"
+                                                   data-bs-toggle="modal"
+                                                   data-bs-target="#rebutModal"
+                                                   th:data-serie-id="${serie.id}"
+                                                   th:data-serie-numero="${serie.numeroSerie}">
+                                                    <i class="bi bi-trash"></i> Mettre au rebut
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            <!-- Message si vide -->
+                            <tr th:if="${series.empty}">
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="bi bi-inbox fa-2x mb-2"></i>
+                                        <p class="mb-0">Aucun numéro de série trouvé</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            <div th:if="${series.totalPages > 1}" class="card-footer">
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item" th:classappend="${series.first} ? 'disabled'">
+                            <a class="page-link" th:href="@{/lots/series(page=0, size=${series.size},
+                                numeroSerie=${numeroSerie}, articleId=${articleId}, statut=${statut})}">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:classappend="${series.number == 0} ? 'disabled'">
+                            <a class="page-link" th:href="@{/lots/series(page=${series.number-1}, size=${series.size},
+                                numeroSerie=${numeroSerie}, articleId=${articleId}, statut=${statut})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li th:each="i : ${#numbers.sequence(0, series.totalPages-1)}" 
+                            class="page-item" th:classappend="${i == series.number} ? 'active'">
+                            <a class="page-link" th:href="@{/lots/series(page=${i}, size=${series.size},
+                                numeroSerie=${numeroSerie}, articleId=${articleId}, statut=${statut})}"
+                               th:text="${i+1}">
+                            </a>
+                        </li>
+                        <li class="page-item" th:classappend="${series.number == series.totalPages-1} ? 'disabled'">
+                            <a class="page-link" th:href="@{/lots/series(page=${series.number+1}, size=${series.size},
+                                numeroSerie=${numeroSerie}, articleId=${articleId}, statut=${statut})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item" th:classappend="${series.last} ? 'disabled'">
+                            <a class="page-link" th:href="@{/lots/series(page=${series.totalPages-1}, size=${series.size},
+                                numeroSerie=${numeroSerie}, articleId=${articleId}, statut=${statut})}">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals pour les actions -->
+    <!-- Modal Vendre -->
+    <div class="modal fade" id="vendreModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Marquer comme vendu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/lots/series/{id}/vendre(id=__serieId__)}" method="post" id="vendreForm">
+                    <div class="modal-body">
+                        <p>
+                            Marquer la série <strong id="serieNumeroVendre"></strong> comme vendue ?
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Numéro de commande client</label>
+                            <input type="text" class="form-control" name="commandeClientId" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Date de vente</label>
+                            <input type="date" class="form-control" name="dateVente" 
+                                   th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cart-check"></i> Confirmer la vente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Retour -->
+    <div class="modal fade" id="retourModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Retour client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/lots/series/{id}/retour(id=__serieId__)}" method="post" id="retourForm">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Le produit retournera en stock après inspection.
+                        </div>
+                        <p>
+                            Série: <strong id="serieNumeroRetour"></strong>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Motif du retour</label>
+                            <select class="form-select" name="motif" required>
+                                <option value="">Sélectionnez un motif</option>
+                                <option value="DEFECTUEUX">Défectueux</option>
+                                <option value="NON_CONFORME">Non conforme</option>
+                                <option value="CHANGEMENT_AVIS">Changement d'avis</option>
+                                <option value="DOUBLE_COMMANDE">Double commande</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Commentaire</label>
+                            <textarea class="form-control" name="commentaire" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-arrow-counterclockwise"></i> Enregistrer le retour
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rebut -->
+    <div class="modal fade" id="rebutModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mettre au rebut</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/lots/series/{id}/rebut(id=__serieId__)}" method="post" id="rebutForm">
+                    <div class="modal-body">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Cette action est irréversible. Le produit sera retiré définitivement.
+                        </div>
+                        <p>
+                            Série: <strong id="serieNumeroRebut"></strong>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Motif du rebut</label>
+                            <select class="form-select" name="motif" required>
+                                <option value="">Sélectionnez un motif</option>
+                                <option value="CASSE">Casse</option>
+                                <option value="PEREMPTION">Péremption</option>
+                                <option value="DEFAILLANCE">Défaillance technique</option>
+                                <option value="NON_CONFORME">Non conforme irrécupérable</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Commentaire</label>
+                            <textarea class="form-control" name="commentaire" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Mettre au rebut
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <script >
+        // Scanner
+        function initScanner() {
+            const scanner = document.getElementById('scannerSection');
+            scanner.classList.remove('d-none');
+            document.getElementById('scanInput').focus();
+        }
+        
+        function hideScanner() {
+            document.getElementById('scannerSection').classList.add('d-none');
+        }
+        
+        function processScan() {
+            const scanValue = document.getElementById('scanInput').value.trim();
+            if (scanValue) {
+                window.location.href = `/lots/series?numeroSerie=${encodeURIComponent(scanValue)}`;
+            }
+        }
+        
+        // Gestion des modals
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal vendre
+            const vendreModal = document.getElementById('vendreModal');
+            vendreModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const serieId = button.getAttribute('data-serie-id');
+                const serieNumero = button.getAttribute('data-serie-numero');
+                
+                document.getElementById('vendreForm').action = 
+                    document.getElementById('vendreForm').action.replace('__serieId__', serieId);
+                document.getElementById('serieNumeroVendre').textContent = serieNumero;
+            });
+            
+            // Modal retour
+            const retourModal = document.getElementById('retourModal');
+            retourModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const serieId = button.getAttribute('data-serie-id');
+                const serieNumero = button.getAttribute('data-serie-numero');
+                
+                document.getElementById('retourForm').action = 
+                    document.getElementById('retourForm').action.replace('__serieId__', serieId);
+                document.getElementById('serieNumeroRetour').textContent = serieNumero;
+            });
+            
+            // Modal rebut
+            const rebutModal = document.getElementById('rebutModal');
+            rebutModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const serieId = button.getAttribute('data-serie-id');
+                const serieNumero = button.getAttribute('data-serie-numero');
+                
+                document.getElementById('rebutForm').action = 
+                    document.getElementById('rebutForm').action.replace('__serieId__', serieId);
+                document.getElementById('serieNumeroRebut').textContent = serieNumero;
+            });
+        });
+        
+        // Export
+        function exportSeries() {
+            const format = prompt('Format d\'export (excel, csv):', 'excel');
+            if (format) {
+                window.location.href = `/lots/series/export?format=${format}&numeroSerie=${encodeURIComponent('[[${numeroSerie}]]')}&articleId=[[${articleId}]]&statut=[[${statut}]]`;
+            }
+        }
+        
+        // Générer étiquette
+        function genererEtiquette(numeroSerie) {
+            window.open(`/lots/series/${numeroSerie}/etiquette`, '_blank');
+        }
+        
+        // Générer QR Code
+        function genererQRCode(numeroSerie) {
+            window.open(`/lots/series/${numeroSerie}/qrcode`, '_blank');
+        }
+        
+        // Scanner automatique (simulation)
+        document.addEventListener('keydown', function(event) {
+            const scanInput = document.getElementById('scanInput');
+            if (scanInput && document.activeElement === scanInput) {
+                if (event.key === 'Enter') {
+                    processScan();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

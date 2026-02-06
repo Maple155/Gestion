@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      >
+<head>
+    <title>Transférer un Lot</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+        .emplacement-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .emplacement-card:hover {
+            background-color: #f8f9fa;
+            border-color: #0d6efd;
+            transform: translateY(-2px);
+        }
+        .emplacement-card.selected {
+            background-color: #e7f1ff;
+            border-color: #0d6efd;
+            border-width: 2px;
+        }
+        .emplacement-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .capacity-indicator {
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .capacity-fill {
+            height: 100%;
+            background-color: #28a745;
+            border-radius: 3px;
+        }
+        .search-box {
+            position: relative;
+        }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .transfer-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .transfer-steps:before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #dee2e6;
+            z-index: 1;
+        }
+        .step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+        .step.active .step-number {
+            background: #0d6efd;
+            color: white;
+        }
+        .step.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+        .step-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .step.active .step-label {
+            color: #0d6efd;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div >
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/lots}">Lots</a>
+                        </li>
+                        <li class="breadcrumb-item">
+                            <a th:href="@{/lots/{id}(id=${lot.id})}" th:text="${lot.numeroLot}"></a>
+                        </li>
+                        <li class="breadcrumb-item active" aria-current="page">Transférer</li>
+                    </ol>
+                </nav>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-arrow-left-right text-primary"></i>
+                    Transférer le lot: <span th:text="${lot.numeroLot}"></span>
+                </h1>
+                <p class="text-muted mb-0">Déplacer le lot vers un nouvel emplacement</p>
+            </div>
+            <div>
+                <a th:href="@{/lots/{id}(id=${lot.id})}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages flash -->
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle"></i> <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Étapes du transfert -->
+        <div class="transfer-steps mb-5">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-label">Sélection</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-label">Vérification</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-label">Confirmation</div>
+            </div>
+        </div>
+
+        <!-- Étape 1 : Sélection de l'emplacement -->
+        <div class="card mb-4" id="step1-content">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-geo-alt"></i> 
+                    Étape 1 : Sélectionner le nouvel emplacement
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Informations actuelles -->
+                <div class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Emplacement actuel:</strong>
+                            <div th:if="${lot.emplacement != null}">
+                                <span class="h5" th:text="${lot.emplacement.code}"></span>
+                                <br>
+                                <small class="text-muted">
+                                    [[${lot.emplacement.zone.code}]] - 
+                                    [[${lot.emplacement.zone.depot.nom}]]
+                                </small>
+                            </div>
+                            <div th:unless="${lot.emplacement != null}">
+                                <span class="text-muted">Non assigné</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Article:</strong>
+                            <div th:text="${lot.article.codeArticle}"></div>
+                            <small class="text-muted" th:text="${lot.article.libelle}"></small>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Quantité à transférer:</strong>
+                            <div class="h5" th:text="${lot.quantiteActuelle}"></div>
+                            <small class="text-muted">[[${lot.article.uniteMesure.libelle}]]</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recherche d'emplacement -->
+                <div class="mb-4">
+                    <div class="search-box">
+                        <label class="form-label">Rechercher un emplacement</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchEmplacement" 
+                                   placeholder="Code emplacement, zone ou dépôt..." 
+                                   onkeyup="searchEmplacements(this.value)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
+                </div>
+
+                <!-- Filtres -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label">Filtrer par dépôt</label>
+                        <select class="form-select" id="filterDepot" onchange="filterEmplacements()">
+                            <option value="">Tous les dépôts</option>
+                            <option th:each="depot : ${depots}"
+                                    th:value="${depot.id}"
+                                    th:text="${depot.nom}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Filtrer par zone</label>
+                        <select class="form-select" id="filterZone" onchange="filterEmplacements()">
+                            <option value="">Toutes les zones</option>
+                            <option th:each="zone : ${zones}"
+                                    th:value="${zone.id}"
+                                    th:text="${zone.code + ' - ' + zone.libelle}">
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Capacité minimum</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="filterCapacity" 
+                                   min="1" value="1" onchange="filterEmplacements()">
+                            <span class="input-group-text">[[${lot.article.uniteMesure.code}]]</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Liste des emplacements disponibles -->
+                <div class="mb-3">
+                    <h6>Emplacements disponibles</h6>
+                    <p class="text-muted small">
+                        Sélectionnez un emplacement qui peut accueillir 
+                        <strong th:text="${lot.quantiteActuelle}"></strong> 
+                        [[${lot.article.uniteMesure.libelle}]] de 
+                        <strong th:text="${lot.article.libelle}"></strong>
+                    </p>
+                </div>
+
+                <div class="row" id="emplacementsList">
+                    <!-- Les emplacements seront chargés dynamiquement -->
+                    <div class="col-12 text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="text-muted mt-2">Chargement des emplacements...</p>
+                    </div>
+                </div>
+
+                <!-- Aucun emplacement disponible -->
+                <div class="d-none" id="noEmplacementsMessage">
+                    <div class="alert alert-warning text-center py-4">
+                        <i class="bi bi-exclamation-triangle fa-2x mb-3"></i>
+                        <h5>Aucun emplacement disponible</h5>
+                        <p class="mb-0">
+                            Aucun emplacement ne peut accueillir la quantité demandée.
+                            <br>
+                            Veuillez ajuster vos critères de recherche ou vérifier la disponibilité.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Bouton suivant -->
+                <div class="text-end">
+                    <button class="btn btn-primary" onclick="goToStep2()" disabled id="nextStep1">
+                        <i class="bi bi-arrow-right"></i> Suivant
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Étape 2 : Vérification -->
+        <div class="card mb-4 d-none" id="step2-content">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-check-circle"></i> 
+                    Étape 2 : Vérification du transfert
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Récapitulatif -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Origine</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Emplacement actuel</label>
+                                    <div class="h5" id="origineEmplacement">
+                                        <span th:if="${lot.emplacement != null}" th:text="${lot.emplacement.code}"></span>
+                                        <span th:unless="${lot.emplacement != null}" class="text-muted">Non assigné</span>
+                                    </div>
+                                    <small class="text-muted" id="origineDetails">
+                                        <span th:if="${lot.emplacement != null}">
+                                            [[${lot.emplacement.zone.code}]] - [[${lot.emplacement.zone.depot.nom}]]
+                                        </span>
+                                    </small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Article</label>
+                                    <div>
+                                        <strong th:text="${lot.article.codeArticle}"></strong>
+                                        <div class="text-muted" th:text="${lot.article.libelle}"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Quantité disponible</label>
+                                    <div class="h4" th:text="${lot.quantiteActuelle}"></div>
+                                    <small class="text-muted">[[${lot.article.uniteMesure.libelle}]]</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">Destination</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Nouvel emplacement</label>
+                                    <div class="h5 text-primary" id="destinationEmplacement"></div>
+                                    <small class="text-muted" id="destinationDetails"></small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Capacité disponible</label>
+                                    <div class="h4 text-success" id="destinationCapacity"></div>
+                                    <small class="text-muted" id="destinationCapacityDetails"></small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Statut</label>
+                                    <div>
+                                        <span class="badge bg-success" id="destinationStatus">Disponible</span>
+                                        <div class="text-muted small mt-1" id="destinationConstraints"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quantité à transférer -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-sliders"></i> Quantité à transférer</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        Quantité (max: <span th:text="${lot.quantiteActuelle}"></span>)
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="transferQuantity" 
+                                               th:value="${lot.quantiteActuelle}" 
+                                               min="1" th:max="${lot.quantiteActuelle}" 
+                                               step="1" required>
+                                        <span class="input-group-text">[[${lot.article.uniteMesure.libelle}]]</span>
+                                    </div>
+                                    <div class="form-text">
+                                        Vous pouvez transférer une quantité partielle du lot.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="btn-group w-100">
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            onclick="setFullQuantity()">
+                                        Transférer tout
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" 
+                                            onclick="setHalfQuantity()">
+                                        La moitié
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Barre de progression -->
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div class="progress-bar" id="quantityProgress" 
+                                 role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>À transférer: <strong id="quantityToTransfer">[[${lot.quantiteActuelle}]]</strong></span>
+                            <span>Restant: <strong id="quantityRemaining">0</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motif -->
+                <div class="mb-4">
+                    <label class="form-label">Motif du transfert <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="transferMotif" rows="3" 
+                              placeholder="Ex: Réorganisation du stock, optimisation d'espace..." required></textarea>
+                </div>
+
+                <!-- Informations complémentaires -->
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Informations importantes:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Le transfert sera enregistré dans l'historique du lot</li>
+                        <li>Un mouvement de stock sera créé automatiquement</li>
+                        <li>La traçabilité sera préservée</li>
+                        <li>Le lot restera dans le même état (disponible/bloqué/etc.)</li>
+                    </ul>
+                </div>
+
+                <!-- Boutons navigation -->
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-outline-secondary" onclick="goToStep1()">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </button>
+                    <button class="btn btn-primary" onclick="goToStep3()">
+                        <i class="bi bi-arrow-right"></i> Suivant
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Étape 3 : Confirmation -->
+        <div class="card mb-4 d-none" id="step3-content">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clipboard-check"></i> 
+                    Étape 3 : Confirmation du transfert
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Récapitulatif final -->
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Transfert prêt à être exécuté</strong>
+                    <p class="mb-0 mt-2">Veuillez vérifier les informations ci-dessous avant de confirmer.</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Détails du transfert</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Lot:</strong></td>
+                                        <td th:text="${lot.numeroLot}"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Article:</strong></td>
+                                        <td>
+                                            [[${lot.article.codeArticle}]] - 
+                                            [[${lot.article.libelle}]]
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Quantité:</strong></td>
+                                        <td>
+                                            <span id="finalQuantity"></span> 
+                                            [[${lot.article.uniteMesure.libelle}]]
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>De:</strong></td>
+                                        <td id="finalFrom"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Vers:</strong></td>
+                                        <td id="finalTo"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Motif:</strong></td>
+                                        <td id="finalMotif"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Impact du transfert</h6>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Emplacement source:</span>
+                                        <span class="text-danger" id="impactSource"></span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-danger" id="sourceProgress"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Emplacement destination:</span>
+                                        <span class="text-success" id="impactDestination"></span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-success" id="destinationProgress"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning small">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    Après ce transfert:
+                                    <ul class="mb-0 mt-1">
+                                        <li>Le lot sera disponible au nouvel emplacement</li>
+                                        <li>L'historique sera mis à jour</li>
+                                        <li>Les réservations restent actives</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmTransfer" required>
+                        <label class="form-check-label" for="confirmTransfer">
+                            Je confirme avoir vérifié les informations et autorise ce transfert.
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Boutons finaux -->
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-outline-secondary" onclick="goToStep2()">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </button>
+                    <button class="btn btn-success" onclick="submitTransfer()" disabled id="confirmBtn">
+                        <i class="bi bi-check-circle"></i> Confirmer le transfert
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire caché pour soumission -->
+        <form th:action="@{/lots/{id}/transferer(id=${lot.id})}" method="post" id="transferForm">
+            <input type="hidden" name="nouvelEmplacementId" id="formEmplacementId">
+            <input type="hidden" name="quantite" id="formQuantity">
+            <input type="hidden" name="motif" id="formMotif">
+        </form>
+    </div>
+</div>
+</div>
+    <script >
+        // Variables globales
+        let selectedEmplacement = null;
+        let emplacementsData = [];
+        let currentStep = 1;
+        
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmplacements();
+            setupEventListeners();
+        });
+        
+        // Charger les emplacements
+        function loadEmplacements() {
+            const articleId = "[[${lot.article.id}]]";
+            const quantity = "[[${lot.quantiteActuelle}]]";
+            
+            // Charger les emplacements via AJAX
+            fetch(`/api/emplacements/disponibles?articleId=${articleId}&quantity=${quantity}`)
+                .then(response => response.json())
+                .then(data => {
+                    emplacementsData = data;
+                    renderEmplacements(data);
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    document.getElementById('emplacementsList').innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <div class="text-danger">
+                                <i class="bi bi-exclamation-triangle fa-2x mb-2"></i>
+                                <p>Erreur lors du chargement des emplacements</p>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
+        
+        // Afficher les emplacements
+        function renderEmplacements(emplacements) {
+            const container = document.getElementById('emplacementsList');
+            
+            if (emplacements.length === 0) {
+                container.innerHTML = '';
+                document.getElementById('noEmplacementsMessage').classList.remove('d-none');
+                return;
+            }
+            
+            document.getElementById('noEmplacementsMessage').classList.add('d-none');
+            
+            let html = '';
+            emplacements.forEach(emp => {
+                const capacityPercent = Math.min(100, Math.round((emp.utilise || 0) / emp.capacite * 100));
+                
+                html += `
+                    <div class="col-xl-4 col-md-6 mb-3">
+                        <div class="emplacement-card" onclick="selectEmplacement('${emp.id}')" 
+                             id="emp-${emp.id}" data-emplacement='${JSON.stringify(emp)}'>
+                            <div class="emplacement-info">
+                                <div>
+                                    <strong>${emp.code}</strong>
+                                    <div class="text-muted small">
+                                        ${emp.zoneCode} - ${emp.depotNom}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="badge bg-success">${emp.capaciteDisponible} dispo</div>
+                                </div>
+                            </div>
+                            
+                            <div class="capacity-indicator">
+                                <div class="capacity-fill" style="width: ${capacityPercent}%"></div>
+                            </div>
+                            
+                            <div class="small text-muted mt-2">
+                                <i class="bi bi-box"></i> ${emp.utilise || 0}/${emp.capacite} 
+                                ${emp.uniteMesure || 'unités'}
+                            </div>
+                            
+                            <div class="small mt-1">
+                                <span class="badge bg-info">${emp.type || 'Stockage'}</span>
+                                ${emp.temperature ? `<span class="badge bg-secondary">${emp.temperature}°C</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // Sélectionner un emplacement
+        function selectEmplacement(emplacementId) {
+            // Désélectionner tous
+            document.querySelectorAll('.emplacement-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Sélectionner le nouveau
+            const card = document.getElementById(`emp-${emplacementId}`);
+            card.classList.add('selected');
+            
+            // Stocker la sélection
+            selectedEmplacement = JSON.parse(card.getAttribute('data-emplacement'));
+            
+            // Activer le bouton suivant
+            document.getElementById('nextStep1').disabled = false;
+        }
+        
+        // Recherche d'emplacements
+        function searchEmplacements(query) {
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (!query.trim()) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+            
+            const filtered = emplacementsData.filter(emp => 
+                emp.code.toLowerCase().includes(query.toLowerCase()) ||
+                emp.zoneCode.toLowerCase().includes(query.toLowerCase()) ||
+                emp.depotNom.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div class="search-result-item text-muted">Aucun résultat</div>';
+                resultsContainer.style.display = 'block';
+                return;
+            }
+            
+            let resultsHtml = '';
+            filtered.forEach(emp => {
+                resultsHtml += `
+                    <div class="search-result-item" onclick="selectFromSearch('${emp.id}')">
+                        <div><strong>${emp.code}</strong></div>
+                        <div class="small text-muted">${emp.zoneCode} - ${emp.depotNom}</div>
+                    </div>
+                `;
+            });
+            
+            resultsContainer.innerHTML = resultsHtml;
+            resultsContainer.style.display = 'block';
+        }
+        
+        function selectFromSearch(emplacementId) {
+            selectEmplacement(emplacementId);
+            document.getElementById('searchEmplacement').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            
+            // Scroll vers l'emplacement sélectionné
+            const card = document.getElementById(`emp-${emplacementId}`);
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchEmplacement').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+        }
+        
+        // Filtrage
+        function filterEmplacements() {
+            const depotId = document.getElementById('filterDepot').value;
+            const zoneId = document.getElementById('filterZone').value;
+            const capacity = parseInt(document.getElementById('filterCapacity').value) || 1;
+            
+            let filtered = emplacementsData;
+            
+            if (depotId) {
+                filtered = filtered.filter(emp => emp.depotId === depotId);
+            }
+            
+            if (zoneId) {
+                filtered = filtered.filter(emp => emp.zoneId === zoneId);
+            }
+            
+            // Filtrer par capacité disponible
+            filtered = filtered.filter(emp => emp.capaciteDisponible >= capacity);
+            
+            renderEmplacements(filtered);
+        }
+        
+        // Navigation entre les étapes
+        function goToStep1() {
+            showStep(1);
+        }
+        
+        function goToStep2() {
+            if (!selectedEmplacement) {
+                alert('Veuillez sélectionner un emplacement');
+                return;
+            }
+            
+            // Mettre à jour les informations de l'étape 2
+            document.getElementById('destinationEmplacement').textContent = selectedEmplacement.code;
+            document.getElementById('destinationDetails').textContent = 
+                `${selectedEmplacement.zoneCode} - ${selectedEmplacement.depotNom}`;
+            document.getElementById('destinationCapacity').textContent = 
+                `${selectedEmplacement.capaciteDisponible} ${selectedEmplacement.uniteMesure || 'unités'}`;
+            document.getElementById('destinationCapacityDetails').textContent = 
+                `Capacité totale: ${selectedEmplacement.capacite} ${selectedEmplacement.uniteMesure || 'unités'}`;
+            
+            // Vérifier les contraintes
+            const constraints = [];
+            if (selectedEmplacement.temperature) {
+                constraints.push(`Température contrôlée: ${selectedEmplacement.temperature}°C`);
+            }
+            if (selectedEmplacement.type && selectedEmplacement.type !== 'GENERAL') {
+                constraints.push(`Type: ${selectedEmplacement.type}`);
+            }
+            
+            document.getElementById('destinationConstraints').textContent = 
+                constraints.join(' • ') || 'Aucune contrainte spécifique';
+            
+            // Mettre à jour la quantité
+            updateQuantityUI();
+            
+            showStep(2);
+        }
+        
+        function goToStep3() {
+            const quantity = parseInt(document.getElementById('transferQuantity').value);
+            const motif = document.getElementById('transferMotif').value.trim();
+            
+            // Validation
+            if (!motif) {
+                alert('Veuillez saisir un motif pour le transfert');
+                return;
+            }
+            
+            if (quantity <= 0 || quantity > "[[${lot.quantiteActuelle}]]") {
+                alert('Quantité invalide');
+                return;
+            }
+            
+            // Mettre à jour les informations finales
+            document.getElementById('finalQuantity').textContent = quantity;
+            document.getElementById('finalFrom').textContent = 
+                "[[${lot.emplacement != null ? lot.emplacement.code : 'Non assigné'}]]";
+            document.getElementById('finalTo').textContent = selectedEmplacement.code;
+            document.getElementById('finalMotif').textContent = motif;
+            
+            // Calculer l'impact
+            const currentQuantity = "[[${lot.quantiteActuelle}]]";
+            const sourcePercent = Math.round((currentQuantity - quantity) / currentQuantity * 100);
+            const destinationPercent = Math.round(quantity / selectedEmplacement.capacite * 100);
+            
+            document.getElementById('impactSource').textContent = 
+                `${currentQuantity - quantity}/${currentQuantity} (${sourcePercent}%)`;
+            document.getElementById('impactDestination').textContent = 
+                `${quantity}/${selectedEmplacement.capacite} (${destinationPercent}%)`;
+            
+            document.getElementById('sourceProgress').style.width = `${sourcePercent}%`;
+            document.getElementById('destinationProgress').style.width = `${destinationPercent}%`;
+            
+            // Activer/désactiver le bouton de confirmation
+            document.getElementById('confirmTransfer').addEventListener('change', function() {
+                document.getElementById('confirmBtn').disabled = !this.checked;
+            });
+            
+            showStep(3);
+        }
+        
+        function showStep(stepNumber) {
+            currentStep = stepNumber;
+            
+            // Mettre à jour les étapes
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < stepNumber) {
+                    step.classList.add('completed');
+                } else if (index + 1 === stepNumber) {
+                    step.classList.add('active');
+                }
+            });
+            
+            // Afficher le contenu de l'étape
+            document.getElementById('step1-content').classList.toggle('d-none', stepNumber !== 1);
+            document.getElementById('step2-content').classList.toggle('d-none', stepNumber !== 2);
+            document.getElementById('step3-content').classList.toggle('d-none', stepNumber !== 3);
+        }
+        
+        // Gestion de la quantité
+        function updateQuantityUI() {
+            const quantityInput = document.getElementById('transferQuantity');
+            const maxQuantity = parseInt("[[${lot.quantiteActuelle}]]");
+            const quantity = parseInt(quantityInput.value) || maxQuantity;
+            
+            // Limiter à la quantité maximale
+            if (quantity > maxQuantity) {
+                quantityInput.value = maxQuantity;
+            }
+            
+            const remaining = maxQuantity - quantity;
+            const percent = Math.round(quantity / maxQuantity * 100);
+            
+            document.getElementById('quantityToTransfer').textContent = quantity;
+            document.getElementById('quantityRemaining').textContent = remaining;
+            document.getElementById('quantityProgress').style.width = `${percent}%`;
+            
+            // Mettre à jour la couleur
+            const progressBar = document.getElementById('quantityProgress');
+            progressBar.classList.remove('bg-warning', 'bg-danger', 'bg-success');
+            
+            if (percent <= 30) {
+                progressBar.classList.add('bg-success');
+            } else if (percent <= 70) {
+                progressBar.classList.add('bg-warning');
+            } else {
+                progressBar.classList.add('bg-danger');
+            }
+        }
+        
+        function setFullQuantity() {
+            document.getElementById('transferQuantity').value = "[[${lot.quantiteActuelle}]]";
+            updateQuantityUI();
+        }
+        
+        function setHalfQuantity() {
+            const half = Math.floor("[[${lot.quantiteActuelle}]]" / 2);
+            document.getElementById('transferQuantity').value = half;
+            updateQuantityUI();
+        }
+        
+        // Soumettre le transfert
+        function submitTransfer() {
+            // Remplir le formulaire caché
+            document.getElementById('formEmplacementId').value = selectedEmplacement.id;
+            document.getElementById('formQuantity').value = document.getElementById('transferQuantity').value;
+            document.getElementById('formMotif').value = document.getElementById('transferMotif').value;
+            
+            // Soumettre
+            document.getElementById('transferForm').submit();
+        }
+        
+        // Événements
+        function setupEventListeners() {
+            // Quantité
+            document.getElementById('transferQuantity').addEventListener('input', updateQuantityUI);
+            
+            // Confirmation
+            document.getElementById('confirmTransfer').addEventListener('change', function() {
+                document.getElementById('confirmBtn').disabled = !this.checked;
+            });
+            
+            // Fermer les résultats de recherche en cliquant ailleurs
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.search-box')) {
+                    document.getElementById('searchResults').style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
