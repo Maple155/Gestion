@@ -28,6 +28,29 @@ public class TransfertController {
     private final ArticleService articleService;
     private final LotService lotService;
 
+    @GetMapping("/all")
+    public String getAll(Model model){
+        model.addAttribute("transferts", transfertService.getAll());
+        return "/home";
+    }
+
+    @GetMapping("{id}")
+    public String detailTransfert(@PathVariable UUID id, Model model) {
+        Transfert mvt = transfertService.findById(id);
+        model.addAttribute("trf", mvt);
+        return "stock/transferts/transferts-detail";
+    }
+
+    @PostMapping("/{id}/statut")
+    public String updateStatusPost(
+        @PathVariable UUID id,
+        @RequestParam("statut") Transfert.TransfertStatut statut,
+        HttpSession session    
+    ) {
+            UUID userId = (UUID) session.getAttribute("userId");
+            Transfert updated = transfertService.updateStatus(id, statut, userId);
+            return "/home";
+        }
     @GetMapping("/liste")
     public String listeTransferts(Model model,
             HttpSession session,

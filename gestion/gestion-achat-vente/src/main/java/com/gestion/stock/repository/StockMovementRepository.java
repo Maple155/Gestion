@@ -23,7 +23,7 @@ public interface StockMovementRepository
               extends JpaRepository<StockMovement, UUID>, JpaSpecificationExecutor<StockMovement> {
 
        StockMovement findByReference(String reference);
-
+                     
        List<StockMovement> findByArticleIdAndDepotIdOrderByDateMouvementDesc(UUID articleId, UUID depotId);
 
        List<StockMovement> findByBonReceptionId(UUID bonReceptionId);

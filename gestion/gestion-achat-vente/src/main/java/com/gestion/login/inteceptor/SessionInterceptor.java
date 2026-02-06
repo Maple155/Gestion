@@ -20,7 +20,10 @@ public class SessionInterceptor implements HandlerInterceptor {
         
         // URLs publiques (pas besoin de session)
         if (requestURI.equals("/login") || 
+            requestURI.equals("/loginManager") ||
+            requestURI.equals("/home") ||
             requestURI.equals("/") || 
+            requestURI.equals("signupManager") ||
             requestURI.startsWith("/css/") || 
             requestURI.startsWith("/js/") ||
             requestURI.startsWith("/images/")) {
@@ -58,7 +61,8 @@ public class SessionInterceptor implements HandlerInterceptor {
         if (uri.startsWith("/stock/") || uri.startsWith("/achats/")) {
             return userRole.equals("ADMIN") || 
                    userRole.equals("GESTIONNAIRE_STOCK") || 
-                   userRole.equals("RESPONSABLE_STOCK");
+                   userRole.equals("RESPONSABLE_STOCK") ||
+                   userRole.equalsIgnoreCase("MANAGER");
         }
         
         if (uri.startsWith("/comptabilite/")) {

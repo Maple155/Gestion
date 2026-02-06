@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détail Bon de commande</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h2::before {
+            content: '🛒';
+            font-size: 32px;
+        }
+
+        .detail-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .detail-card table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .detail-card table tr {
+            border-bottom: 1px solid #e8eef3;
+        }
+
+        .detail-card table tr:last-child {
+            border-bottom: none;
+        }
+
+        .detail-card table td {
+            padding: 18px 15px;
+            font-size: 15px;
+        }
+
+        .detail-card table td:first-child {
+            font-weight: 600;
+            color: #8492a6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            width: 35%;
+        }
+
+        .detail-card table td:last-child {
+            color: #3c4858;
+            font-weight: 500;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-btn::before {
+            content: '⬅';
+            font-size: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .detail-card {
+                padding: 20px;
+            }
+
+            .detail-card table td:first-child {
+                width: 45%;
+                font-size: 11px;
+            }
+
+            .detail-card table td {
+                padding: 12px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Détail Bon de commande</h2>
+        </div>
+
+        <div class="detail-card">
+            <table>
+                <tr><td>ID</td><td th:text="${bdc.id}"></td></tr>
+                <tr><td>Référence BC</td><td th:text="${bdc.referenceBc}"></td></tr>
+                <tr><td>Proforma</td><td th:text="${bdc.proforma.id}"></td></tr>
+                <tr><td>Montant TTC</td><td th:text="${bdc.montantFormate}"></td></tr>
+                <tr><td>Statut</td><td th:text="${bdc.statutFinance}"></td></tr>
+                <tr><td>Date émission</td><td th:text="${#temporals.format(bdc.dateEmission,'dd/MM/yyyy HH:mm')}"></td></tr>
+                <tr><td>Date livraison estimée</td><td th:text="${bdc.dateLivraisonEstimee != null ? #temporals.format(bdc.dateLivraisonEstimee,'dd/MM/yyyy') : '-'}"></td></tr>
+            </table>
+        </div>
+
+        <a href="/achat/bons/all" class="back-btn">Retour</a>
+    </div>
+</body>
+</html>

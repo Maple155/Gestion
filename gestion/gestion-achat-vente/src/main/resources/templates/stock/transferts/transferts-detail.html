@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détail Transfert</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header h2::before {
+            content: '🔄';
+            font-size: 32px;
+        }
+
+        .detail-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
+
+        .detail-card table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .detail-card table tr {
+            border-bottom: 1px solid #e8eef3;
+        }
+
+        .detail-card table tr:last-child {
+            border-bottom: none;
+        }
+
+        .detail-card table td {
+            padding: 18px 15px;
+            font-size: 15px;
+        }
+
+        .detail-card table td:first-child {
+            font-weight: 600;
+            color: #8492a6;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            width: 35%;
+        }
+
+        .detail-card table td:last-child {
+            color: #3c4858;
+            font-weight: 500;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-btn::before {
+            content: '⬅';
+            font-size: 18px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .detail-card {
+                padding: 20px;
+            }
+
+            .detail-card table td:first-child {
+                width: 45%;
+                font-size: 11px;
+            }
+
+            .detail-card table td {
+                padding: 12px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Détail Transfert</h2>
+        </div>
+
+        <div class="detail-card">
+            <table>
+                <tr><td>ID</td><td th:text="${trf.id}"></td></tr>
+                <tr><td>Référence</td><td th:text="${trf.reference}"></td></tr>
+                <tr><td>Dépôt source</td>
+                    <td th:text="${trf.depotSource.nom}"></td>
+                </tr>
+                <tr><td>Dépôt destination</td>
+                    <td th:text="${trf.depotDestination.nom}"></td>
+                </tr>
+                <tr>
+                    <td>Date demande</td>
+                    <td th:text="${#temporals.format(trf.dateDemande,'dd/MM/yyyy HH:mm')}"></td>
+                </tr>
+                <tr>
+                    <td>Date expédition</td>
+                    <td th:text="${trf.dateExpedition != null ? #temporals.format(trf.dateExpedition,'dd/MM/yyyy') : '-'}"></td>
+                </tr>
+                <tr>
+                    <td>Date réception prévue</td>
+                    <td th:text="${trf.dateReceptionPrevue != null ? #temporals.format(trf.dateReceptionPrevue,'dd/MM/yyyy') : '-'}"></td>
+                </tr>
+                <tr>
+                    <td>Date réception réelle</td>
+                    <td th:text="${trf.dateReceptionReelle != null ? #temporals.format(trf.dateReceptionReelle,'dd/MM/yyyy HH:mm') : '-'}"></td>
+                </tr>
+                <tr><td>Statut</td><td th:text="${trf.statut}"></td></tr>
+                <tr><td>Motif</td><td th:text="${trf.motif != null ? trf.motif : '-'}"></td></tr>
+                <tr><td>Demandeur</td><td th:text="${trf.demandeurId}"></td></tr>
+                <tr><td>Valideur</td>
+                    <td th:text="${trf.valideurId != null ? trf.valideurId : '-'}"></td>
+                </tr>
+                <tr>
+                    <td>Date validation</td>
+                    <td th:text="${trf.dateValidation != null ? #temporals.format(trf.dateValidation,'dd/MM/yyyy HH:mm') : '-'}"></td>
+                </tr>
+                <tr>
+                    <td>Créé le</td>
+                    <td th:text="${#temporals.format(trf.createdAt,'dd/MM/yyyy HH:mm')}"></td>
+                </tr>
+            </table>
+        </div>
+
+        <a href="/stock/transferts/all" class="back-btn">Retour</a>
+    </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ package com.gestion.stock.service;
 
 import com.gestion.stock.dto.LigneTransfertDTO;
 import com.gestion.stock.entity.*;
+import com.gestion.stock.entity.Transfert.TransfertStatut;
 import com.gestion.stock.repository.*;
 
 import jakarta.persistence.EntityManager;
@@ -38,6 +39,11 @@ public class TransfertService {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final EntityManager entityManager;
     
+    public Transfert findById(UUID id) {
+        return transfertRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transfert introuvable"));
+    }
+
     /**
      * Créer un transfert entre dépôts
      */
@@ -488,6 +494,29 @@ public class TransfertService {
         
         return stats;
     }
+
+
+    @Transactional
+    public Transfert updateStatus(UUID id, TransfertStatut newStatus, UUID userId) {
+        Transfert trf = transfertRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transfert introuvable"));
+
+        if (trf.getStatut() == TransfertStatut.ANNULE ||
+            trf.getStatut() == TransfertStatut.RECEPTIONNE) {
+            throw new IllegalStateException("Transfert finalisé");
+        }
+
+        switch (newStatus) {
+            case VALIDE -> {
+                trf.setValideurId(userId);
+                trf.setDateValidation(LocalDateTime.now());
+            }
+            default -> {}
+        }
+
+        trf.setStatut(newStatus);
+        return transfertRepository.save(trf);
+    }
     
     /**
      * Vérifier la disponibilité pour un transfert
@@ -536,5 +565,9 @@ public class TransfertService {
         if (sequence == null) sequence = 1L;
         
         return String.format("%s-%d-%06d", prefix, year, sequence);
+    }
+
+    public List<Transfert> getAll(){
+        return transfertRepository.findAll();
     }
 }

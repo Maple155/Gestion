@@ -37,4 +37,8 @@ public class BonCommande {
     private LocalDateTime dateEmission;
 
     private LocalDate dateLivraisonEstimee;
+
+    @Transient
+    private String montantFormate; // Thymeleaf affichera cette valeur
+
 }
