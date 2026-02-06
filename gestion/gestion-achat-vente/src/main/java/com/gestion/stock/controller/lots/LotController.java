@@ -182,11 +182,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot créé avec succès: " + lot.getNumeroLot());
 
-            return "redirect:lots/" + lot.getId();
+            return "redirect:/lots/" + lot.getId();
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors de la création du lot: " + e.getMessage());
-            return "redirect:/stock/lots/nouveau";
+            return "redirect:/lots/nouveau";
         }
     }
 
@@ -226,11 +226,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot modifié avec succès: " + lot.getNumeroLot());
 
-            return "redirect:/stock/lots/" + lot.getId();
+            return "redirect:/lots/" + lot.getId();
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors de la modification du lot: " + e.getMessage());
-            return "redirect:/stock/lots/" + id + "/modifier";
+            return "redirect:/lots/" + id + "/modifier";
         }
     }
 
@@ -330,11 +330,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Statut du lot changé en: " + nouveauStatut);
 
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors du changement de statut: " + e.getMessage());
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         }
     }
 
@@ -351,11 +351,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot bloqué avec succès");
 
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors du blocage du lot: " + e.getMessage());
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         }
     }
 
@@ -372,11 +372,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot débloqué avec succès");
 
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors du déblocage du lot: " + e.getMessage());
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         }
     }
 
@@ -393,11 +393,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot mis en quarantaine");
 
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur: " + e.getMessage());
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         }
     }
 
@@ -429,11 +429,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lots fusionnés avec succès dans: " + lotFusionne.getNumeroLot());
 
-            return "redirect:/stock/lots/" + destinationId;
+            return "redirect:/lots/" + destinationId;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors de la fusion: " + e.getMessage());
-            return "redirect:/stock/lots/" + sourceId + "/fusionner";
+            return "redirect:/lots/" + sourceId + "/fusionner";
         }
     }
 
@@ -462,7 +462,7 @@ public class LotController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors de la suppression: " + e.getMessage());
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         }
     }
 
@@ -588,7 +588,7 @@ public class LotController {
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Veuillez corriger les erreurs dans le formulaire");
-            return "redirect:/stock/lots/series/nouveau";
+            return "redirect:/lots/series/nouveau";
         }
 
         try {
@@ -597,11 +597,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Numéro de série créé avec succès: " + serie.getNumeroSerie());
 
-            return "redirect:/stock/lots/series/" + serie.getId();
+            return "redirect:/lots/series/" + serie.getId();
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors de la création du numéro de série: " + e.getMessage());
-            return "redirect:/stock/lots/series/nouveau";
+            return "redirect:/lots/series/nouveau";
         }
     }
 
@@ -642,11 +642,11 @@ public class LotController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lot transféré avec succès vers " + lot.getEmplacement().getCode());
 
-            return "redirect:/stock/lots/" + id;
+            return "redirect:/lots/" + id;
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Erreur lors du transfert: " + e.getMessage());
-            return "redirect:/stock/lots/" + id + "/transferer";
+            return "redirect:/lots/" + id + "/transferer";
         }
     }
 }

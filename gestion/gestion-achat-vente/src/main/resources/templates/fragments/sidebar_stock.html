@@ -1,288 +1,393 @@
-<!-- templates/fragments/sidebar_stock.html -->
-<style>
-  .sidebar-stock {
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    width: 16rem;
-  }
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(content)">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion Stock - ERP</title>
 
-  .sidebar-logo-stock {
-    @apply flex items-center space-x-3 px-6 py-5 border-b border-slate-800/50;
-  }
-
-  .nav-group-label-stock {
-    @apply px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mt-4;
-  }
-
-  .nav-link-main-stock {
-    @apply flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-all duration-200 mx-2 rounded-lg;
-  }
-
-  .nav-link-sub-stock {
-    @apply flex items-center px-6 py-2 text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded transition-colors duration-150;
-  }
-
-  .dropdown-container-stock {
-    @apply hidden pl-2 mt-1 space-y-1;
-  }
-
-  .dropdown-container-stock.dropdown-open {
-    @apply block;
-  }
-
-  .rotate-icon-stock {
-    transform: rotate(180deg);
-    transition: transform 0.3s;
-  }
-  
-  .inner-menu-stock {
-    @apply pl-3 ml-1 border-l border-slate-700;
-  }
-</style>
-
-<aside class="sidebar-stock text-white flex-shrink-0 flex flex-col h-full shadow-2xl">
-  <div class="sidebar-logo-stock">
-    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-      <i data-lucide="warehouse" class="text-white w-5 h-5"></i>
-    </div>
-    <span class="text-white font-bold tracking-tight text-lg">
-      STOCK <span class="text-blue-500">ERP</span>
-    </span>
-  </div>
-
-  <nav class="mt-2 flex-1 overflow-y-auto px-2">
-    <p class="nav-group-label-stock">Menu Principal</p>
-
-    <!-- Dashboard -->
-    <a th:href="@{/stock/dashboard}" class="nav-link-main-stock">
-      <div class="flex items-center">
-        <i data-lucide="dashboard" class="mr-3 w-5 h-5"></i>
-        <span class="font-medium text-sm">Dashboard Stock</span>
-      </div>
-    </a>
-
-    <p class="nav-group-label-stock">Gestion Stock</p>
-
-    <!-- Articles -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('articles-menu', 'articles-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="package" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Articles</span>
-        </div>
-        <i data-lucide="chevron-down" id="articles-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="articles-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/articles/liste}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
-        </a>
-        <a th:href="@{/stock/articles/nouveau}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvel article
-        </a>
-      </div>
-    </div>
-
-    <!-- Inventaires -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('inventaires-menu', 'inventaires-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="clipboard-check" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Inventaires</span>
-        </div>
-        <i data-lucide="chevron-down" id="inventaires-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="inventaires-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/inventaires/liste}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
-        </a>
-        <a th:href="@{/stock/inventaires/nouveau}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvel inventaire
-        </a>
-        <a th:href="@{/stock/inventaires/dashboard}" class="nav-link-sub-stock">
-          <i data-lucide="bar-chart" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard
-        </a>
-      </div>
-    </div>
-
-    <!-- Mouvements -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('mouvements-menu', 'mouvements-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="move" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Mouvements</span>
-        </div>
-        <i data-lucide="chevron-down" id="mouvements-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="mouvements-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/mouvements/journal}" class="nav-link-sub-stock">
-          <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Journal
-        </a>
-        <a th:href="@{/stock/mouvements/entree}" class="nav-link-sub-stock">
-          <i data-lucide="arrow-down-circle" class="w-3 h-3 mr-2 opacity-50"></i> Entrée
-        </a>
-        <a th:href="@{/stock/mouvements/sortie}" class="nav-link-sub-stock">
-          <i data-lucide="arrow-up-circle" class="w-3 h-3 mr-2 opacity-50"></i> Sortie
-        </a>
-      </div>
-    </div>
-
-    <!-- Lots & Séries -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('lots-menu', 'lots-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="layers" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Lots & Séries</span>
-        </div>
-        <i data-lucide="chevron-down" id="lots-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="lots-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/lots}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste des lots
-        </a>
-        <a th:href="@{/stock/lots/nouveau}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouveau lot
-        </a>
-        <a th:href="@{/stock/lots/alertes/peremption}" class="nav-link-sub-stock">
-          <i data-lucide="alert-triangle" class="w-3 h-3 mr-2 opacity-50"></i> Alertes péremption
-        </a>
-        <a th:href="@{/stock/lots/series}" class="nav-link-sub-stock">
-          <i data-lucide="hash" class="w-3 h-3 mr-2 opacity-50"></i> Numéros de série
-        </a>
-      </div>
-    </div>
-
-    <!-- Transferts -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('transferts-menu', 'transferts-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="truck" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Transferts</span>
-        </div>
-        <i data-lucide="chevron-down" id="transferts-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="transferts-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/transferts/liste}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
-        </a>
-        <a th:href="@{/stock/transferts/nouveau}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouveau transfert
-        </a>
-      </div>
-    </div>
-
-    <!-- Réservations -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('reservations-menu', 'reservations-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="shopping-cart" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Réservations</span>
-        </div>
-        <i data-lucide="chevron-down" id="reservations-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="reservations-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/reservations/liste}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
-        </a>
-        <a th:href="@{/stock/reservations/nouvelle}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvelle réservation
-        </a>
-      </div>
-    </div>
-
-    <!-- Livraisons -->
-    <div class="mb-1">
-      <button onclick="toggleDropdownStock('livraisons-menu', 'livraisons-arrow')" 
-              class="nav-link-main-stock w-full group">
-        <div class="flex items-center">
-          <i data-lucide="package-check" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
-          <span class="font-medium text-sm">Livraisons</span>
-        </div>
-        <i data-lucide="chevron-down" id="livraisons-arrow" 
-           class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-      </button>
-      <div id="livraisons-menu" class="dropdown-container-stock">
-        <a th:href="@{/stock/livraisons/liste}" class="nav-link-sub-stock">
-          <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Historique
-        </a>
-        <a th:href="@{/stock/livraisons/nouvelle}" class="nav-link-sub-stock">
-          <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvelle livraison
-        </a>
-        <a th:href="@{/stock/livraisons/preparation}" class="nav-link-sub-stock">
-          <i data-lucide="package-search" class="w-3 h-3 mr-2 opacity-50"></i> Préparation commandes
-        </a>
-      </div>
-    </div>
-
-    <p class="nav-group-label-stock mt-6">Rapports & Analyses</p>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
     
-    <a th:href="@{/stock/dashboard/valorisation}" class="nav-link-main-stock">
-      <i data-lucide="trending-up" class="mr-3 w-5 h-5"></i>
-      <span class="font-medium text-sm">Dashboard Valorisation</span>
-    </a>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    <a th:href="@{/stock/dashboard/mouvements}" class="nav-link-main-stock">
-      <i data-lucide="activity" class="mr-3 w-5 h-5"></i>
-      <span class="font-medium text-sm">Dashboard Mouvements</span>
-    </a>
-  </nav>
-
-  <div class="p-4 border-t border-slate-800/50 bg-black/10">
-    <div class="flex items-center p-2">
-      <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
-        <span th:text="${#strings.substring(session.userFullName, 0, 2)}">US</span>
-      </div>
-      <div class="ml-3">
-        <p class="text-[11px] font-bold text-white leading-none" 
-           th:text="${session.userFullName}">Utilisateur</p>
-        <p class="text-[10px] text-slate-500 mt-1" 
-           th:text="${session.userRole}">Rôle</p>
-      </div>
-    </div>
-  </div>
-</aside>
-
-<script th:inline="javascript">
-  function toggleDropdownStock(menuId, arrowId) {
-    const menu = document.getElementById(menuId);
-    const arrow = document.getElementById(arrowId);
-
-    if (menu) {
-      menu.classList.toggle('dropdown-open');
-      if (arrow) arrow.classList.toggle('rotate-icon-stock');
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const path = window.location.pathname;
-    
-    // Ouvrir automatiquement les menus basés sur l'URL
-    const menuMappings = {
-      '/stock/articles': ['articles-menu', 'articles-arrow'],
-      '/stock/inventaires': ['inventaires-menu', 'inventaires-arrow'],
-      '/stock/mouvements': ['mouvements-menu', 'mouvements-arrow'],
-      '/stock/lots': ['lots-menu', 'lots-arrow'],
-      '/stock/transferts': ['transferts-menu', 'transferts-arrow'],
-      '/stock/reservations': ['reservations-menu', 'reservations-arrow'],
-      '/stock/livraisons': ['livraisons-menu', 'livraisons-arrow'],
-      '/stock/dashboard/valorisation': [], // Dashboard direct
-      '/stock/dashboard/mouvements': [] // Dashboard direct
-    };
-
-    for (const [pathStart, [menuId, arrowId]] of Object.entries(menuMappings)) {
-      if (path.includes(pathStart) && menuId) {
-        toggleDropdownStock(menuId, arrowId);
+    <!-- Styles identiques à main.html -->
+    <style>
+      .sidebar {
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        width: 16rem;
       }
-    }
-  });
-</script>
+
+      .sidebar-logo {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      }
+
+      .nav-group-label {
+        padding: 0.5rem 1rem;
+        font-size: 10px;
+        font-weight: 600;
+        color: rgb(148, 163, 184);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 1rem;
+      }
+
+      .nav-link-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: rgb(203, 213, 225);
+        transition: all 0.2s;
+        margin: 0 0.5rem;
+        border-radius: 0.5rem;
+      }
+
+      .nav-link-main:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .nav-link-sub {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1.5rem;
+        font-size: 0.75rem;
+        color: rgb(148, 163, 184);
+        transition: all 0.15s;
+        border-radius: 0.375rem;
+      }
+
+      .nav-link-sub:hover {
+        color: white;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+
+      .dropdown-container {
+        display: none;
+        padding-left: 0.5rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+      }
+
+      .dropdown-container.dropdown-open {
+        display: block;
+      }
+
+      .rotate-icon {
+        transform: rotate(180deg);
+        transition: transform 0.3s;
+      }
+
+      .inner-menu {
+        padding-left: 0.75rem;
+        margin-left: 0.25rem;
+        border-left: 1px solid rgb(51, 65, 85);
+      }
+    </style>
+  </head>
+
+  <body class="antialiased">
+    <div class="flex h-screen overflow-hidden">
+      <aside class="w-64 sidebar text-white flex-shrink-0 flex flex-col shadow-2xl">
+        <div class="sidebar-logo flex items-center space-x-3">
+          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <i data-lucide="warehouse" class="text-white w-5 h-5"></i>
+          </div>
+          <span class="text-white font-bold tracking-tight text-lg">
+            STOCK <span class="text-blue-500">ERP</span>
+          </span>
+        </div>
+
+        <nav class="mt-4 flex-1 overflow-y-auto px-2">
+          <p class="nav-group-label">Menu Principal</p>
+
+          <!-- Dashboard Stock -->
+          <a th:href="@{/main/dashboard}" class="nav-link-main">
+            <div class="flex items-center">
+              <i data-lucide="layout-dashboard" class="mr-3 w-5 h-5"></i>
+              <span class="font-medium text-sm">Dashboard Stock</span>
+            </div>
+          </a>
+
+          <p class="nav-group-label">Gestion Stock</p>
+
+          <!-- Articles -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('articles-menu', 'articles-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="package" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Articles</span>
+              </div>
+              <i data-lucide="chevron-down" id="articles-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="articles-menu" class="dropdown-container">
+              <a th:href="@{/stock/articles/liste}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
+              </a>
+              <a th:href="@{/stock/articles/nouveau}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvel article
+              </a>
+            </div>
+          </div>
+
+          <!-- Inventaires -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('inventaires-menu', 'inventaires-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="clipboard-check" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Inventaires</span>
+              </div>
+              <i data-lucide="chevron-down" id="inventaires-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="inventaires-menu" class="dropdown-container">
+              <a th:href="@{/stock/inventaires/liste}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
+              </a>
+              <a th:href="@{/stock/inventaires/nouveau}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvel inventaire
+              </a>
+              <a th:href="@{/stock/inventaires/dashboard}" class="nav-link-sub">
+                <i data-lucide="bar-chart" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard
+              </a>
+            </div>
+          </div>
+
+          <!-- Mouvements -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('mouvements-menu', 'mouvements-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="move" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Mouvements</span>
+              </div>
+              <i data-lucide="chevron-down" id="mouvements-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="mouvements-menu" class="dropdown-container">
+              <a th:href="@{/stock/mouvements/journal}" class="nav-link-sub">
+                <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Journal
+              </a>
+              <a th:href="@{/stock/mouvements/entree}" class="nav-link-sub">
+                <i data-lucide="arrow-down-circle" class="w-3 h-3 mr-2 opacity-50"></i> Entrée
+              </a>
+              <a th:href="@{/stock/mouvements/sortie}" class="nav-link-sub">
+                <i data-lucide="arrow-up-circle" class="w-3 h-3 mr-2 opacity-50"></i> Sortie
+              </a>
+            </div>
+          </div>
+
+          <!-- Lots & Séries (avec sous-menus imbriqués) -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('lots-menu', 'lots-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="layers" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Lots & Séries</span>
+              </div>
+              <i data-lucide="chevron-down" id="lots-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="lots-menu" class="dropdown-container">
+              <a th:href="@{/lots}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste des lots
+              </a>
+              <a th:href="@{/lots/nouveau}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouveau lot
+              </a>
+
+              <!-- Sous-menu imbriqué : Alertes -->
+              <div>
+                <button onclick="toggleDropdown('alertes-menu', 'alertes-arrow')" class="nav-link-sub w-full justify-between pr-4 group">
+                  <span class="flex items-center">
+                    <i data-lucide="alert-triangle" class="w-3 h-3 mr-2 opacity-50"></i> Alertes
+                  </span>
+                  <i data-lucide="chevron-down" id="alertes-arrow" class="w-3 h-3 opacity-50 transition-transform"></i>
+                </button>
+                <div id="alertes-menu" class="dropdown-container inner-menu">
+                  <a th:href="@{/lots/alertes/peremption}" class="nav-link-sub !pl-4 py-1.5 text-xs">
+                    Péremption
+                  </a>
+                </div>
+              </div>
+
+              <a th:href="@{/lots/series}" class="nav-link-sub">
+                <i data-lucide="hash" class="w-3 h-3 mr-2 opacity-50"></i> Numéros de série
+              </a>
+            </div>
+          </div>
+
+          <!-- Transferts -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('transferts-menu', 'transferts-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="truck" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Transferts</span>
+              </div>
+              <i data-lucide="chevron-down" id="transferts-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="transferts-menu" class="dropdown-container">
+              <a th:href="@{/stock/transferts/liste}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
+              </a>
+              <a th:href="@{/stock/transferts/nouveau}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouveau transfert
+              </a>
+            </div>
+          </div>
+
+          <!-- Réservations -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('reservations-menu', 'reservations-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="shopping-cart" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Réservations</span>
+              </div>
+              <i data-lucide="chevron-down" id="reservations-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="reservations-menu" class="dropdown-container">
+              <a th:href="@{/stock/reservations/liste}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Liste
+              </a>
+              <a th:href="@{/stock/reservations/nouvelle}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvelle réservation
+              </a>
+            </div>
+          </div>
+
+          <!-- Livraisons -->
+          <div class="mb-1">
+            <button onclick="toggleDropdown('livraisons-menu', 'livraisons-arrow')" class="nav-link-main w-full group">
+              <div class="flex items-center">
+                <i data-lucide="package-check" class="mr-3 w-5 h-5 group-hover:text-blue-400"></i>
+                <span class="font-medium text-sm">Livraisons</span>
+              </div>
+              <i data-lucide="chevron-down" id="livraisons-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+            </button>
+
+            <div id="livraisons-menu" class="dropdown-container">
+              <a th:href="@{/stock/livraisons/liste}" class="nav-link-sub">
+                <i data-lucide="list" class="w-3 h-3 mr-2 opacity-50"></i> Historique
+              </a>
+              <a th:href="@{/stock/livraisons/nouvelle}" class="nav-link-sub">
+                <i data-lucide="plus-circle" class="w-3 h-3 mr-2 opacity-50"></i> Nouvelle livraison
+              </a>
+
+              <!-- Sous-menu imbriqué : Préparation -->
+              <div>
+                <button onclick="toggleDropdown('preparation-menu', 'preparation-arrow')" class="nav-link-sub w-full justify-between pr-4 group">
+                  <span class="flex items-center">
+                    <i data-lucide="package-search" class="w-3 h-3 mr-2 opacity-50"></i> Préparation
+                  </span>
+                  <i data-lucide="chevron-down" id="preparation-arrow" class="w-3 h-3 opacity-50 transition-transform"></i>
+                </button>
+                <div id="preparation-menu" class="dropdown-container inner-menu">
+                  <a th:href="@{/stock/livraisons/preparation}" class="nav-link-sub !pl-4 py-1.5 text-xs">
+                    Commandes
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="nav-group-label">Rapports & Analyses</p>
+
+          <!-- Dashboard Valorisation -->
+          <a th:href="@{/main/dashboard/valorisation}" class="nav-link-main">
+            <div class="flex items-center">
+              <i data-lucide="trending-up" class="mr-3 w-5 h-5"></i>
+              <span class="font-medium text-sm">Dashboard Valorisation</span>
+            </div>
+          </a>
+
+          <!-- Dashboard Mouvements -->
+          <a th:href="@{/main/dashboard/mouvements}" class="nav-link-main">
+            <div class="flex items-center">
+              <i data-lucide="activity" class="mr-3 w-5 h-5"></i>
+              <span class="font-medium text-sm">Dashboard Mouvements</span>
+            </div>
+          </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800/50 bg-black/10">
+          <div class="flex items-center p-2">
+            <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+              <span th:text="${#strings.substring(session.userFullName, 0, 2)}">US</span>
+            </div>
+            <div class="ml-3">
+              <p class="text-[11px] font-bold text-white leading-none" th:text="${session.userFullName}">
+                Utilisateur
+              </p>
+              <p class="text-[10px] text-slate-500 mt-1" th:text="${session.userRole}">
+                Rôle
+              </p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <script th:inline="javascript">
+      lucide.createIcons();
+
+      function toggleDropdown(menuId, arrowId) {
+        const menu = document.getElementById(menuId);
+        const arrow = document.getElementById(arrowId);
+
+        if (!menu.classList.contains('dropdown-open')) {
+          const openMenus = document.querySelectorAll('.dropdown-open');
+          openMenus.forEach(m => {
+            // On ne ferme pas si c'est un parent du menu qu'on ouvre
+            if (!m.contains(menu)) m.classList.remove('dropdown-open');
+          });
+        }
+
+        menu.classList.toggle('dropdown-open');
+        if(arrow) arrow.classList.toggle('rotate-icon');
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const path = window.location.pathname;
+        
+        // Ouverture automatique basée sur l'URL
+        const menuMappings = {
+          '/stock/articles': ['articles-menu', 'articles-arrow'],
+          '/stock/inventaires': ['inventaires-menu', 'inventaires-arrow'],
+          '/stock/mouvements': ['mouvements-menu', 'mouvements-arrow'],
+          '/stock/lots': ['lots-menu', 'lots-arrow'],
+          '/stock/transferts': ['transferts-menu', 'transferts-arrow'],
+          '/stock/reservations': ['reservations-menu', 'reservations-arrow'],
+          '/stock/livraisons': ['livraisons-menu', 'livraisons-arrow'],
+        };
+
+        for (const [pathStart, [menuId, arrowId]] of Object.entries(menuMappings)) {
+          if (path.includes(pathStart)) {
+            const menu = document.getElementById(menuId);
+            if(menu) menu.classList.add('dropdown-open');
+            const arrow = document.getElementById(arrowId);
+            if(arrow) arrow.classList.add('rotate-icon');
+          }
+        }
+
+        // Ouvrir les sous-menus si nécessaire
+        if (path.includes('/alertes')) {
+          const alertesMenu = document.getElementById('alertes-menu');
+          if(alertesMenu) alertesMenu.classList.add('dropdown-open');
+          const alertesArrow = document.getElementById('alertes-arrow');
+          if(alertesArrow) alertesArrow.classList.add('rotate-icon');
+        }
+
+        if (path.includes('/preparation')) {
+          const prepMenu = document.getElementById('preparation-menu');
+          if(prepMenu) prepMenu.classList.add('dropdown-open');
+          const prepArrow = document.getElementById('preparation-arrow');
+          if(prepArrow) prepArrow.classList.add('rotate-icon');
+        }
+      });
+    </script>
+  </body>
+</html>
