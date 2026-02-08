@@ -82,6 +82,43 @@
                         <a th:href="@{/achats/fournisseurs}" class="nav-link-sub">
                             <i data-lucide="users" class="w-3 h-3 mr-2 opacity-50"></i> Fournisseurs
                         </a>
+                                                <a th:href="@{/achats/dashboard}" class="nav-link-sub">
+                            <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mb-1">
+                    <button onclick="toggleDropdown('vente-menu', 'vente-arrow')" class="nav-link-main w-full group">
+                        <div class="flex items-center">
+                            <i data-lucide="shopping-cart" class="mr-3 w-5 h-5 group-hover:text-indigo-400"></i>
+                            <span class="font-medium text-sm">Gestion Ventes</span>
+                        </div>
+                        <i data-lucide="chevron-down" id="vente-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+                    </button>
+                    
+                    <div id="vente-menu" class="dropdown-container">
+                        <a th:href="@{/ventes/devis/liste}" class="nav-link-sub">
+                            <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Devis
+                        </a>
+                        <a th:href="@{/ventes/commandes/liste}" class="nav-link-sub">
+                            <i data-lucide="clipboard-list" class="w-3 h-3 mr-2 opacity-50"></i> Commandes
+                        </a>
+                        <a th:href="@{/ventes/livraisons/liste}" class="nav-link-sub">
+                            <i data-lucide="truck" class="w-3 h-3 mr-2 opacity-50"></i> Livraisons
+                        </a>
+                        <a th:href="@{/ventes/factures/liste}" class="nav-link-sub">
+                            <i data-lucide="credit-card" class="w-3 h-3 mr-2 opacity-50"></i> Factures
+                        </a>
+                        <a th:href="@{/ventes/paiements/liste}" class="nav-link-sub">
+                            <i data-lucide="wallet" class="w-3 h-3 mr-2 opacity-50"></i> Paiements
+                        </a>
+                        <a th:href="@{/ventes/avoirs/liste}" class="nav-link-sub">
+                            <i data-lucide="rotate-ccw" class="w-3 h-3 mr-2 opacity-50"></i> Avoirs
+                        </a>
+                        <a th:href="@{/ventes/clients}" class="nav-link-sub">
+                            <i data-lucide="users" class="w-3 h-3 mr-2 opacity-50"></i> Clients
+                        </a>
                     </div>
                 </div>
             </nav>
@@ -98,7 +135,7 @@
         </aside>
 
         <main class="flex-1 overflow-y-auto flex flex-col">
-            <header class="top-header px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+            <!-- <header class="top-header px-8 py-4 flex justify-between items-center sticky top-0 z-10">
                 <div class="flex items-center space-x-2">
                     <i data-lucide="home" class="w-4 h-4 text-slate-400"></i>
                     <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">ERP System &bull; Achats</span>
@@ -113,7 +150,7 @@
                     </a>
                 </div>
             </header>
-            
+             -->
             <div class="p-8 max-w-7xl mx-auto w-full">
                 <div th:replace="${content}"></div>
             </div>
@@ -146,6 +183,12 @@
                 const menu = document.getElementById('achat-menu');
                 if(menu) menu.classList.add('dropdown-open');
                 const arrow = document.getElementById('achat-arrow');
+                if(arrow) arrow.classList.add('rotate-icon');
+            }
+            if (path.includes('/ventes')) {
+                const menu = document.getElementById('vente-menu');
+                if(menu) menu.classList.add('dropdown-open');
+                const arrow = document.getElementById('vente-arrow');
                 if(arrow) arrow.classList.add('rotate-icon');
             }
             if (path.includes('/reception')) {

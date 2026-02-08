@@ -1,0 +1,83 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Nouvelle Demande d'Achat</h1>
+            <p class="text-slate-500 text-sm">Exprimez un besoin d'approvisionnement pour votre service.</p>
+        </div>
+
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+                <form id="daForm" class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Article / Produit</label>
+                        <select name="produitId" required class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="">-- Choisir un article --</option>
+                            <option th:each="art : ${articles}" 
+                                    th:value="${art.id}" 
+                                    th:text="${art.codeArticle + ' - ' + art.libelle}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Quantité demandée</label>
+                        <input type="number" name="quantiteDemandee" min="1" required 
+                               class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                               placeholder="Ex: 50">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Motif de la demande</label>
+                        <textarea name="motif" rows="4" required
+                                  class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                  placeholder="Justifiez votre besoin (ex: Rupture de stock, nouveau projet...)"></textarea>
+                    </div>
+
+                    <div class="pt-6 border-t border-slate-100 flex justify-end space-x-4">
+                        <a href="/achats/demandes" class="px-6 py-3 text-slate-600 font-medium hover:text-slate-800">Annuler</a>
+                        <button type="button" onclick="submitDA()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-lg flex items-center font-bold transition-all">
+                            <i data-lucide="send" class="mr-2 w-4"></i> Envoyer la demande
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function submitDA() {
+    const form = document.getElementById('daForm');
+    const formData = new FormData(form);
+    
+    // Conversion en JSON
+    const data = {
+        produitId: formData.get('produitId'),
+        quantiteDemandee: parseInt(formData.get('quantiteDemandee')),
+        motif: formData.get('motif')
+    };
+
+    if(!data.produitId || !data.quantiteDemandee) {
+        alert("Veuillez remplir tous les champs obligatoires.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/achats/demandes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if(response.ok) {
+            alert('Demande d\'achat enregistrée !');
+            window.location.href = '/achats/demandes';
+        } else {
+            alert('Erreur lors de l\'enregistrement.');
+        }
+    } catch (error) {
+        alert('Erreur réseau');
+    }
+}
+</script>

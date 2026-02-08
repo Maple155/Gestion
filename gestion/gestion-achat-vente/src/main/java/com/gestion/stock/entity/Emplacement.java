@@ -42,6 +42,4 @@ public class Emplacement {
     @Column(name = "actif")
     private boolean actif = true;
     
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

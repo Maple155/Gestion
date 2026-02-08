@@ -1,0 +1,42 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Clients</h1>
+                <p class="text-slate-500 text-sm">Référentiel clients pour la vente.</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Code</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Nom</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Email</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Téléphone</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Actif</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr th:each="c : ${clients}" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-800 text-sm" th:text="${c.code}">CL-0001</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${c.nom}">Client</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${c.email}">email</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${c.telephone}">tel</td>
+                        <td class="px-6 py-4">
+                            <span th:classappend="${c.actif} ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'"
+                                  class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter"
+                                  th:text="${c.actif} ? 'ACTIF' : 'INACTIF'">ACTIF</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(clients)}">
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">
+                            Aucun client enregistré.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
