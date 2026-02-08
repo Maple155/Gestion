@@ -278,6 +278,36 @@ public class VenteViewController {
         return "redirect:/ventes/factures/liste";
     }
 
+    @PostMapping("/commandes/{id}/annuler")
+    public String annulerCommande(@PathVariable UUID id,
+                                  @RequestParam(required = false) String motif,
+                                  HttpSession session) {
+        requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
+        UUID userId = (UUID) session.getAttribute("userId");
+        try {
+            venteService.annulerCommande(id, userId, motif);
+            return "redirect:/ventes/commandes/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/commandes/liste";
+        }
+    }
+
+    @PostMapping("/commandes/{id}/debloquer")
+    public String debloquerCommande(@PathVariable UUID id,
+                                    @RequestParam(required = false) String motif,
+                                    HttpSession session) {
+        requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
+        UUID userId = (UUID) session.getAttribute("userId");
+        try {
+            venteService.debloquerCommande(id, userId, motif);
+            return "redirect:/ventes/commandes/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/commandes/liste";
+        }
+    }
+
     @GetMapping("/livraisons/liste")
     public String listLivraisons(Model model) {
         model.addAttribute("livraisons", livraisonRepository.findAllByOrderByCreatedAtDesc());
