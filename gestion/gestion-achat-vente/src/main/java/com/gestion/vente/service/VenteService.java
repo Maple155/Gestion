@@ -64,8 +64,54 @@ public class VenteService {
         devis.setRemiseGlobale(nz(request.getRemiseGlobale()));
         devis.setCreePar(request.getCreePar());
         devis.setNotes(request.getNotes());
-        devis.setStatut(StatutDevis.A_VALIDER);
 
+        List<LigneDevisVente> lignes = new ArrayList<>();
+        for (LigneVenteRequest ligneReq : request.getLignes()) {
+            LigneDevisVente ligne = new LigneDevisVente();
+            ligne.setDevis(devis);
+            ligne.setArticleId(ligneReq.getArticleId());
+            ligne.setQuantite(ligneReq.getQuantite());
+            ligne.setPrixUnitaireHt(ligneReq.getPrixUnitaireHt());
+            ligne.setRemisePourcentage(nz(ligneReq.getRemisePourcentage()));
+            ligne.setTvaPourcentage(nz(ligneReq.getTvaPourcentage()));
+
+            VenteTotals ligneTotals = calculerLigne(ligneReq);
+            ligne.setTotalHt(ligneTotals.getTotalHt());
+            ligne.setTotalTtc(ligneTotals.getTotalTtc());
+            lignes.add(ligne);
+        }
+
+        VenteTotals totals = calculerTotauxGlobaux(request.getLignes(), devis.getRemiseGlobale());
+        devis.setTotalHt(totals.getTotalHt());
+        devis.setTotalTva(totals.getTotalTva());
+        devis.setTotalTtc(totals.getTotalTtc());
+        devis.setLignes(lignes);
+
+        return devisRepository.save(devis);
+    }
+
+    public DevisVente modifierDevis(UUID devisId, CreateDevisRequest request) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.BROUILLON) {
+            throw new RuntimeException("Seuls les devis en brouillon sont modifiables");
+        }
+
+        Client client = clientRepository.findById(request.getClientId())
+            .orElseThrow(() -> new RuntimeException("Client introuvable"));
+
+        if (request.getLignes() == null || request.getLignes().isEmpty()) {
+            throw new RuntimeException("Le devis doit contenir au moins une ligne");
+        }
+
+        devis.setClient(client);
+        if (request.getValiditeJours() != null) {
+            devis.setValiditeJours(request.getValiditeJours());
+        }
+        devis.setRemiseGlobale(nz(request.getRemiseGlobale()));
+
+        devis.getLignes().clear();
         List<LigneDevisVente> lignes = new ArrayList<>();
         for (LigneVenteRequest ligneReq : request.getLignes()) {
             LigneDevisVente ligne = new LigneDevisVente();
@@ -95,6 +141,9 @@ public class VenteService {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
 
+        if (devis.getStatut() != StatutDevis.A_VALIDER) {
+            throw new RuntimeException("Le devis doit être soumis avant validation");
+        }
         if (devis.getStatut() == StatutDevis.ANNULE || devis.getStatut() == StatutDevis.EXPIRE) {
             throw new RuntimeException("Devis non validable");
         }
@@ -102,6 +151,36 @@ public class VenteService {
         devis.setStatut(StatutDevis.VALIDE);
         devis.setValidePar(validePar);
         devis.setDateValidation(LocalDateTime.now());
+        return devisRepository.save(devis);
+    }
+
+    public DevisVente soumettreDevis(UUID devisId) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.BROUILLON) {
+            throw new RuntimeException("Le devis est déjà soumis ou traité");
+        }
+
+        devis.setStatut(StatutDevis.A_VALIDER);
+        return devisRepository.save(devis);
+    }
+
+    public DevisVente refuserDevis(UUID devisId, UUID validePar, String motif) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.A_VALIDER) {
+            throw new RuntimeException("Seul un devis en attente peut être refusé");
+        }
+
+        devis.setStatut(StatutDevis.ANNULE);
+        devis.setValidePar(validePar);
+        devis.setDateValidation(LocalDateTime.now());
+        if (motif != null && !motif.isBlank()) {
+            String existing = devis.getNotes() != null ? devis.getNotes() + "\n" : "";
+            devis.setNotes(existing + "Refus: " + motif.trim());
+        }
         return devisRepository.save(devis);
     }
 

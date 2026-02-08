@@ -81,6 +81,24 @@ public class VenteViewController {
         return "vente/devis-nouveau";
     }
 
+    @GetMapping("/devis/{id}/modifier")
+    public String modifierDevisForm(@PathVariable UUID id, Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "COMMERCIAL", "RESPONSABLE_VENTES");
+        DevisVente devis = devisRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+        if (devis.getStatut() != com.gestion.vente.enums.StatutDevis.BROUILLON) {
+            session.setAttribute("flashError", "Seuls les devis en brouillon sont modifiables");
+            return "redirect:/ventes/devis/liste";
+        }
+        LigneDevisVente ligne = devis.getLignes().isEmpty() ? null : devis.getLignes().get(0);
+        model.addAttribute("devis", devis);
+        model.addAttribute("ligne", ligne);
+        model.addAttribute("clients", clientRepository.findAll());
+        model.addAttribute("articles", articleRepository.findAll());
+        model.addAttribute("activePage", "vente-devis");
+        return "vente/devis-modifier";
+    }
+
     @PostMapping("/devis/nouveau")
     public String creerDevis(@RequestParam UUID clientId,
                              @RequestParam UUID articleId,
@@ -126,12 +144,88 @@ public class VenteViewController {
         return "redirect:/ventes/devis/liste";
     }
 
+    @PostMapping("/devis/{id}/modifier")
+    public String modifierDevis(@PathVariable UUID id,
+                                @RequestParam UUID clientId,
+                                @RequestParam UUID articleId,
+                                @RequestParam Integer quantite,
+                                @RequestParam BigDecimal prixUnitaireHt,
+                                @RequestParam(required = false) BigDecimal remisePourcentage,
+                                @RequestParam(required = false) BigDecimal tvaPourcentage,
+                                HttpSession session) {
+        requireRole(session, "ADMIN", "COMMERCIAL", "RESPONSABLE_VENTES");
+        CreateDevisRequest request = new CreateDevisRequest();
+        request.setClientId(clientId);
+        LigneVenteRequest ligne = new LigneVenteRequest();
+        ligne.setArticleId(articleId);
+        ligne.setQuantite(quantite);
+        BigDecimal prixFinal = prixUnitaireHt;
+        BigDecimal tvaFinal = tvaPourcentage;
+        if (prixFinal == null || tvaFinal == null) {
+            Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new RuntimeException("Article introuvable"));
+            if (prixFinal == null) {
+                prixFinal = article.getPrixVenteHt();
+            }
+            if (tvaFinal == null) {
+                tvaFinal = article.getTvaPourcentage();
+            }
+        }
+        ligne.setPrixUnitaireHt(prixFinal);
+        if (remisePourcentage != null) {
+            ligne.setRemisePourcentage(remisePourcentage);
+        }
+        if (tvaFinal != null) {
+            ligne.setTvaPourcentage(tvaFinal);
+        }
+        request.setLignes(List.of(ligne));
+        try {
+            venteService.modifierDevis(id, request);
+            return "redirect:/ventes/devis/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/devis/liste";
+        }
+    }
+
     @PostMapping("/devis/{id}/valider")
     public String validerDevis(@PathVariable UUID id, HttpSession session) {
         requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
         UUID userId = (UUID) session.getAttribute("userId");
-        venteService.validerDevis(id, userId);
-        return "redirect:/ventes/devis/liste";
+        try {
+            venteService.validerDevis(id, userId);
+            return "redirect:/ventes/devis/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/devis/liste";
+        }
+    }
+
+    @PostMapping("/devis/{id}/soumettre")
+    public String soumettreDevis(@PathVariable UUID id, HttpSession session) {
+        requireRole(session, "ADMIN", "COMMERCIAL", "RESPONSABLE_VENTES");
+        try {
+            venteService.soumettreDevis(id);
+            return "redirect:/ventes/devis/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/devis/liste";
+        }
+    }
+
+    @PostMapping("/devis/{id}/refuser")
+    public String refuserDevis(@PathVariable UUID id,
+                               @RequestParam(required = false) String motif,
+                               HttpSession session) {
+        requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
+        UUID userId = (UUID) session.getAttribute("userId");
+        try {
+            venteService.refuserDevis(id, userId, motif);
+            return "redirect:/ventes/devis/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/devis/liste";
+        }
     }
 
     @PostMapping("/devis/{id}/commande")
