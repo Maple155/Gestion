@@ -5,6 +5,10 @@
             <p class="text-slate-500 text-sm">Suivi des commandes confirmées.</p>
         </div>
 
+        <div th:if="${flashError}" class="mb-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded text-sm">
+            <span th:text="${flashError}">Erreur</span>
+        </div>
+
         <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-50 border-b border-slate-200">

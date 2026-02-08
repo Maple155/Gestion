@@ -29,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class VenteViewController {
 
+    private static final BigDecimal PLAFOND_REMISE_COMMERCIAL = BigDecimal.valueOf(10);
+
     private final ClientRepository clientRepository;
     private final DevisVenteRepository devisRepository;
     private final CommandeClientRepository commandeRepository;
@@ -88,8 +90,12 @@ public class VenteViewController {
                              @RequestParam(required = false) BigDecimal tvaPourcentage,
                              HttpSession session) {
         requireRole(session, "ADMIN", "COMMERCIAL", "RESPONSABLE_VENTES");
+        String role = (String) session.getAttribute("userRole");
+        UUID userId = (UUID) session.getAttribute("userId");
+        BigDecimal remise = remisePourcentage != null ? remisePourcentage : BigDecimal.ZERO;
         CreateDevisRequest request = new CreateDevisRequest();
         request.setClientId(clientId);
+        request.setCreePar(userId);
         LigneVenteRequest ligne = new LigneVenteRequest();
         ligne.setArticleId(articleId);
         ligne.setQuantite(quantite);
@@ -114,6 +120,9 @@ public class VenteViewController {
         }
         request.setLignes(List.of(ligne));
         venteService.creerDevis(request);
+        if ("COMMERCIAL".equals(role) && remise.compareTo(PLAFOND_REMISE_COMMERCIAL) > 0) {
+            session.setAttribute("flashError", "Devis en attente de validation responsable (remise au-dessus du plafond)");
+        }
         return "redirect:/ventes/devis/liste";
     }
 
@@ -143,8 +152,13 @@ public class VenteViewController {
     }
 
     @GetMapping("/commandes/liste")
-    public String listCommandes(Model model) {
+    public String listCommandes(Model model, HttpSession session) {
         model.addAttribute("commandes", commandeRepository.findAllByOrderByDateCommandeDesc());
+        Object flashError = session.getAttribute("flashError");
+        if (flashError != null) {
+            model.addAttribute("flashError", flashError.toString());
+            session.removeAttribute("flashError");
+        }
         model.addAttribute("activePage", "vente-commandes");
         return "vente/commandes-liste";
     }
@@ -154,8 +168,13 @@ public class VenteViewController {
         requireRole(session, "ADMIN", "MAGASINIER_SORTIE");
         CreateLivraisonRequest request = new CreateLivraisonRequest();
         request.setUtilisateurId((UUID) session.getAttribute("userId"));
-        venteService.creerLivraison(id, request);
-        return "redirect:/ventes/livraisons/liste";
+        try {
+            venteService.creerLivraison(id, request);
+            return "redirect:/ventes/livraisons/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/commandes/liste";
+        }
     }
 
     @PostMapping("/commandes/{id}/facturer")

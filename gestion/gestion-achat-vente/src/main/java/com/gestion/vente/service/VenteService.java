@@ -180,6 +180,12 @@ public class VenteService {
         CommandeClient commande = commandeRepository.findById(commandeId)
             .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
+        boolean hasMissingReservation = commande.getLignes().stream()
+            .anyMatch(ligne -> ligne.getReservationStockId() == null);
+        if (hasMissingReservation) {
+            throw new RuntimeException("Livraison impossible: stock non réservé pour toutes les lignes");
+        }
+
         LivraisonClient livraison = new LivraisonClient();
         livraison.setReference(genererReferenceLivraison());
         livraison.setCommande(commande);
@@ -197,19 +203,8 @@ public class VenteService {
             ligne.setQuantiteLivree(ligneCommande.getQuantite());
             lignes.add(ligne);
 
-            if (ligneCommande.getReservationStockId() != null) {
-                livraisonService.creerSortieStock(ligneCommande.getReservationStockId(), request.getUtilisateurId(),
-                    "Livraison commande " + commande.getReference());
-            } else {
-                livraisonService.livrerDirectement(
-                    ligneCommande.getArticleId(),
-                    commande.getDepotLivraisonId(),
-                    ligneCommande.getQuantite(),
-                    commande.getId(),
-                    request.getUtilisateurId(),
-                    "Livraison directe commande " + commande.getReference()
-                );
-            }
+            livraisonService.creerSortieStock(ligneCommande.getReservationStockId(), request.getUtilisateurId(),
+                "Livraison commande " + commande.getReference());
 
             ligneCommande.setStatut(StatutLigneCommande.LIVREE);
         }
