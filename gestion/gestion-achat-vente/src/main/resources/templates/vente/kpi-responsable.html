@@ -1,0 +1,84 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">KPI Responsable Commercial</h1>
+            <p class="text-slate-500 text-sm">Vue synthétique des ventes.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Commandes en cours</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${enCours}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Commandes livrées</p>
+                <p class="text-xl font-bold text-emerald-600" th:text="${livrees}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Commandes en retard</p>
+                <p class="text-xl font-bold text-rose-600" th:text="${enRetard}">0</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Taux annulation</p>
+                <p class="text-xl font-bold text-amber-600" th:text="${tauxAnnulation} + '%'">0%</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Remises accordées</p>
+                <p class="text-xl font-bold text-indigo-600" th:text="${totalRemises}">0</p>
+                <p class="text-xs text-slate-400">Plafond commercial: <span th:text="${plafondRemise}">0</span>%</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Exceptions remise</p>
+                <p class="text-xl font-bold text-rose-600" th:text="${exceptionsRemise}">0</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Avoirs (volume)</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${volumeAvoirs}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Avoirs (valeur)</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${valeurAvoirs}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Backlog non servi</p>
+                <p class="text-xl font-bold text-amber-600" th:text="${backlogCount}">0</p>
+                <p class="text-xs text-slate-400">Quantité manquante: <span th:text="${backlogQuantite}">0</span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <h2 class="text-sm font-bold text-slate-700 mb-3">Motifs d'annulation</h2>
+                <ul class="text-sm text-slate-600 space-y-2">
+                    <li th:each="m : ${motifsAnnulation}" th:text="${m}">Motif</li>
+                    <li th:if="${#lists.isEmpty(motifsAnnulation)}" class="text-slate-400">Aucun motif.</li>
+                </ul>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <h2 class="text-sm font-bold text-slate-700 mb-3">Avoirs par cause</h2>
+                <table class="w-full text-left">
+                    <thead>
+                        <tr>
+                            <th class="text-xs text-slate-500">Cause</th>
+                            <th class="text-xs text-slate-500">Volume</th>
+                            <th class="text-xs text-slate-500">Valeur</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-slate-600">
+                        <tr th:each="c : ${causesAvoirs}">
+                            <td th:text="${c.label}">Cause</td>
+                            <td th:text="${c.count}">0</td>
+                            <td th:text="${c.montant}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
