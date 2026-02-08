@@ -55,21 +55,40 @@ public class SessionInterceptor implements HandlerInterceptor {
             return userRole.equals("ADMIN");
         }
         
-        if (uri.startsWith("/stock/") || uri.startsWith("/achats/")) {
+        // --- MODULE ACHATS (Adapté avec tes nouveaux rôles) ---
+        if (uri.startsWith("/achats/") || uri.startsWith("/api/achats/")) {
+            // Liste exhaustive basée sur ton Enum et ton Cahier des Charges
             return userRole.equals("ADMIN") || 
-                   userRole.equals("GESTIONNAIRE_STOCK") || 
-                   userRole.equals("RESPONSABLE_STOCK") ||
-                   userRole.equals("MAGASINIER_SORTIE");
+                userRole.equals("DEMANDEUR") || 
+                userRole.equals("ACHETEUR") || 
+                userRole.equals("RESPONSABLE_ACHATS") ||
+                userRole.equals("APPROBATEUR_N1") || 
+                userRole.equals("APPROBATEUR_N2") || 
+                userRole.equals("APPROBATEUR_N3") ||
+                userRole.equals("DAF") || 
+                userRole.equals("DG") ||
+                userRole.equals("GESTIONNAIRE_STOCK") || // Inclus car ils voient les BR
+                userRole.equals("RESPONSABLE_STOCK");
         }
 
+        // --- MODULE STOCK (Inchangé) ---
+        if (uri.startsWith("/stock/")) {
+            return userRole.equals("ADMIN") || 
+                userRole.equals("GESTIONNAIRE_STOCK") || 
+                userRole.equals("RESPONSABLE_STOCK") ||
+                userRole.equals("MAGASINIER_SORTIE");
+        }
+
+        // --- MODULE VENTES (Inchangé) ---
         if (uri.startsWith("/ventes/")) {
             return userRole.equals("ADMIN") ||
-                   userRole.equals("COMMERCIAL") ||
-                   userRole.equals("RESPONSABLE_VENTES") ||
-                   userRole.equals("MAGASINIER_SORTIE") ||
-                   userRole.equals("COMPTABLE_CLIENT");
+                userRole.equals("COMMERCIAL") ||
+                userRole.equals("RESPONSABLE_VENTES") ||
+                userRole.equals("MAGASINIER_SORTIE") ||
+                userRole.equals("COMPTABLE_CLIENT");
         }
         
+        // --- MODULE COMPTABILITÉ (Inchangé) ---
         if (uri.startsWith("/comptabilite/")) {
             return userRole.equals("ADMIN") || userRole.equals("COMPTABLE");
         }
