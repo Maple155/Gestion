@@ -20,7 +20,10 @@ public class SessionInterceptor implements HandlerInterceptor {
         
         // URLs publiques (pas besoin de session)
         if (requestURI.equals("/login") || 
+            requestURI.equals("/loginManager") ||
+            requestURI.equals("/home") ||
             requestURI.equals("/") || 
+            requestURI.equals("signupManager") ||
             requestURI.startsWith("/css/") || 
             requestURI.startsWith("/js/") ||
             requestURI.startsWith("/images/")) {
@@ -86,6 +89,9 @@ public class SessionInterceptor implements HandlerInterceptor {
                 userRole.equals("RESPONSABLE_VENTES") ||
                 userRole.equals("MAGASINIER_SORTIE") ||
                 userRole.equals("COMPTABLE_CLIENT");
+                   userRole.equals("GESTIONNAIRE_STOCK") || 
+                   userRole.equals("RESPONSABLE_STOCK") ||
+                   userRole.equalsIgnoreCase("MANAGER");
         }
         
         // --- MODULE COMPTABILITÉ (Inchangé) ---

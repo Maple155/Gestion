@@ -111,11 +111,12 @@
       }
     </style>
   </head>
-  <body>
-    <!-- Navigation -->
-    <nav
-      th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"
-    ></nav>
+  <body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
 
     <div class="container-fluid mt-4">
       <!-- En-tête -->
@@ -592,6 +593,8 @@
     <!-- Modals de sélection -->
     <div th:replace="~{stock/mouvements/modals :: modals}"></div>
 
+    </div>
+    </div>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>

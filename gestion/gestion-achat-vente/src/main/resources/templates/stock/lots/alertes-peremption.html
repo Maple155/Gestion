@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      >
+<head>
+    <title>Alertes de Péremption</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+        .alert-card {
+            border-left-width: 4px;
+            transition: all 0.3s;
+        }
+        .alert-card:hover {
+            transform: translateX(5px);
+        }
+        .alert-card.perime { border-left-color: #dc3545; }
+        .alert-card.urgent { border-left-color: #ffc107; }
+        .alert-card.warning { border-left-color: #fd7e14; }
+        .alert-card.info { border-left-color: #17a2b8; }
+        .count-badge {
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    <div >
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                    Alertes de Péremption
+                </h1>
+                <p class="text-muted mb-0">Surveillance des dates de péremption</p>
+            </div>
+            <div>
+                <button class="btn btn-primary" onclick="genererRapport()">
+                    <i class="bi bi-file-pdf"></i> Générer rapport
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistiques d'alerte -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-danger shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="text-danger mb-2">
+                            <i class="bi bi-x-circle fa-2x"></i>
+                        </div>
+                        <div class="h2 mb-0" th:text="${lotsParUrgence['Déjà périmés'].size()}">0</div>
+                        <div class="text-muted">Déjà périmés</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-warning shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="text-warning mb-2">
+                            <i class="bi bi-exclamation-triangle fa-2x"></i>
+                        </div>
+                        <div class="h2 mb-0" th:text="${lotsParUrgence['1-7 jours'].size()}">0</div>
+                        <div class="text-muted">Dans 1-7 jours</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-orange shadow-sm" style="border-color: #fd7e14;">
+                    <div class="card-body text-center">
+                        <div class="text-orange mb-2" style="color: #fd7e14;">
+                            <i class="bi bi-clock-history fa-2x"></i>
+                        </div>
+                        <div class="h2 mb-0" th:text="${lotsParUrgence['8-15 jours'].size()}">0</div>
+                        <div class="text-muted">Dans 8-15 jours</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-info shadow-sm">
+                    <div class="card-body text-center">
+                        <div class="text-info mb-2">
+                            <i class="bi bi-info-circle fa-2x"></i>
+                        </div>
+                        <div class="h2 mb-0" th:text="${lotsParUrgence['16-30 jours'].size()}">0</div>
+                        <div class="text-muted">Dans 16-30 jours</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Valeur à risque -->
+        <div class="alert alert-warning mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="alert-heading mb-1">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Valeur totale à risque
+                    </h5>
+                    <p class="mb-0">
+                        <span class="h4" th:text="${#numbers.formatDecimal(valeurRisque, 0, 'COMMA', 2, 'POINT')} + ' €'"></span>
+                        <span class="text-muted ms-2">(sur [[${joursAlerte}]] jours)</span>
+                    </p>
+                </div>
+                <div>
+                    <form class="d-flex gap-2" th:action="@{/lots/alertes/peremption}" method="get">
+                        <input type="number" class="form-control" name="joursAlerte" 
+                               th:value="${joursAlerte}" min="1" max="365" style="width: 100px;">
+                        <button type="submit" class="btn btn-outline-warning">
+                            <i class="bi bi-filter"></i> Appliquer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lots par urgence -->
+        <div th:each="entry : ${lotsParUrgence}" th:if="${!entry.value.isEmpty()}">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                     th:classappend="${(entry.key == 'Déjà périmés') ? 'bg-danger text-white' :
+                                    (entry.key == '1-7 jours') ? 'bg-warning' :
+                                    (entry.key == '8-15 jours') ? 'bg-orange text-white' : 'bg-info text-white'}"
+                     style="background-color: #fd7e14;">
+                    <h5 class="mb-0">
+                        <span th:switch="${entry.key}">
+                            <i th:case="'Deja perimes'" class="bi bi-x-circle"></i>
+                            <i th:case="'1-7 jours'" class="bi bi-exclamation-triangle"></i>
+                            <i th:case="'8-15 jours'" class="bi bi-clock-history"></i>
+                            <i th:case="'16-30 jours'" class="bi bi-info-circle"></i>
+                        </span>
+                        [[${entry.key}]]
+                    </h5>
+                    <span class="badge bg-white text-dark count-badge">
+                        [[${entry.value.size()}]]
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div th:each="lot : ${entry.value}" class="col-xl-4 col-md-6 mb-3">
+                            <div class="card alert-card h-100"
+                                 th:classappend="${(entry.key == 'Déjà périmés') ? 'perime' :
+                                                (entry.key == '1-7 jours') ? 'urgent' :
+                                                (entry.key == '8-15 jours') ? 'warning' : 'info'}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <h6 class="card-title mb-0">
+                                            <a th:href="@{/lots/{id}(id=${lot.id})}" 
+                                               class="text-decoration-none">
+                                                [[${lot.numeroLot}]]
+                                            </a>
+                                        </h6>
+                                        <span class="badge" 
+                                              th:class="${(entry.key == 'Déjà périmés') ? 'bg-danger' :
+                                                        (entry.key == '1-7 jours') ? 'bg-warning' :
+                                                        (entry.key == '8-15 jours') ? 'bg-orange' : 'bg-info'}">
+                                            [[${entry.key}]]
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <strong>[[${lot.article.codeArticle}]]</strong>
+                                        <div class="text-muted small" th:text="${lot.article.libelle}"></div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">Quantité</small>
+                                            <div class="fw-bold" th:text="${lot.quantiteActuelle}"></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Valeur</small>
+                                            <div class="fw-bold text-success">
+                                                [[${#numbers.formatDecimal(lot.coutUnitaire * lot.quantiteActuelle, 0, 'COMMA', 2, 'POINT')}]] €
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        <small class="text-muted">Péremption</small>
+                                        <div class="d-flex justify-content-between">
+                                            <span th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}"></span>
+                                            <span th:class="${entry.key == 'Déjà périmés'} ? 'text-danger fw-bold' : 'text-warning'">
+                                                <span th:with="daysDiff=${T(java.time.temporal.ChronoUnit).DAYS.between(T(java.time.LocalDate).now(), lot.datePeremption)}">
+                                                    <span th:if="${daysDiff > 0}">[[${daysDiff}]]j</span>
+                                                    <span th:if="${daysDiff <= 0}">DÉPASSÉ</span>
+                                                </span>
+                                                
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="btn-group w-100">
+                                            <a th:href="@{/lots/{id}(id=${lot.id})}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Voir
+                                            </a>
+                                            <a th:href="@{/lots/{id}/transferer(id=${lot.id})}" 
+                                               class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-arrow-left-right"></i> Transférer
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#marquerPerimeModal"
+                                                    th:data-lot-id="${lot.id}"
+                                                    th:data-lot-numero="${lot.numeroLot}">
+                                                <i class="bi bi-x-circle"></i> Marquer périmé
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aucune alerte -->
+        <div th:if="${lotsProchePeremption.empty}" class="text-center py-5">
+            <div class="text-muted">
+                <i class="bi bi-check-circle fa-4x mb-3 text-success"></i>
+                <h4>Aucune alerte de péremption</h4>
+                <p class="mb-0">Aucun lot ne présente de risque de péremption dans les [[${joursAlerte}]] prochains jours.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal : Marquer comme périmé -->
+    <div class="modal fade" id="marquerPerimeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Marquer comme périmé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/lots/{id}/changer-statut(id=__lotId__)}" method="post" id="marquerPerimeForm">
+                    <input type="hidden" name="nouveauStatut" value="PERIME">
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Cette action retirera le lot de la vente.
+                        </div>
+                        <p>
+                            Êtes-vous sûr de vouloir marquer le lot 
+                            <strong id="lotNumeroDisplay"></strong> comme périmé ?
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Motif</label>
+                            <textarea class="form-control" name="motif" rows="3" required
+                                      placeholder="Ex: Date de péremption dépassée..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Marquer comme périmé
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script >
+        // Gestion du modal marquer périmé
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('marquerPerimeModal');
+            modal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const lotId = button.getAttribute('data-lot-id');
+                const lotNumero = button.getAttribute('data-lot-numero');
+                
+                const form = document.getElementById('marquerPerimeForm');
+                form.action = form.action.replace('__lotId__', lotId);
+                
+                document.getElementById('lotNumeroDisplay').textContent = lotNumero;
+            });
+        });
+        
+        // Générer rapport
+        function genererRapport() {
+            const format = prompt('Format du rapport (pdf, excel):', 'pdf');
+            if (format) {
+                window.location.href = `/lots/alertes/rapport?format=${format}&joursAlerte=${[[${joursAlerte}]]}`;
+            }
+        }
+        
+        // Auto-refresh toutes les 10 minutes
+        setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                window.location.reload();
+            }
+        }, 600000);
+    </script>
+</body>
+</html>

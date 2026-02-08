@@ -33,6 +33,10 @@ public class ArticleService {
     private final StockMovementRepository mouvementRepository;
     private final StockMovementRepository stockMovementRepository;
 
+    public List<Article> findByActifTrue() {
+        return articleRepository.findByActifTrue();
+    }
+
     public Page<Article> rechercherArticles(String recherche, String categorieId,
             Boolean actif, Boolean gestionParLot,
             Pageable pageable) {
@@ -59,8 +63,15 @@ public class ArticleService {
     }
 
     public Article getArticleById(UUID id) {
-        return articleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+        List<Article> articles = articleRepository.findAll();
+
+        for (Article article : articles) {
+            if (article.getId().equals(id)) {
+                return article;
+            }
+        }
+
+        return null;
     }
 
     public Map<String, Object> getDetailsArticle(UUID articleId) {

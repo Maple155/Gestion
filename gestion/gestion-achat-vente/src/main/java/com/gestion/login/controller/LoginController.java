@@ -158,8 +158,11 @@ public class LoginController {
                 case "MAGASINIER_SORTIE":
                 case "COMPTABLE_CLIENT":
                     return "redirect:/ventes/devis/liste";
+                    return "redirect:/main/dashboard";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
+                case "MANAGER":
+                    return "redirect:home";
                 default:
                     return "redirect:/achats/demandes";
             }

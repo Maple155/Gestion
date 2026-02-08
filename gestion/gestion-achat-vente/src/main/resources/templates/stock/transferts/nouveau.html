@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau Transfert</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .article-row { transition: all 0.3s; }
+        .article-row:hover { background-color: #f8f9fa; }
+        .lot-info { font-size: 0.85rem; }
+        .stock-warning { border-left: 4px solid #dc3545 !important; }
+        .selected { background-color: #e7f4ff; }
+        #lignes-container { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
+    
+    <div class="container-fluid">
+        <div class="row">
+            
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">
+                        <i class="bi bi-arrow-left-right"></i> Nouveau Transfert
+                    </h1>
+                </div>
+                
+                <!-- Messages d'erreur/succès -->
+                <div th:if="${param.success}" class="alert alert-success alert-dismissible fade show">
+                    Transfert créé avec succès !
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${error}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                
+                <form th:action="@{/stock/transferts/creer}" method="post" id="transfertForm">
+                    <div class="row">
+                        <!-- Informations générales -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="bi bi-info-circle"></i> Informations générales
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Dépôt Source *</label>
+                                        <select id="depotSourceId" name="depotSourceId" class="form-select" required
+                                                onchange="updateArticlesDisponibles()">
+                                            <option value="">Sélectionner un dépôt</option>
+                                            <option th:each="depot : ${depots}" 
+                                                    th:value="${depot.id}" 
+                                                    th:text="${depot.code + ' - ' + depot.nom}"
+                                                    th:selected="${param.depotSourceId == depot.id}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Dépôt Destination *</label>
+                                        <select id="depotDestinationId" name="depotDestinationId" class="form-select" required>
+                                            <option value="">Sélectionner un dépôt</option>
+                                            <option th:each="depot : ${depots}" 
+                                                    th:value="${depot.id}" 
+                                                    th:text="${depot.code + ' - ' + depot.nom}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Motif du transfert</label>
+                                        <textarea name="motif" class="form-control" rows="3" 
+                                                  placeholder="Ex: Réapprovisionnement, Transfert saisonnier..."></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Date souhaitée de réception</label>
+                                        <input type="date" name="dateReceptionPrevue" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recherche d'articles -->
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="bi bi-search"></i> Recherche d'articles
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Rechercher un article</label>
+                                        <div class="input-group">
+                                            <input type="text" id="searchArticle" class="form-control" 
+                                                   placeholder="Code, libellé, référence...">
+                                            <button class="btn btn-outline-secondary" type="button" 
+                                                    onclick="searchArticles()">
+                                                <i class="bi bi-search"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Filtrer par catégorie</label>
+                                        <select id="categorieFilter" class="form-select" onchange="filterArticles()">
+                                            <option value="">Toutes catégories</option>
+                                            <option th:each="categorie : ${categories}" 
+                                                    th:value="${categorie.id}" 
+                                                    th:text="${categorie.libelle}">
+                                            </option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Liste des articles disponibles -->
+                                    <div id="articles-container" style="max-height: 300px; overflow-y: auto;">
+                                        <div class="list-group" id="articles-list">
+                                            <!-- Les articles seront chargés dynamiquement -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lignes du transfert -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-list-check"></i> Articles à transférer
+                                <span id="lignes-count" class="badge bg-secondary ms-2">0</span>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearAllLignes()">
+                                <i class="bi bi-trash"></i> Tout effacer
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="lignes-container">
+                                <table class="table table-sm" id="lignes-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Article</th>
+                                            <th>Code</th>
+                                            <th>Lot</th>
+                                            <th>Stock disponible</th>
+                                            <th>Quantité</th>
+                                            <th>Unité</th>
+                                            <th>Coût unitaire</th>
+                                            <th>Total</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-body">
+                                        <!-- Lignes ajoutées dynamiquement -->
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="6" class="text-end"><strong>Total général :</strong></td>
+                                            <td id="total-general" class="text-end">0.00 €</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-3" id="no-lignes" style="display: none;">
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-box-seam display-4"></i>
+                                    <p class="mt-2">Aucun article ajouté au transfert</p>
+                                    <p class="small">Utilisez la recherche ci-dessus pour ajouter des articles</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Champs cachés pour les lignes -->
+                    <div id="hidden-fields"></div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between">
+                        <a th:href="@{/stock/transferts/liste}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="saveAsDraft()">
+                                <i class="bi bi-save"></i> Sauvegarder brouillon
+                            </button>
+                            <button type="submit" class="btn btn-success" onclick="prepareSubmit()">
+                                <i class="bi bi-check-circle"></i> Créer le transfert
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal de sélection de lot -->
+    <div class="modal fade" id="lotModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sélectionner un lot</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="lots-container">
+                        <!-- Liste des lots -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="selectLot()">Sélectionner</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let articlesDisponibles = [];
+        let lignesTransfert = [];
+        let selectedArticleForLot = null;
+        
+        // Mettre à jour la liste des articles disponibles
+        function updateArticlesDisponibles() {
+            const depotSourceId = document.getElementById('depotSourceId').value;
+            if (!depotSourceId) return;
+            
+            fetch(`/api/transferts/depot/${depotSourceId}/articles-disponibles`)
+                .then(response => response.json())
+                .then(data => {
+                    articlesDisponibles = data;
+                    displayArticles(articlesDisponibles);
+                });
+        }
+        
+        // Rechercher des articles
+        function searchArticles() {
+            const searchTerm = document.getElementById('searchArticle').value.toLowerCase();
+            const categorieId = document.getElementById('categorieFilter').value;
+            
+            let filtered = articlesDisponibles.filter(article => {
+                const matchesSearch = !searchTerm || 
+                    article.codeArticle.toLowerCase().includes(searchTerm) ||
+                    article.libelle.toLowerCase().includes(searchTerm);
+                
+                const matchesCategorie = !categorieId || 
+                    article.categorieId === categorieId;
+                
+                return matchesSearch && matchesCategorie;
+            });
+            
+            displayArticles(filtered);
+        }
+        
+        // Filtrer les articles
+        function filterArticles() {
+            searchArticles();
+        }
+        
+        // Afficher la liste des articles
+        function displayArticles(articles) {
+            const container = document.getElementById('articles-list');
+            container.innerHTML = '';
+            
+            if (articles.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-exclamation-circle"></i>
+                        <p class="mt-2">Aucun article trouvé</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            articles.forEach(article => {
+                const alreadyAdded = lignesTransfert.some(l => l.articleId === article.id);
+                const isLowStock = article.stockDisponible < article.stockMinimum;
+                
+                const item = document.createElement('div');
+                item.className = `list-group-item list-group-item-action article-row ${isLowStock ? 'stock-warning' : ''}`;
+                item.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between">
+                        <div>
+                            <h6 class="mb-1">${article.libelle}</h6>
+                            <small class="text-muted">Code: ${article.codeArticle}</small>
+                            <div class="lot-info">
+                                <small class="text-muted">Catégorie: ${article.categorie}</small>
+                                <small class="ms-2 text-muted">Stock: ${article.stockDisponible} ${article.uniteMesure}</small>
+                            </div>
+                        </div>
+                        <div>
+                            ${alreadyAdded ? 
+                                '<span class="badge bg-success">Déjà ajouté</span>' : 
+                                `<button class="btn btn-sm btn-outline-primary" onclick="addArticle('${article.id}')">
+                                    <i class="bi bi-plus"></i> Ajouter
+                                </button>`
+                            }
+                        </div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        // Ajouter un article au transfert
+        function addArticle(articleId) {
+            const article = articlesDisponibles.find(a => a.id === articleId);
+            if (!article) return;
+            
+            // Vérifier si l'article est déjà dans la liste
+            if (lignesTransfert.some(l => l.articleId === articleId)) {
+                alert('Cet article est déjà dans la liste');
+                return;
+            }
+            
+            const ligne = {
+                articleId: article.id,
+                codeArticle: article.codeArticle,
+                libelleArticle: article.libelle,
+                stockDisponible: article.stockDisponible,
+                uniteMesure: article.uniteMesure,
+                quantiteDemandee: 1,
+                lotId: null,
+                numeroLot: null,
+                coutUnitaire: article.coutUnitaire || 0,
+                notes: ''
+            };
+            
+            lignesTransfert.push(ligne);
+            updateLignesDisplay();
+            updateArticlesDisplay();
+        }
+        
+        // Mettre à jour l'affichage des lignes
+        function updateLignesDisplay() {
+            const body = document.getElementById('lignes-body');
+            const noLignes = document.getElementById('no-lignes');
+            const count = document.getElementById('lignes-count');
+            const totalGeneral = document.getElementById('total-general');
+            
+            if (lignesTransfert.length === 0) {
+                body.innerHTML = '';
+                noLignes.style.display = 'block';
+                count.textContent = '0';
+                totalGeneral.textContent = '0.00 €';
+                return;
+            }
+            
+            noLignes.style.display = 'none';
+            count.textContent = lignesTransfert.length;
+            
+            let html = '';
+            let total = 0;
+            
+            lignesTransfert.forEach((ligne, index) => {
+                const ligneTotal = ligne.coutUnitaire * ligne.quantiteDemandee;
+                total += ligneTotal;
+                
+                html += `
+                    <tr id="ligne-${index}">
+                        <td>${ligne.libelleArticle}</td>
+                        <td>${ligne.codeArticle}</td>
+                        <td>
+                            ${ligne.numeroLot ? 
+                                `<span class="badge bg-info">${ligne.numeroLot}</span>` : 
+                                `<button type="button" class="btn btn-sm btn-outline-secondary" 
+                                         onclick="selectLotForLigne(${index})">
+                                    <i class="bi bi-box"></i> Choisir
+                                </button>`
+                            }
+                        </td>
+                        <td>
+                            ${ligne.stockDisponible}
+                            <span class="text-muted">${ligne.uniteMesure}</span>
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm" 
+                                   min="1" max="${ligne.stockDisponible}"
+                                   value="${ligne.quantiteDemandee}"
+                                   onchange="updateQuantite(${index}, this.value)"
+                                   style="width: 80px;">
+                        </td>
+                        <td>${ligne.uniteMesure}</td>
+                        <td class="text-end">${ligne.coutUnitaire.toFixed(2)} €</td>
+                        <td class="text-end">${ligneTotal.toFixed(2)} €</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="removeLigne(${index})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            body.innerHTML = html;
+            totalGeneral.textContent = total.toFixed(2) + ' €';
+        }
+        
+        // Mettre à jour la quantité d'une ligne
+        function updateQuantite(index, quantite) {
+            const quantiteNum = parseInt(quantite);
+            const ligne = lignesTransfert[index];
+            
+            if (quantiteNum < 1) {
+                alert('La quantité doit être au moins 1');
+                document.querySelector(`#ligne-${index} input`).value = ligne.quantiteDemandee;
+                return;
+            }
+            
+            if (quantiteNum > ligne.stockDisponible) {
+                alert(`Quantité supérieure au stock disponible (${ligne.stockDisponible})`);
+                document.querySelector(`#ligne-${index} input`).value = ligne.stockDisponible;
+                quantiteNum = ligne.stockDisponible;
+            }
+            
+            ligne.quantiteDemandee = quantiteNum;
+            updateLignesDisplay();
+        }
+        
+        // Supprimer une ligne
+        function removeLigne(index) {
+            if (confirm('Supprimer cet article du transfert ?')) {
+                lignesTransfert.splice(index, 1);
+                updateLignesDisplay();
+                updateArticlesDisplay();
+            }
+        }
+        
+        // Effacer toutes les lignes
+        function clearAllLignes() {
+            if (lignesTransfert.length === 0) return;
+            
+            if (confirm('Supprimer tous les articles du transfert ?')) {
+                lignesTransfert = [];
+                updateLignesDisplay();
+                updateArticlesDisplay();
+            }
+        }
+        
+        // Mettre à jour l'affichage des articles
+        function updateArticlesDisplay() {
+            if (articlesDisponibles.length > 0) {
+                displayArticles(articlesDisponibles);
+            }
+        }
+        
+        // Sélectionner un lot pour une ligne
+        function selectLotForLigne(index) {
+            selectedArticleForLot = index;
+            const articleId = lignesTransfert[index].articleId;
+            const depotId = document.getElementById('depotSourceId').value;
+            
+            fetch(`/api/transferts/articles/${articleId}/depots/${depotId}/lots-disponibles`)
+                .then(response => response.json())
+                .then(lots => {
+                    const container = document.getElementById('lots-container');
+                    if (lots.length === 0) {
+                        container.innerHTML = `
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i>
+                                Aucun lot disponible pour cet article
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    let html = '<div class="list-group">';
+                    lots.forEach(lot => {
+                        const expiration = lot.datePeremption ? 
+                            `Expire: ${new Date(lot.datePeremption).toLocaleDateString()}` : 
+                            'Pas de date';
+                        
+                        html += `
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="radio" 
+                                       name="selectedLot" value="${lot.id}" 
+                                       data-numero="${lot.numeroLot}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <div>
+                                        <strong>${lot.numeroLot}</strong>
+                                        <div class="text-muted">${expiration}</div>
+                                        <small>Quantité: ${lot.quantiteActuelle} unités</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div>${lot.coutUnitaire.toFixed(2)} €</div>
+                                        <small class="text-muted">${lot.statut}</small>
+                                    </div>
+                                </div>
+                            </label>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('lotModal'));
+                    modal.show();
+                });
+        }
+        
+        // Sélectionner un lot
+        function selectLot() {
+            const selected = document.querySelector('input[name="selectedLot"]:checked');
+            if (!selected) {
+                alert('Veuillez sélectionner un lot');
+                return;
+            }
+            
+            const index = selectedArticleForLot;
+            const lotId = selected.value;
+            const numeroLot = selected.dataset.numero;
+            
+            lignesTransfert[index].lotId = lotId;
+            lignesTransfert[index].numeroLot = numeroLot;
+            
+            updateLignesDisplay();
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById('lotModal'));
+            modal.hide();
+        }
+        
+        // Sauvegarder en brouillon
+        function saveAsDraft() {
+            if (validateForm()) {
+                document.getElementById('transfertForm').action = '/stock/transferts/creer?draft=true';
+                document.getElementById('transfertForm').submit();
+            }
+        }
+        
+        // Préparer la soumission du formulaire
+        function prepareSubmit() {
+            if (!validateForm()) {
+                event.preventDefault();
+                return false;
+            }
+            
+            // Créer les champs cachés pour les lignes
+            const hiddenFields = document.getElementById('hidden-fields');
+            hiddenFields.innerHTML = '';
+            
+            lignesTransfert.forEach((ligne, index) => {
+                Object.keys(ligne).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `lignes[${index}].${key}`;
+                    input.value = ligne[key];
+                    hiddenFields.appendChild(input);
+                });
+            });
+            
+            return true;
+        }
+        
+        // Valider le formulaire
+        function validateForm() {
+            const depotSource = document.getElementById('depotSourceId').value;
+            const depotDestination = document.getElementById('depotDestinationId').value;
+            
+            if (!depotSource || !depotDestination) {
+                alert('Veuillez sélectionner les dépôts source et destination');
+                return false;
+            }
+            
+            if (depotSource === depotDestination) {
+                alert('Le dépôt source et destination doivent être différents');
+                return false;
+            }
+            
+            if (lignesTransfert.length === 0) {
+                alert('Veuillez ajouter au moins un article au transfert');
+                return false;
+            }
+            
+            // Vérifier les quantités
+            for (const ligne of lignesTransfert) {
+                if (ligne.quantiteDemandee > ligne.stockDisponible) {
+                    alert(`La quantité demandée pour ${ligne.libelleArticle} dépasse le stock disponible`);
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // Initialiser
+        document.addEventListener('DOMContentLoaded', function() {
+            updateArticlesDisponibles();
+        });
+    </script>
+</body>
+</html>

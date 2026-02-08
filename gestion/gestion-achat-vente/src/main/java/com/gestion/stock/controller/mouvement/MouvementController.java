@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.gestion.stock.entity.*;
 
 @Controller
 @RequestMapping("/stock/mouvements")
@@ -38,6 +39,20 @@ public class MouvementController {
     private final ArticleService articleService;
     private final DepotService depotService;
     private final LotService lotService;
+    private final StockMovementService stockMovementService;
+
+    @GetMapping("/all")
+    public String getAll(Model model){
+        model.addAttribute("mvtStock", stockMovementService.getAll());
+        return "home";
+    }
+
+    @GetMapping("{id}")
+public String detailMouvement(@PathVariable UUID id, Model model) {
+    StockMovement mvt = stockMovementService.findById(id);
+    model.addAttribute("mvt", mvt);
+    return "stock/mouvements/mouvement-detail";
+}
 
     /**
      * Journal des mouvements

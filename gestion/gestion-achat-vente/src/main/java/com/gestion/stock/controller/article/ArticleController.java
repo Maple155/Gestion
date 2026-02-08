@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -112,39 +114,47 @@ public class ArticleController {
         return "stock/articles/liste";
     }
 
-    /**
-     * Détails d'un article
-     */
     @GetMapping("/details/{id}")
     public String detailsArticle(@PathVariable String id,
             Model model,
             HttpSession session) {
-
+    
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
         }
-
+    
         Article article = articleService.getArticleById(UUID.fromString(id));
         Map<String, Object> details = articleService.getDetailsArticle(UUID.fromString(id));
-
+    
         // Stock par dépôt
         List<Map<String, Object>> stockParDepot = stockService.getStockParDepot(UUID.fromString(id));
-
+    
         // Lots associés
         List<Lot> lots = articleService.getLotsArticle(UUID.fromString(id));
-
+        
+        // Calculer les jours restants pour chaque lot
+        LocalDate aujourdhui = LocalDate.now();
+        lots.forEach(lot -> {
+            if (lot.getDatePeremption() != null) {
+                long joursRestants = ChronoUnit.DAYS.between(aujourdhui, lot.getDatePeremption());
+                // Ajouter les jours restants comme attribut temporaire (peut nécessiter un DTO)
+                // Ou utiliser un Map pour stocker ces informations
+            }
+        });
+    
         // Historique des mouvements
         List<StockMovement> historique = articleService.getHistoriqueArticle(UUID.fromString(id), 30);
-
+    
         model.addAttribute("article", article);
         model.addAttribute("details", details);
         model.addAttribute("stockParDepot", stockParDepot);
         model.addAttribute("lots", lots);
         model.addAttribute("historique", historique);
-
+        model.addAttribute("aujourdhui", aujourdhui); // Ajouter la date d'aujourd'hui
+    
         model.addAttribute("title", "Détails Article: " + article.getCodeArticle());
         model.addAttribute("activePage", "stock-articles");
-
+    
         return "stock/articles/details";
     }
 
@@ -211,18 +221,18 @@ public class ArticleController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String utilisateurId = (String) session.getAttribute("userId");
+            UUID utilisateurId = (UUID) session.getAttribute("userId");
             String articleId = params.get("id");
 
             if (articleId == null || articleId.isEmpty()) {
                 // Création
-                Article article = articleService.creerArticle(params, UUID.fromString(utilisateurId));
+                Article article = articleService.creerArticle(params, utilisateurId);
                 redirectAttributes.addFlashAttribute("success",
                         "Article créé: " + article.getCodeArticle());
             } else {
                 // Modification
                 Article article = articleService.modifierArticle(UUID.fromString(articleId), params,
-                        UUID.fromString(utilisateurId));
+                        utilisateurId);
                 redirectAttributes.addFlashAttribute("success",
                         "Article modifié: " + article.getCodeArticle());
             }

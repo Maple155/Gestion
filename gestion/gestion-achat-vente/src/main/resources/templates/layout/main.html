@@ -121,50 +121,6 @@
                         </a>
                     </div>
                 </div>
-
-                <div class="mb-1">
-                    <button onclick="toggleDropdown('stock-menu', 'stock-arrow')" class="nav-link-main w-full group">
-                        <div class="flex items-center">
-                            <i data-lucide="database" class="mr-3 w-5 h-5 group-hover:text-emerald-400"></i>
-                            <span class="font-medium text-sm">Gestion Stock</span>
-                        </div>
-                        <i data-lucide="chevron-down" id="stock-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
-                    </button>
-                    
-                    <div id="stock-menu" class="dropdown-container">
-                        <a th:href="@{/stock/articles/liste}" class="nav-link-sub">
-                            <i data-lucide="package" class="w-3 h-3 mr-2 opacity-50"></i> Articles
-                        </a>
-                        <a th:href="@{/stock/mouvements/liste}" class="nav-link-sub">
-                            <i data-lucide="activity" class="w-3 h-3 mr-2 opacity-50"></i> Mouvements
-                        </a>
-                        <a th:href="@{/stock/reservations/liste}" class="nav-link-sub">
-                            <i data-lucide="calendar-clock" class="w-3 h-3 mr-2 opacity-50"></i> Réservations
-                        </a>
-                        <a th:href="@{/stock/livraisons/liste}" class="nav-link-sub">
-                            <i data-lucide="truck" class="w-3 h-3 mr-2 opacity-50"></i> Livraisons
-                        </a>
-                        <a th:href="@{/stock/inventaires/liste}" class="nav-link-sub">
-                            <i data-lucide="clipboard-check" class="w-3 h-3 mr-2 opacity-50"></i> Inventaires
-                        </a>
-                        <a th:href="@{/stock/transferts/liste}" class="nav-link-sub">
-                            <i data-lucide="arrow-left-right" class="w-3 h-3 mr-2 opacity-50"></i> Transferts
-                        </a>
-                        <a th:href="@{/stock/lots/liste}" class="nav-link-sub">
-                            <i data-lucide="layers" class="w-3 h-3 mr-2 opacity-50"></i> Lots
-                        </a>
-                        <a th:href="@{/stock/dashboard}" class="nav-link-sub">
-                            <i data-lucide="bar-chart" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard
-                        </a>
-                    </div>
-                </div>
-
-                <a href="/stock" class="nav-link-main group">
-                    <div class="flex items-center">
-                        <i data-lucide="database" class="mr-3 w-5 h-5 group-hover:text-emerald-400"></i> 
-                        <span class="font-medium text-sm">Stock</span>
-                    </div>
-                </a>
             </nav>
 
             <div class="p-4 border-t border-slate-800/50 bg-black/10">

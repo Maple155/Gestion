@@ -5,7 +5,7 @@ import com.gestion.stock.dto.CreateReservationRequest;
 import com.gestion.stock.dto.ReservationDTO;
 import com.gestion.stock.entity.ReservationStock;
 import com.gestion.stock.service.ReservationService;
-
+import com.gestion.stock.service.ReservationStockService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +29,17 @@ import java.util.stream.Collectors;
 public class ReservationController {
 
     private final ReservationService reservationService;
-
+    private final ReservationStockService reservationStockService;
     /**
      * Liste des réservations avec filtres
      */
+
+    @GetMapping("/all")
+    public String getAll(Model model){
+        model.addAttribute("resStock", reservationStockService.getAll());
+        return "/home";
+    }
+
     @GetMapping("/liste")
     public String listeReservations(Model model,
             HttpSession session,
@@ -206,9 +213,9 @@ public class ReservationController {
             RedirectAttributes redirectAttributes) {
 
         try {
-            String utilisateurId = (String) session.getAttribute("userId");
+            UUID utilisateurId = (UUID) session.getAttribute("userId");
             if (utilisateurId == null) {
-                utilisateurId = "system";
+                return "redirect:/login";
             }
 
             ReservationStock reservation = reservationService.reserverStock(
@@ -217,10 +224,10 @@ public class ReservationController {
                     request.getQuantite(),
                     request.getCommandeClientId(),
                     request.getLigneCommandeId(),
-                    UUID.fromString(utilisateurId));
+                    utilisateurId);
 
             redirectAttributes.addFlashAttribute("success",
-                    "✅ Réservation créée avec succès: " + reservation.getReference());
+                    "Réservation créée avec succès: " + reservation.getReference());
 
             // Redirection intelligente
             if (redirectUrl != null && !redirectUrl.isEmpty()) {
@@ -228,7 +235,7 @@ public class ReservationController {
             }
 
             if (request.getCommandeClientId() != null) {
-                return "redirect:/ventes/commandes/details/" + request.getCommandeClientId();
+                return "redirect:/stock/reservations/details/" + request.getCommandeClientId();
             }
 
             return "redirect:/stock/reservations/details/" + reservation.getId();
@@ -236,7 +243,7 @@ public class ReservationController {
         } catch (Exception e) {
             log.error("Erreur création réservation", e);
             redirectAttributes.addFlashAttribute("error",
-                    "❌ Erreur: " + e.getMessage());
+                    "Erreur: " + e.getMessage());
             redirectAttributes.addFlashAttribute("request", request);
 
             return "redirect:/stock/reservations/nouvelle" +
@@ -256,12 +263,12 @@ public class ReservationController {
         try {
             reservationService.annulerReservation(UUID.fromString(id));
             redirectAttributes.addFlashAttribute("success",
-                    "✅ Réservation annulée avec succès");
+                    "Réservation annulée avec succès");
 
         } catch (Exception e) {
             log.error("Erreur annulation réservation", e);
             redirectAttributes.addFlashAttribute("error",
-                    "❌ Erreur: " + e.getMessage());
+                    "Erreur: " + e.getMessage());
         }
 
         return "redirect:/stock/reservations/details/" + id;
@@ -279,12 +286,12 @@ public class ReservationController {
         try {
             reservationService.marquerPrelevee(UUID.fromString(id), quantitePrelevee);
             redirectAttributes.addFlashAttribute("success",
-                    "✅ Réservation marquée comme prélevée");
+                    "Réservation marquée comme prélevée");
 
         } catch (Exception e) {
             log.error("Erreur prélèvement réservation", e);
             redirectAttributes.addFlashAttribute("error",
-                    "❌ Erreur: " + e.getMessage());
+                    "Erreur: " + e.getMessage());
         }
 
         return "redirect:/stock/reservations/details/" + id;
@@ -361,12 +368,12 @@ public class ReservationController {
         try {
             reservationService.prolongerReservation(UUID.fromString(id), heures);
             redirectAttributes.addFlashAttribute("success",
-                    "✅ Réservation prolongée de " + heures + " heures");
+                    "Réservation prolongée de " + heures + " heures");
 
         } catch (Exception e) {
             log.error("Erreur prolongation réservation", e);
             redirectAttributes.addFlashAttribute("error",
-                    "❌ Erreur: " + e.getMessage());
+                    "Erreur: " + e.getMessage());
         }
 
         return "redirect:/stock/reservations/details/" + id;

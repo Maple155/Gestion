@@ -62,21 +62,18 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
     <div class="container-fluid">
         <!-- En-tête de page -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-history me-2"></i>Journal des Mouvements
             </h1>
-            <div>
-                <a href="/stock/mouvements/entree" class="btn btn-success btn-sm">
-                    <i class="fas fa-plus me-1"></i>Nouvelle Entrée
-                </a>
-                <a href="/stock/mouvements/sortie" class="btn btn-warning btn-sm ms-2">
-                    <i class="fas fa-minus me-1"></i>Nouvelle Sortie
-                </a>
-            </div>
         </div>
 
         <!-- Filtres de recherche -->
@@ -90,7 +87,7 @@
                     <i class="fas fa-chevron-down"></i>
                 </button>
             </div>
-            <div class="collapse show" id="filtersCollapse">
+            <div class="collapse" id="filtersCollapse">
                 <div class="card-body">
                     <form th:action="@{/stock/mouvements/journal}" method="get" class="row g-3">
                         <!-- Type de mouvement -->
@@ -155,7 +152,7 @@
                                 </button>
                                 <a th:href="@{/stock/mouvements/journal}" class="btn btn-secondary btn-sm">
                                     <i class="fas fa-redo me-1"></i>Réinitialiser
-                                </button>
+                                </a>
                                 <button type="button" class="btn btn-outline-info btn-sm ms-auto" 
                                         data-bs-toggle="modal" data-bs-target="#exportModal">
                                     <i class="fas fa-file-export me-1"></i>Exporter
@@ -513,12 +510,27 @@
         </div>
     </div>
 
+        </div>
+        </div>
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Script pour la modal d'annulation -->
     <script th:inline="javascript">
         document.addEventListener('DOMContentLoaded', function() {
+
+            var collapseElement = document.getElementById('filtersCollapse');
+            if (collapseElement) {
+                var collapseInstance = new bootstrap.Collapse(collapseElement, {
+                    toggle: false  // Ne pas basculer automatiquement
+                });
+                
+                // Ouvrez-le par défaut
+                collapseInstance.show();
+                
+                console.log('Collapse initialisé manuellement');
+            }
+            
             var annulerModal = document.getElementById('annulerModal');
             if (annulerModal) {
                 annulerModal.addEventListener('show.bs.modal', function(event) {

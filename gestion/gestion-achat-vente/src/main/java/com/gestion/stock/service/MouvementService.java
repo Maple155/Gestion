@@ -2,7 +2,9 @@ package com.gestion.stock.service;
 
 import com.gestion.stock.entity.*;
 import com.gestion.stock.repository.*;
+import com.gestion.achat.entity.BonCommande;
 import com.gestion.achat.entity.BonReception;
+import com.gestion.achat.repository.BonCommandeRepository;
 import com.gestion.achat.repository.BonReceptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,8 @@ public class MouvementService {
     private final EmplacementRepository emplacementRepository;
     private final BonReceptionRepository bonReceptionRepository;
     private final StockRepository stockRepository;
+    private final BonCommandeRepository bonCommandeRepository;
+    private final UtilisateurRepository utilisateurRepository;
 
     private static final String PREFIX_REFERENCE = "MVT";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -699,5 +703,45 @@ public class MouvementService {
         details.put("reference", "RES-" + reservationId.substring(0, 8));
         details.put("statut", "ACTIVE");
         return details;
+    }
+
+    @Transactional
+    public StockMovement createReceptionFournisseur(UUID articleId, UUID depotId,
+            Integer quantite, BigDecimal coutUnitaire,
+            UUID lotId, UUID bonReceptionId,
+            UUID bonCommandeId, UUID utilisateurId,
+            String motif) {
+
+        MovementType type = typeMouvementRepository.findByCode("RECEPTION_FOURNISSEUR")
+                .orElseThrow(() -> new RuntimeException("Type de mouvement non trouvé"));
+
+        BonCommande bonCommande = bonCommandeRepository.findById(bonCommandeId)
+                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+        // Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+        //         .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        StockMovement mouvement = new StockMovement();
+        mouvement.setReference(genererReference());
+        mouvement.setType(type);
+        mouvement.setArticle(articleRepository.findById(articleId)
+                .orElseThrow(() -> new RuntimeException("Article non trouvé")));
+        mouvement.setDepot(depotRepository.findById(depotId)
+                .orElseThrow(() -> new RuntimeException("Dépôt non trouvé")));
+        mouvement.setQuantite(quantite);
+        mouvement.setCoutUnitaire(coutUnitaire);
+        mouvement.setLot(lotRepository.findById(lotId).orElse(null));
+        mouvement.setBonReception(bonReceptionRepository.findById(bonReceptionId).orElse(null));
+        mouvement.setBonCommande(bonCommande);
+        mouvement.setUtilisateurId(utilisateurId);
+        mouvement.setMotif(motif);
+        mouvement.setStatut(StockMovement.MovementStatus.VALIDE);
+        mouvement.setDateMouvement(LocalDateTime.now());
+        mouvement.setDateComptable(LocalDate.now());
+
+        return mouvementRepository.save(mouvement);
+    }
+
+    public boolean existeMouvementsPourBonReception(UUID bonReceptionId) {
+        return mouvementRepository.findByBonReceptionId(bonReceptionId).size() > 0;
     }
 }

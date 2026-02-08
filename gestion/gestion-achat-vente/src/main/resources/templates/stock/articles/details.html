@@ -41,10 +41,12 @@
         .lot-status-EPUISE { color: #6c757d; }
     </style>
 </head>
-<body>
-    <!-- Navigation -->
-    <nav th:replace="~{fragments/navbar :: navbar(activePage=${activePage})}"></nav>
-    
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+      <div th:replace="~{fragments/sidebar_stock}"></div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto"> 
     <div class="container-fluid mt-4">
         <!-- En-tête -->
         <div class="row mb-4">
@@ -243,8 +245,7 @@
                                 <dt class="col-sm-4">TVA</dt>
                                 <dd class="col-sm-8" 
                                     th:text="${article.tvaPourcentage != null ? #numbers.formatDecimal(article.tvaPourcentage, 1, 2) + ' %' : 'Standard'}">
-                                    20.00%
-                                </dd>
+                                    20.00%</dd>
                             </dl>
                         </div>
                     </div>
@@ -372,9 +373,9 @@
                         </thead>
                         <tbody>
                             <tr th:each="stock : ${stockParDepot}"
-                                th:class="${stock.quantiteDisponible == 0} ? 'table-danger' : 
-                                          ${stock.quantiteDisponible < article.stockMinimum} ? 'table-warning' : ''">
-                                <td th:text="${stock.depotNom}">Entrepôt Central</td>
+                                th:class="${(stock.quantiteDisponible == 0) ? 'table-danger' : 
+                                          (stock.quantiteDisponible < article.stockMinimum) ? 'table-warning' : ''}">
+                                <td th:text="${stock.depot.nom}">Entrepôt Central</td>
                                 <td th:text="${stock.quantiteTheorique}">200</td>
                                 <td th:text="${stock.quantitePhysique}">200</td>
                                 <td th:text="${stock.quantiteReservee}">50</td>
@@ -382,8 +383,8 @@
                                     <span th:text="${stock.quantiteDisponible}">150</span>
                                     <div class="progress" style="height: 5px;">
                                         <div class="progress-bar" 
-                                             th:class="${stock.quantiteDisponible < article.stockMinimum} ? 'bg-warning' : 
-                                                       ${stock.quantiteDisponible == 0} ? 'bg-danger' : 'bg-success'"
+                                             th:class="${(stock.quantiteDisponible < article.stockMinimum) ? 'bg-warning' : 
+                                                       (stock.quantiteDisponible == 0) ? 'bg-danger' : 'bg-success'}"
                                              th:style="'width: ' + ${article.stockMaximum > 0 ? (stock.quantiteDisponible / article.stockMaximum * 100) : 0} + '%;'">
                                         </div>
                                     </div>
@@ -467,13 +468,14 @@
                         </thead>
                         <tbody>
                             <tr th:each="lot : ${lots}" 
-                                th:class="${lot.statut == 'PERIME'} ? 'table-danger' : 
-                                          ${lot.joursRestants < 7} ? 'table-warning' : ''">
+                                th:with="joursRestants=${lot.datePeremption != null ? #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() : null}"
+                                th:class="${(joursRestants != null and joursRestants < 0) ? 'table-danger' : 
+                                          (joursRestants != null and joursRestants < 7) ? 'table-warning' : ''}">
                                 <td>
                                     <strong th:text="${lot.numeroLot}">LOT-2024-001</strong>
                                     <br>
                                     <small class="text-muted" 
-                                           th:text="'BR: ' + ${lot.bonReceptionRef}">
+                                            th:text="${lot.bonReception?.reference ?: 'Sans BR'}">
                                         BR-2024-001
                                     </small>
                                 </td>
@@ -486,13 +488,21 @@
                                     01/04/2024
                                 </td>
                                 <td>
-                                    <span th:class="${lot.joursRestants < 0} ? 'text-danger' : 
-                                                     ${lot.joursRestants < 7} ? 'text-warning' : 'text-success'"
-                                          th:text="${lot.joursRestants}">25</span>
-                                    <small th:if="${lot.joursRestants < 0}" class="text-danger">
+                                    <span th:if="${lot.datePeremption != null}" 
+                                          th:with="joursRestants=${#temporals.createNow().toLocalDate().until(lot.datePeremption).getDays()}"
+                                          th:class="${(joursRestants < 0) ? 'text-danger' : 
+                                                    (joursRestants < 7) ? 'text-warning' : 'text-success'}"
+                                          th:text="${joursRestants}">
+                                        25
+                                    </span>
+                                    <span th:if="${lot.datePeremption == null}" class="text-muted">
+                                        N/A
+                                    </span>
+                                    <small th:if="${lot.datePeremption != null and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() < 0}" 
+                                           class="text-danger">
                                         (Périmé)
                                     </small>
-                                    <small th:if="${lot.joursRestants >= 0 && lot.joursRestants < 7}" 
+                                    <small th:if="${lot.datePeremption != null and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() >= 0 and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() < 7}" 
                                            class="text-warning">
                                         (Proche)
                                     </small>
@@ -504,7 +514,7 @@
                                     <span th:class="'badge lot-status-' + ${lot.statut}"
                                           th:text="${lot.statut}">DISPONIBLE</span>
                                 </td>
-                                <td th:text="${lot.depotNom}">Entrepôt Central</td>
+                                <td th:text="${lot.emplacement.zone.depot.nom}">Entrepôt Central</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a th:href="@{'/stock/lots/details/' + ${lot.id}}"
@@ -533,26 +543,30 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-value" 
-                                 th:text="${#numbers.sum(lots.stream().map(l -> l.quantiteActuelle))}">
-                                 1.850
+                                th:text="${#aggregates.sum(lots.![quantiteActuelle])}">
+                                1.850
                             </div>
                             <div class="stat-label">Quantité totale</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <div class="stat-value" 
-                                 th:text="${lots.stream().filter(l -> l.joursRestants < 7 && l.joursRestants >= 0).count()}">
-                                 3
+                            <div class="stat-value">
+                                <!-- Correction ici -->
+                                <span th:text="${#lists.size(lots.?[datePeremption != null and #temporals.createNow().toLocalDate().until(datePeremption).getDays() >= 0 and #temporals.createNow().toLocalDate().until(datePeremption).getDays() < 7])}">
+                                    3
+                                </span>
                             </div>
                             <div class="stat-label">Lots proches péremption</div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <div class="stat-value" 
-                                 th:text="${lots.stream().filter(l -> l.statut == 'PERIME').count()}">
-                                 1
+                            <div class="stat-value">
+                                <!-- Correction ici (ligne 565) -->
+                                <span th:text="${#lists.size(lots.?[datePeremption != null and #temporals.createNow().toLocalDate().until(datePeremption).getDays() < 0])}">
+                                    1
+                                </span>
                             </div>
                             <div class="stat-label">Lots périmés</div>
                         </div>
@@ -582,14 +596,14 @@
                     <div class="timeline">
                         <div th:each="mvt : ${historique}" class="timeline-item">
                             <div class="timeline-marker" 
-                                 th:class="${mvt.type.sens.name() == 'ENTREE'} ? 'bg-success' : 'bg-danger'">
-                                <i th:class="${mvt.type.sens.name() == 'ENTREE'} ? 'bi bi-box-arrow-in-down' : 'bi bi-box-arrow-up'"></i>
+                                 th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}">
+                                <i th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bi bi-box-arrow-in-down' : 'bi bi-box-arrow-up'}"></i>
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-header">
                                     <span th:text="${mvt.reference}">MVT-2024-000123</span>
                                     <span class="badge" 
-                                          th:class="${mvt.type.sens.name() == 'ENTREE'} ? 'bg-success' : 'bg-danger'"
+                                          th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}"
                                           th:text="${mvt.type.sens.name()}">ENTREE</span>
                                     <small class="text-muted" 
                                            th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}">
@@ -619,64 +633,11 @@
             </div>
         </div>
         
-        <!-- Actions rapides -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Actions Rapides</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-2 col-6 mb-3">
-                                <a th:href="@{'/stock/mouvements/entree?articleId=' + ${article.id}}" 
-                                   class="btn btn-success w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-box-arrow-in-down" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Entrée Stock</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a th:href="@{'/stock/mouvements/sortie?articleId=' + ${article.id}}" 
-                                   class="btn btn-danger w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-box-arrow-up" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Sortie Stock</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a th:href="@{'/stock/transferts/nouveau?articleId=' + ${article.id}}" 
-                                   class="btn btn-info w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-arrow-left-right" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Transfert</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a th:href="@{'/stock/reservations/nouvelle?articleId=' + ${article.id}}" 
-                                   class="btn btn-warning w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-bookmark-check" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Réservation</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a th:href="@{'/stock/inventaires/nouveau?articleId=' + ${article.id}}" 
-                                   class="btn btn-secondary w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-clipboard-check" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Inventaire</span>
-                                </a>
-                            </div>
-                            <div class="col-md-2 col-6 mb-3">
-                                <a href="/stock/articles/liste" 
-                                   class="btn btn-outline-secondary w-100 d-flex flex-column align-items-center py-3">
-                                    <i class="bi bi-arrow-left" style="font-size: 2rem;"></i>
-                                    <span class="mt-2">Retour liste</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-    
+</div>
+</div>
+</div>
+
     <!-- Styles timeline -->
     <style>
         .timeline {

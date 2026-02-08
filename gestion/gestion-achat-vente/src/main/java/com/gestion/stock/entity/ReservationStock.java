@@ -30,7 +30,7 @@ public class ReservationStock {
     private Depot depot;
     
     @Column(name = "quantite_reservee", nullable = false)
-    private Integer quantiteReservee;
+    private Integer quantiteReservee = 0;
     
     @Column(name = "quantite_prelevee")
     private Integer quantitePrelevee = 0;
@@ -73,6 +73,9 @@ public class ReservationStock {
     public Integer getQuantiteRestante() {
         Integer prelevee = quantitePrelevee != null ? quantitePrelevee : 0;
         return quantiteReservee - prelevee;
+        if (quantiteReservee == null) return 0;
+        if (quantitePrelevee == null) return quantiteReservee;
+        return quantiteReservee - quantitePrelevee;
     }
     
     public enum ReservationStatus {
