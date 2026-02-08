@@ -89,13 +89,30 @@ public class AchatViewController {
 
     @GetMapping("/factures/liste")
     public String listeFactures(Model model, HttpSession session) {
-        // Finance et DAF uniquement
-        if (!isAuthenticated(session, "ADMIN", "COMPTABLE", "DAF", "MANAGER")) {
+        if (!isAuthenticated(session, "ADMIN", "COMPTABLE", "DAF", "ACHETEUR")) {
             return "redirect:/login";
         }
+
         List<FactureAchat> factures = factureRepo.findAll();
+
+        // CALCUL DES TOTAUX
+        // On filtre les payées et on fait la somme
+        java.math.BigDecimal totalPaye = factures.stream()
+                .filter(f -> f.isEstPayee())
+                .map(FactureAchat::getMontantTotalTtc)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // On filtre les non-payées et on fait la somme
+        java.math.BigDecimal totalReste = factures.stream()
+                .filter(f -> !f.isEstPayee())
+                .map(FactureAchat::getMontantTotalTtc)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // INJECTION DANS LE MODELE
         model.addAttribute("factures", factures);
-        // ... calculs montants ...
+        model.addAttribute("montantPaye", totalPaye);
+        model.addAttribute("montantRestant", totalReste);
+        
         return "achat/factures-liste";
     }
 

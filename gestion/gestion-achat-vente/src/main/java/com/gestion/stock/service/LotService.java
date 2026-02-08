@@ -484,7 +484,7 @@ public class LotService {
     }
     
     public List<BonReception> getBonsReceptionRecents() {
-        return bonReceptionRepository.findBonsReceptionRecents();
+        return bonReceptionRepository.findTop10ByOrderByDateReceptionDesc();
     }
     
     public List<StockMovement> getMouvementsLot(UUID lotId) {

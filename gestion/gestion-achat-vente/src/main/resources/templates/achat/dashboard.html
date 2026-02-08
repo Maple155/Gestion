@@ -1,0 +1,162 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        
+        <div class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Tableau de Bord Achats</h1>
+                <p class="text-slate-500 text-sm">Analyse de la performance et suivi des flux financiers.</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs font-bold text-slate-400 uppercase block mb-1">Date du jour</span>
+                <span class="text-sm font-semibold text-slate-700" th:text="${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy')}">08 Février 2026</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+                        <i data-lucide="banknote" class="text-emerald-600 w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dépenses TTC</span>
+                </div>
+                <div class="text-2xl font-black text-slate-800" 
+                     th:text="${#numbers.formatDecimal(totalDepenses, 0, 'WHITESPACE', 0, 'POINT')} + ' Ar'">
+                    0 Ar
+                </div>
+                <div class="mt-2 flex items-center text-[11px] text-emerald-600 font-bold">
+                    <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>
+                    <span>Commandes validées</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+                        <i data-lucide="clock" class="text-amber-600 w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">En attente</span>
+                </div>
+                <div class="text-2xl font-black text-slate-800" th:text="${bcEnAttente}">0</div>
+                <div class="mt-2 text-[11px] text-slate-400 font-medium">
+                    Bons de commande à valider
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <i data-lucide="check-circle" class="text-blue-600 w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Qualité</span>
+                </div>
+                <div class="text-2xl font-black text-slate-800" th:text="${tauxConformite + '%'}">0%</div>
+                <div class="mt-2 w-full bg-slate-100 rounded-full h-1.5">
+                    <div class="bg-blue-500 h-1.5 rounded-full" th:style="'width:' + ${tauxConformite} + '%'"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
+                        <i data-lucide="alert-circle" class="text-rose-600 w-5 h-5"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Urgence</span>
+                </div>
+                <div class="text-2xl font-black text-slate-800" th:text="${daSansProforma}">0</div>
+                <div class="mt-2 text-[11px] text-rose-600 font-bold uppercase">
+                    DA sans offre reçue
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-700 flex items-center text-sm uppercase tracking-wider">
+                        <i data-lucide="list-ordered" class="w-4 h-4 mr-2 text-slate-400"></i>
+                        Factures Fournisseurs Impayées
+                    </h3>
+                    <a href="/achats/factures/liste" class="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors">Voir tout</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase">Réf. BC</th>
+                                <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase">Fournisseur</th>
+                                <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-right">Montant TTC</th>
+                                <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr th:each="f : ${facturesImpayees}" class="hover:bg-slate-50/50 transition-colors group">
+                                <td class="px-6 py-4 text-xs font-bold text-blue-600" th:text="${f.bonCommande.referenceBc}">BC-000</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-semibold text-slate-700" th:text="${f.bonCommande.proforma.fournisseur.nom}">Nom Fournisseur</div>
+                                    <div class="text-[10px] text-slate-400" th:text="${'Facture n° ' + f.numeroFactureFournisseur}">REF-000</div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="text-sm font-black text-slate-800" th:text="${#numbers.formatDecimal(f.montantTotalTtc, 0, 'WHITESPACE', 0, 'POINT')} + ' Ar'">0</span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <button class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                                        <i data-lucide="dollar-sign" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(facturesImpayees)}">
+                                <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic text-sm">
+                                    Toutes les factures sont réglées.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-slate-800 rounded-xl p-6 text-white shadow-lg">
+                    <h3 class="font-bold mb-4 text-sm uppercase tracking-widest text-slate-400">Actions Rapides</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="/achats/demandes/nouveau" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors border border-white/10">
+                            <i data-lucide="file-plus" class="w-5 h-5 mb-2"></i>
+                            <span class="text-[10px] font-bold">Créer DA</span>
+                        </a>
+                        <a href="/achats/reception/nouveau" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors border border-white/10">
+                            <i data-lucide="package" class="w-5 h-5 mb-2"></i>
+                            <span class="text-[10px] font-bold">Réception</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wider">État du Pipeline</h3>
+                    <div class="space-y-5">
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1.5 uppercase font-bold">
+                                <span class="text-slate-400">En cours de livraison</span>
+                                <span class="text-blue-600">40%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 40%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1.5 uppercase font-bold">
+                                <span class="text-slate-400">Livraison Terminée</span>
+                                <span class="text-emerald-600">60%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-2">
+                                <div class="bg-emerald-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
