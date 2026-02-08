@@ -29,7 +29,7 @@
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${c.totalTtc}">0</td>
                         <td class="px-6 py-4 text-slate-600 text-sm" th:text="${#temporals.format(c.dateCommande, 'yyyy-MM-dd')}">date</td>
                         <td class="px-6 py-4 space-x-2">
-                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'MAGASINIER_SORTIE'}"
+                            <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'MAGASINIER_SORTIE') and c.statut.name() != 'LIVREE' and c.statut.name() != 'FACTUREE' and c.statut.name() != 'ANNULEE'}"
                                   th:action="@{/ventes/commandes/{id}/livrer(id=${c.id})}" method="post" class="inline">
                                 <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold">
                                     Livrer
@@ -43,7 +43,7 @@
                             </form>
                             <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() != 'ANNULEE'}"
                                     class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded text-xs font-bold"
-                                    data-action="@{/ventes/commandes/{id}/annuler(id=${c.id})}"
+                                    th:attr="data-action=@{/ventes/commandes/{id}/annuler(id=${c.id})}"
                                     data-title="Annulation"
                                     data-label="Motif d'annulation"
                                     onclick="openMotifModal(this)">
@@ -51,7 +51,7 @@
                             </button>
                             <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() == 'EN_ATTENTE'}"
                                     class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-xs font-bold"
-                                    data-action="@{/ventes/commandes/{id}/debloquer(id=${c.id})}"
+                                    th:attr="data-action=@{/ventes/commandes/{id}/debloquer(id=${c.id})}"
                                     data-title="Déblocage"
                                     data-label="Motif de déblocage"
                                     onclick="openMotifModal(this)">

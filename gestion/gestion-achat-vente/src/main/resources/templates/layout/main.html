@@ -119,6 +119,10 @@
                         <a th:href="@{/ventes/clients}" class="nav-link-sub">
                             <i data-lucide="users" class="w-3 h-3 mr-2 opacity-50"></i> Clients
                         </a>
+                        <a th:if="${session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES'}"
+                           th:href="@{/ventes/kpi/responsable}" class="nav-link-sub">
+                            <i data-lucide="bar-chart-3" class="w-3 h-3 mr-2 opacity-50"></i> KPI Responsable
+                        </a>
                     </div>
                 </div>
             </nav>

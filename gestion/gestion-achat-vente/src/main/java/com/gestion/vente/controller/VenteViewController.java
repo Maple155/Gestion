@@ -19,6 +19,7 @@ import com.gestion.vente.entity.*;
 import com.gestion.vente.repository.*;
 import com.gestion.vente.service.VenteService;
 import com.gestion.vente.enums.ModePaiement;
+import com.gestion.vente.enums.StatutCommandeClient;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.entity.Article;
 
@@ -38,6 +39,8 @@ public class VenteViewController {
     private final FactureVenteRepository factureRepository;
     private final PaiementClientRepository paiementRepository;
     private final AvoirClientRepository avoirRepository;
+    private final LigneCommandeClientRepository ligneCommandeRepository;
+    private final BacklogStockVenteRepository backlogRepository;
     private final VenteService venteService;
     private final ArticleRepository articleRepository;
 
@@ -59,6 +62,88 @@ public class VenteViewController {
         model.addAttribute("clients", clientRepository.findAll());
         model.addAttribute("activePage", "vente-clients");
         return "vente/clients";
+    }
+
+    @GetMapping("/kpi/responsable")
+    public String kpiResponsable(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "RESPONSABLE_VENTES");
+
+        List<CommandeClient> commandes = commandeRepository.findAll();
+        long totalCommandes = commandes.size();
+        long annulees = commandes.stream()
+            .filter(c -> c.getStatut() == StatutCommandeClient.ANNULEE)
+            .count();
+        long livrees = commandes.stream()
+            .filter(c -> c.getStatut() == StatutCommandeClient.LIVREE || c.getStatut() == StatutCommandeClient.FACTUREE)
+            .count();
+        long enCours = commandes.stream()
+            .filter(c -> c.getStatut() != StatutCommandeClient.LIVREE
+                && c.getStatut() != StatutCommandeClient.FACTUREE
+                && c.getStatut() != StatutCommandeClient.ANNULEE)
+            .count();
+        long enRetard = commandes.stream()
+            .filter(c -> c.getDateLivraisonPrevue() != null)
+            .filter(c -> c.getDateLivraisonPrevue().isBefore(java.time.LocalDate.now()))
+            .filter(c -> c.getStatut() != StatutCommandeClient.LIVREE
+                && c.getStatut() != StatutCommandeClient.FACTUREE
+                && c.getStatut() != StatutCommandeClient.ANNULEE)
+            .count();
+
+        double tauxAnnulation = totalCommandes == 0 ? 0 : (annulees * 100.0 / totalCommandes);
+        List<String> motifsAnnulation = commandes.stream()
+            .filter(c -> c.getStatut() == StatutCommandeClient.ANNULEE)
+            .map(CommandeClient::getNotes)
+            .filter(n -> n != null && n.contains("Annulation:"))
+            .map(n -> n.substring(n.indexOf("Annulation:") + "Annulation:".length()).trim())
+            .toList();
+
+        BigDecimal plafondRemise = BigDecimal.valueOf(10);
+        List<LigneCommandeClient> lignes = ligneCommandeRepository.findAll();
+        BigDecimal totalRemises = BigDecimal.ZERO;
+        long exceptionsRemise = 0;
+        for (LigneCommandeClient ligne : lignes) {
+            BigDecimal remisePct = nz(ligne.getRemisePourcentage());
+            BigDecimal brut = nz(ligne.getPrixUnitaireHt()).multiply(BigDecimal.valueOf(ligne.getQuantite()));
+            BigDecimal remise = brut.multiply(remisePct).divide(BigDecimal.valueOf(100), 6, java.math.RoundingMode.HALF_UP);
+            totalRemises = totalRemises.add(remise);
+            if (remisePct.compareTo(plafondRemise) > 0) {
+                exceptionsRemise++;
+            }
+        }
+
+        List<AvoirClient> avoirs = avoirRepository.findAll();
+        long volumeAvoirs = avoirs.size();
+        BigDecimal valeurAvoirs = avoirs.stream()
+            .map(AvoirClient::getMontant)
+            .filter(m -> m != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<CauseStat> causes = buildAvoirCauses(avoirs);
+
+        List<BacklogStockVente> backlogs = backlogRepository.findAll();
+        long backlogCount = backlogs.stream()
+            .filter(b -> "EN_ATTENTE".equalsIgnoreCase(b.getStatut()))
+            .count();
+        int backlogQuantite = backlogs.stream()
+            .filter(b -> "EN_ATTENTE".equalsIgnoreCase(b.getStatut()))
+            .mapToInt(b -> b.getQuantiteManquante() != null ? b.getQuantiteManquante() : 0)
+            .sum();
+
+        model.addAttribute("totalCommandes", totalCommandes);
+        model.addAttribute("enCours", enCours);
+        model.addAttribute("livrees", livrees);
+        model.addAttribute("enRetard", enRetard);
+        model.addAttribute("tauxAnnulation", String.format("%.1f", tauxAnnulation));
+        model.addAttribute("motifsAnnulation", motifsAnnulation);
+        model.addAttribute("totalRemises", totalRemises);
+        model.addAttribute("plafondRemise", plafondRemise);
+        model.addAttribute("exceptionsRemise", exceptionsRemise);
+        model.addAttribute("volumeAvoirs", volumeAvoirs);
+        model.addAttribute("valeurAvoirs", valeurAvoirs);
+        model.addAttribute("causesAvoirs", causes);
+        model.addAttribute("backlogCount", backlogCount);
+        model.addAttribute("backlogQuantite", backlogQuantite);
+        model.addAttribute("activePage", "vente-kpi");
+        return "vente/kpi-responsable";
     }
 
     @GetMapping("/devis/liste")
@@ -374,5 +459,59 @@ public class VenteViewController {
         model.addAttribute("avoirs", avoirRepository.findAllByOrderByDateAvoirDesc());
         model.addAttribute("activePage", "vente-avoirs");
         return "vente/avoirs-liste";
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private List<CauseStat> buildAvoirCauses(List<AvoirClient> avoirs) {
+        CauseStat retour = new CauseStat("Retour", 0, BigDecimal.ZERO);
+        CauseStat prix = new CauseStat("Erreur prix", 0, BigDecimal.ZERO);
+        CauseStat casse = new CauseStat("Casse", 0, BigDecimal.ZERO);
+        CauseStat autre = new CauseStat("Autre", 0, BigDecimal.ZERO);
+
+        for (AvoirClient a : avoirs) {
+            String motif = a.getMotif() != null ? a.getMotif().toLowerCase() : "";
+            BigDecimal montant = a.getMontant() != null ? a.getMontant() : BigDecimal.ZERO;
+            if (motif.contains("retour")) {
+                retour = retour.add(montant);
+            } else if (motif.contains("prix")) {
+                prix = prix.add(montant);
+            } else if (motif.contains("casse")) {
+                casse = casse.add(montant);
+            } else {
+                autre = autre.add(montant);
+            }
+        }
+        return List.of(retour, prix, casse, autre);
+    }
+
+    private static class CauseStat {
+        private final String label;
+        private final long count;
+        private final BigDecimal montant;
+
+        private CauseStat(String label, long count, BigDecimal montant) {
+            this.label = label;
+            this.count = count;
+            this.montant = montant;
+        }
+
+        private CauseStat add(BigDecimal montantAdd) {
+            return new CauseStat(label, count + 1, montant.add(montantAdd));
+        }
+
+        public String getLabel() {
+            return label;
+        }
+
+        public long getCount() {
+            return count;
+        }
+
+        public BigDecimal getMontant() {
+            return montant;
+        }
     }
 }
