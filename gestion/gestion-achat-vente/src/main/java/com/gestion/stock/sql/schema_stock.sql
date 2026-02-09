@@ -546,47 +546,165 @@ CREATE TABLE ajustements_inventaire (
 -- PARTIE 9 : VALORISATION ET CLÔTURE
 -- ============================================================================
 
--- 9.1 Historique des coûts (pour FIFO et suivi)
-CREATE TABLE historique_couts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    article_id UUID NOT NULL REFERENCES articles(id),
-    depot_id UUID REFERENCES depots(id),
-    
-    date_effet DATE NOT NULL,
-    cout_unitaire_moyen DECIMAL(15, 4) NOT NULL,
-    quantite_stock INTEGER NOT NULL,
-    valeur_stock DECIMAL(15, 2) NOT NULL,
-    
-    methode_valorisation VARCHAR(20) NOT NULL,
-    
-    mouvement_stock_id UUID REFERENCES mouvements_stock(id), -- Mouvement ayant causé le changement
-    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- Ajouter ces tables au fichier schema_stock.sql
 
--- 9.2 Clôtures mensuelles (gel des coûts)
+-- Table HistoriqueCout (modifiée)
 CREATE TABLE clotures_mensuelles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     annee INTEGER NOT NULL,
-    mois INTEGER NOT NULL CHECK (mois BETWEEN 1 AND 12),
+    mois INTEGER NOT NULL,
     
-    date_cloture TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    cloture_par UUID NOT NULL,
+    date_debut_periode DATE NOT NULL,
+    date_fin_periode DATE NOT NULL,
+    date_cloture TIMESTAMP NOT NULL,
     
-    statut VARCHAR(50) DEFAULT 'OUVERTE', -- OUVERTE, CLOTUREE, VALIDEE
+    cloture_par_id UUID NOT NULL REFERENCES utilisateurs(id),
     
-    -- Statistiques globales
+    statut VARCHAR(20) NOT NULL DEFAULT 'OUVERTE',
+    
+    -- Statistiques
     nombre_articles INTEGER,
+    nombre_articles_valorises INTEGER,
     valeur_stock_total DECIMAL(15, 2),
     nombre_mouvements INTEGER,
+    valeur_mouvements_entree DECIMAL(15, 2),
+    valeur_mouvements_sortie DECIMAL(15, 2),
+    ecart_valorisation DECIMAL(15, 2),
+    taux_couverture DECIMAL(5, 2),
     
-    valideur_id UUID, -- DAF ou contrôleur
+    -- Validation
+    valideur_id UUID REFERENCES utilisateurs(id),
     date_validation TIMESTAMP,
-    
     commentaires TEXT,
+    rapport_generes TEXT,
     
-    UNIQUE(annee, mois)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Contraintes
+    UNIQUE(annee, mois),
+    CONSTRAINT chk_cloture_mois CHECK (mois BETWEEN 1 AND 12),
+    CONSTRAINT chk_cloture_dates CHECK (date_fin_periode >= date_debut_periode),
+    CONSTRAINT chk_statut_valide CHECK (
+        statut IN ('OUVERTE', 'EN_COURS', 'CLOTUREE', 'VALIDEE', 'REJETEE', 'ARCHIVEE')
+    )
 );
+
+CREATE TABLE historique_couts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    article_id UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    depot_id UUID NOT NULL REFERENCES depots(id) ON DELETE CASCADE,
+    
+    date_effet DATE NOT NULL,
+    annee INTEGER NOT NULL,
+    mois INTEGER NOT NULL,
+    
+    cout_unitaire_moyen DECIMAL(15, 4) NOT NULL,
+    quantite_stock INTEGER NOT NULL,
+    valeur_stock DECIMAL(15, 2) NOT NULL,
+    methode_valorisation VARCHAR(20) NOT NULL,
+    
+    mouvement_stock_id UUID REFERENCES mouvements_stock(id),
+    cloture_mensuelle_id UUID REFERENCES clotures_mensuelles(id),
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID NOT NULL,
+    
+    -- Indexes
+    CONSTRAINT chk_historique_mois CHECK (mois BETWEEN 1 AND 12),
+    CONSTRAINT chk_historique_quantite CHECK (quantite_stock >= 0)
+);
+
+-- Indexes pour performances
+CREATE INDEX idx_historique_article_depot ON historique_couts(article_id, depot_id);
+CREATE INDEX idx_historique_date ON historique_couts(date_effet);
+CREATE INDEX idx_historique_annee_mois ON historique_couts(annee, mois);
+CREATE INDEX idx_historique_cloture ON historique_couts(cloture_mensuelle_id);
+
+CREATE INDEX idx_cloture_statut ON clotures_mensuelles(statut);
+CREATE INDEX idx_cloture_annee ON clotures_mensuelles(annee);
+CREATE INDEX idx_cloture_cloture_par ON clotures_mensuelles(cloture_par_id);
+
+-- Trigger pour pré-calculer l'année et le mois
+CREATE OR REPLACE FUNCTION set_historique_annee_mois()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.annee = EXTRACT(YEAR FROM NEW.date_effet);
+    NEW.mois = EXTRACT(MONTH FROM NEW.date_effet);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_set_historique_annee_mois
+BEFORE INSERT OR UPDATE ON historique_couts
+FOR EACH ROW
+EXECUTE FUNCTION set_historique_annee_mois();
+
+-- Fonction pour vérifier la cohérence des dates de clôture
+CREATE OR REPLACE FUNCTION verify_cloture_dates()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Vérifier que date_fin_periode est le dernier jour du mois
+    IF EXTRACT(DAY FROM NEW.date_fin_periode) != 
+       EXTRACT(DAY FROM (DATE_TRUNC('MONTH', NEW.date_fin_periode) + INTERVAL '1 MONTH - 1 day')::DATE) THEN
+        RAISE EXCEPTION 'date_fin_periode doit être le dernier jour du mois';
+    END IF;
+    
+    -- Vérifier que date_debut_periode est le premier jour du mois
+    IF EXTRACT(DAY FROM NEW.date_debut_periode) != 1 THEN
+        RAISE EXCEPTION 'date_debut_periode doit être le premier jour du mois';
+    END IF;
+    
+    -- Vérifier que le mois correspond
+    IF EXTRACT(MONTH FROM NEW.date_debut_periode) != NEW.mois OR
+       EXTRACT(YEAR FROM NEW.date_debut_periode) != NEW.annee THEN
+        RAISE EXCEPTION 'Les dates ne correspondent pas à l''année/mois spécifiés';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_verify_cloture_dates
+BEFORE INSERT OR UPDATE ON clotures_mensuelles
+FOR EACH ROW
+EXECUTE FUNCTION verify_cloture_dates();
+
+-- Vue pour les rapports de valorisation
+CREATE OR REPLACE VIEW vw_rapport_valorisation AS
+SELECT 
+    c.annee,
+    c.mois,
+    c.date_fin_periode,
+    COUNT(h.id) as nombre_articles,
+    SUM(h.valeur_stock) as valeur_totale,
+    AVG(h.cout_unitaire_moyen) as cout_moyen,
+    MIN(h.valeur_stock) as valeur_min,
+    MAX(h.valeur_stock) as valeur_max,
+    c.statut
+FROM clotures_mensuelles c
+LEFT JOIN historique_couts h ON c.id = h.cloture_mensuelle_id
+GROUP BY c.id, c.annee, c.mois, c.date_fin_periode, c.statut
+ORDER BY c.annee DESC, c.mois DESC;
+
+-- Vue pour l'évolution des coûts par article
+CREATE OR REPLACE VIEW vw_evolution_couts AS
+SELECT 
+    h.article_id,
+    a.code_article,
+    a.libelle as article_libelle,
+    d.code as depot_code,
+    d.nom as depot_nom,
+    h.date_effet,
+    h.annee,
+    h.mois,
+    h.cout_unitaire_moyen,
+    h.quantite_stock,
+    h.valeur_stock,
+    h.methode_valorisation
+FROM historique_couts h
+JOIN articles a ON h.article_id = a.id
+JOIN depots d ON h.depot_id = d.id
+ORDER BY h.article_id, h.depot_id, h.date_effet DESC;
 
 CREATE INDEX idx_utilisateurs_role ON utilisateurs(role);
 CREATE INDEX idx_utilisateurs_actif ON utilisateurs(actif) WHERE actif = TRUE;
@@ -766,6 +884,6 @@ CREATE INDEX idx_inventaires_depot ON inventaires(depot_id);
 --   ALTER COLUMN updated_by TYPE uuid
 --   USING NULLIF(updated_by, '')::uuid;
 
-UPDATE inventaires 
-SET statut = 'PLANIFIE', 
-    created_at = NOW();
+-- UPDATE inventaires 
+-- SET statut = 'PLANIFIE', 
+--     created_at = NOW();

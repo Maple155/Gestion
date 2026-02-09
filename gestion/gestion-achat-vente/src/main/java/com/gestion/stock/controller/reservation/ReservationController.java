@@ -378,4 +378,21 @@ public class ReservationController {
 
         return "redirect:/stock/reservations/details/" + id;
     }
+
+    private final ReservationStockService service;
+
+    @PostMapping("/{id}/statut")
+    public String updateStatus(
+            @PathVariable UUID id,
+            @RequestParam("statut") ReservationStock.ReservationStatus statut) {
+        ReservationStock updated = service.updateStatus(id, statut);
+        return "home";
+    }
+
+    @GetMapping("{id}")
+    public String detailReservation(@PathVariable UUID id, Model model) {
+        ReservationStock mvt = service.findById(id);
+        model.addAttribute("res", mvt);
+        return "stock/reservations/reservations-detail";
+    }
 }
