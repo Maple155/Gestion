@@ -1,5 +1,6 @@
 package com.gestion.stock.repository;
 
+import com.gestion.stock.entity.Inventaire;
 import com.gestion.stock.entity.LigneInventaire;
 
 import org.springframework.data.domain.Page;
@@ -70,4 +71,6 @@ public interface LigneInventaireRepository extends JpaRepository<LigneInventaire
                      "AND li.ecart != 0 " +
                      "ORDER BY ABS(li.ecartValeur) DESC")
        List<LigneInventaire> findTop10ByEcart(@Param("inventaireId") UUID inventaireId);
+
+
 }
