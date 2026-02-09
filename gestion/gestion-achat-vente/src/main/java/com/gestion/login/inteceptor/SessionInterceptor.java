@@ -86,13 +86,13 @@ public class SessionInterceptor implements HandlerInterceptor {
         // --- MODULE VENTES (Inchangé) ---
         if (uri.startsWith("/ventes/")) {
             return userRole.equals("ADMIN") ||
-                    userRole.equals("COMMERCIAL") ||
-                    userRole.equals("RESPONSABLE_VENTES") ||
-                    userRole.equals("MAGASINIER_SORTIE") ||
-                    userRole.equals("COMPTABLE_CLIENT") ||
-                    userRole.equals("GESTIONNAIRE_STOCK") ||
-                    userRole.equals("RESPONSABLE_STOCK") ||
-                    userRole.equalsIgnoreCase("MANAGER");
+                userRole.equals("COMMERCIAL") ||
+                userRole.equals("RESPONSABLE_VENTES") ||
+                userRole.equals("MAGASINIER_SORTIE") ||
+                userRole.equals("COMPTABLE_CLIENT") ||
+                userRole.equals("GESTIONNAIRE_STOCK") || 
+                userRole.equals("RESPONSABLE_STOCK") ||
+                userRole.equalsIgnoreCase("MANAGER");
         }
 
         // --- MODULE COMPTABILITÉ (Inchangé) ---

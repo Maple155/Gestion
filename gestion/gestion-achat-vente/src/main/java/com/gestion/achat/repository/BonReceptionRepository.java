@@ -1,6 +1,5 @@
 package com.gestion.achat.repository;
 
-import java.lang.StackWalker.Option;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Repository;
 
+import com.gestion.achat.entity.BonCommande;
 import com.gestion.achat.entity.BonReception;
 
 @Repository
@@ -20,6 +20,7 @@ public interface BonReceptionRepository extends JpaRepository<BonReception, UUID
     List<BonReception> findAllByOrderByDateReceptionDesc();
 
     List<BonReception> findTop10ByOrderByDateReceptionDesc();
+    
     List<BonReception> findAllByBonCommandeId(UUID bonCommandeId);
 
     List<BonReception> findByConforme(boolean conforme);
