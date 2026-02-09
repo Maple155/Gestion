@@ -63,6 +63,10 @@ public class ReservationStock {
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    public Integer getQuantitePrelevee() {
+        return quantitePrelevee != null ? quantitePrelevee : 0;
+    }
     
     // Champ calculé
     @Transient

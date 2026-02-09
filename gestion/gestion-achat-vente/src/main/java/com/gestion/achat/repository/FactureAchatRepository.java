@@ -11,4 +11,6 @@ import com.gestion.achat.entity.FactureAchat;
 @Repository
 public interface FactureAchatRepository extends JpaRepository<FactureAchat, UUID> {
     List<FactureAchat> findByEstPayeeFalse();
+
+    boolean existsByBonCommandeId(UUID id);
 }

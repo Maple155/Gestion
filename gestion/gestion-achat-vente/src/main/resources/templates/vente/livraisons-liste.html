@@ -1,0 +1,32 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">Livraisons</h1>
+            <p class="text-slate-500 text-sm">Bons de livraison générés.</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Référence</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Commande</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Statut</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr th:each="l : ${livraisons}" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-800 text-sm" th:text="${l.reference}">BL-2026-000001</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${l.commande.reference}">CMD</td>
+                        <td class="px-6 py-4"><span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter" th:text="${l.statut}">STATUT</span></td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${#temporals.format(l.createdAt, 'yyyy-MM-dd')}">date</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(livraisons)}">
+                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic">Aucune livraison.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

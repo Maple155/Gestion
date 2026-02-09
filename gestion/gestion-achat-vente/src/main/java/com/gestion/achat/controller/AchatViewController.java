@@ -1,26 +1,17 @@
 package com.gestion.achat.controller;
 
-import com.gestion.achat.entity.BonCommande;
-import com.gestion.achat.entity.BonReception;
-import com.gestion.achat.entity.DemandeAchat;
-import com.gestion.achat.entity.FactureAchat;
-import com.gestion.achat.entity.Proforma;
-import com.gestion.achat.repository.BonCommandeRepository;
-import com.gestion.achat.repository.BonReceptionRepository;
-import com.gestion.achat.repository.DemandeAchatRepository;
-import com.gestion.achat.repository.FactureAchatRepository;
-import com.gestion.achat.repository.FournisseurRepository;
-import com.gestion.achat.repository.ProformaRepository;
+import com.gestion.achat.entity.*;
+import com.gestion.achat.repository.*;
+import com.gestion.stock.repository.ArticleRepository;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,95 +26,154 @@ public class AchatViewController {
     private final ProformaRepository proformaRepo;
     private final BonReceptionRepository brRepo;
     private final FactureAchatRepository factureRepo;
-    // Affiche le template : src/main/resources/templates/achat/demandes.html
+    private final ArticleRepository articleRepo;
+    private boolean isAuthenticated(HttpSession session, String... allowedRoles) {
+        Object roleObj = session.getAttribute("userRole");
+        if (session.getAttribute("userId") == null || roleObj == null) {
+            System.out.println("DEBUG: Pas de session ou de rôle trouvé");
+            return false;
+        }
+        
+        String userRole = roleObj.toString();
+        System.out.println("DEBUG: Rôle en session = [" + userRole + "]");
+        
+        for (String allowed : allowedRoles) {
+            if (allowed.equals(userRole)) return true;
+        }
+        
+        System.out.println("DEBUG: Rôle [" + userRole + "] non autorisé pour cette page.");
+        return false;
+    }
     @GetMapping("/demandes")
-    public String pageDemandes(Model model) {
+    public String pageDemandes(Model model, HttpSession session) {
+        // Le DEMANDEUR peut voir ses propres DA, les autres voient tout
+        if (!isAuthenticated(session, "ADMIN", "DEMANDEUR", "ACHETEUR", "RESPONSABLE_ACHATS", "APPRO_N1", "APPRO_N2", "APPRO_N3", "DAF")) {
+            return "redirect:/login";
+        }
         model.addAttribute("demandes", demandeRepo.findAll());
+        model.addAttribute("activePage", "achat-demandes");
         return "achat/demandes"; 
     }
 
-    // Affiche le template : src/main/resources/templates/achat/bon-commande.html
-    @GetMapping("/bons-commande/{id}")
-    public String pageBonCommande(@PathVariable UUID id, Model model) {
-        model.addAttribute("bc", bcRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande introuvable")));
-        return "achat/bon-commande";
+    @GetMapping("/demandes/{id}")
+    public String voirDetailsDemande(@PathVariable UUID id, Model model, HttpSession session) {
+        if (!isAuthenticated(session, "ADMIN", "DEMANDEUR", "ACHETEUR", "RESPONSABLE_ACHATS", "APPRO_N1", "APPRO_N2", "APPRO_N3", "DAF")) {
+            return "redirect:/login";
+        }
+        DemandeAchat da = demandeRepo.findById(id).orElseThrow(() -> new RuntimeException("Demande introuvable"));
+        
+        model.addAttribute("da", da);
+        model.addAttribute("proformas", proformaRepo.findByDemandeAchatId(id));
+        
+        // AJOUTER CECI : Pour alimenter le <select> du pop-up
+        model.addAttribute("fournisseurs", fournisseurRepo.findAll()); 
+        
+        return "achat/details-demande"; 
+    }
+    @GetMapping("/bons-commande/liste")
+    public String listeBonsCommande(Model model, HttpSession session) {
+        // Un simple DEMANDEUR n'a pas accès à la liste globale des BC
+        if (!isAuthenticated(session, "ADMIN", "ACHETEUR", "RESPONSABLE_ACHATS", "DAF", "DG", "COMPTABLE")) {
+            return "redirect:/login";
+        }
+        model.addAttribute("bcs", bcRepo.findAllByOrderByDateEmissionDesc());
+        return "achat/bc-liste";
     }
 
-    // Affiche le template : src/main/resources/templates/achat/reception.html
-    @GetMapping("/reception/nouveau")
-    public String pageReception(Model model) {
-        // On peut passer ici la liste des BC validés pour les réceptionner
-        model.addAttribute("bonsValides", bcRepo.findAll()); 
-        return "achat/reception";
+    @GetMapping("/reception/liste")
+    public String listeReceptions(Model model, HttpSession session) {
+        // Magasiniers et Acheteurs suivent les réceptions
+        if (!isAuthenticated(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "ACHETEUR")) {
+            return "redirect:/login";
+        }
+        model.addAttribute("brs", brRepo.findAllByOrderByDateReceptionDesc());
+        return "achat/br-liste";
     }
-    @GetMapping("/fournisseurs")
-    public String listeFournisseurs(Model model) {
-        model.addAttribute("fournisseurs", fournisseurRepo.findAll());
-        return "achat/fournisseurs"; 
+    @GetMapping("/factures/liste")
+    public String listeFactures(Model model, HttpSession session) {
+        if (!isAuthenticated(session, "ADMIN", "COMPTABLE", "DAF", "ACHETEUR")) {
+            return "redirect:/login";
+        }
+
+        List<FactureAchat> factures = factureRepo.findAll();
+        
+        // Récupérer les BC qui n'ont PAS encore de facture
+        // On filtre en Java pour simplifier, ou via une requête personnalisée
+        List<BonCommande> bcsSansFacture = bcRepo.findAll().stream()
+                .filter(bc -> !factureRepo.existsByBonCommandeId(bc.getId()))
+                .toList();
+
+        model.addAttribute("factures", factures);
+        model.addAttribute("bcsDisponibles", bcsSansFacture); // Pour le pop-up
+        
+        java.math.BigDecimal totalPaye = factures.stream()
+                .filter(f -> f.isEstPayee())
+                .map(FactureAchat::getMontantTotalTtc)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        // On filtre les non-payées et on fait la somme
+        java.math.BigDecimal totalReste = factures.stream()
+                .filter(f -> !f.isEstPayee())
+                .map(FactureAchat::getMontantTotalTtc)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        model.addAttribute("montantPaye", totalPaye);
+        model.addAttribute("montantRestant", totalReste);
+
+        return "achat/factures-liste";
     }
+
     @GetMapping("/demandes/{id}/comparer")
-    public String comparerOffres(@PathVariable UUID id, Model model) {
+    public String comparerOffres(@PathVariable UUID id, Model model, HttpSession session) {
+        // Rôle exclusif Acheteur ou Responsable Achats pour la négociation
+        if (!isAuthenticated(session, "ADMIN", "ACHETEUR", "RESPONSABLE_ACHATS")) {
+            return "redirect:/login";
+        }
         model.addAttribute("demande", demandeRepo.findById(id).orElseThrow());
         model.addAttribute("proformas", proformaRepo.findByDemandeAchatId(id));
         return "achat/comparatif"; 
     }
-    @GetMapping("/demandes/{id}")
-    public String voirDetailsDemande(@PathVariable UUID id, Model model) {
-        DemandeAchat da = demandeRepo.findById(id)
-            .orElseThrow(() -> new RuntimeException("Demande introuvable"));
+    @GetMapping("/fournisseurs")
+    public String listeFournisseurs(Model model, HttpSession session) {
+        // Les acteurs du cycle achat et la finance ont accès au répertoire
+        if (!isAuthenticated(session, "ADMIN", "ACHETEUR", "RESPONSABLE_ACHATS", "DAF", "COMPTABLE")) {
+            return "redirect:/login";
+        }
         
-        // Récupération des proformas liés à cette demande spécifique
-        List<Proforma> proformas = proformaRepo.findByDemandeAchatId(id);
+        // Récupération de la liste complète pour alimenter th:each="f : ${fournisseurs}"
+        model.addAttribute("fournisseurs", fournisseurRepo.findAll());
+        model.addAttribute("activePage", "achat-fournisseurs");
         
-        model.addAttribute("da", da);
-        model.addAttribute("proformas", proformas);
-        return "achat/details-demande"; 
+        return "achat/fournisseurs"; // Assure-toi que le nom du fichier HTML est correct
     }
-    @GetMapping("/bons-commande/liste")
-    public String listeBonsCommande(Model model) {
-        List<BonCommande> bcs = bcRepo.findAllByOrderByDateEmissionDesc();
-        
-        // On extrait les noms de fournisseurs uniques pour le filtre
-        List<String> fournisseurs = bcs.stream()
-                .map(bc -> bc.getProforma().getFournisseur().getNom())
-                .distinct()
-                .sorted()
+    @GetMapping("/reception/nouveau")
+    public String formulaireReception(Model model, HttpSession session) {
+        // Seuls les magasiniers, gestionnaires de stock et acheteurs peuvent réceptionner
+        if (!isAuthenticated(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "ACHETEUR")) {
+            return "redirect:/login?error=access_denied";
+        }
+
+        // On récupère les BC qui sont validés/signés mais qui n'ont pas encore de Bon de Réception
+        // Adapté selon tes noms de champs (ex: status ou check via jointure)
+        List<BonCommande> bonsValides = bcRepo.findAll().stream()
+                .filter(bc -> !brRepo.existsById(bc.getId())) // Évite les doubles réceptions
                 .toList();
 
-        model.addAttribute("bcs", bcs);
-        model.addAttribute("fournisseurs", fournisseurs); // Nouvelle liste simplifiée
-        return "achat/bc-liste";
-    }
-
-    // 2. Liste des Bons de Réception (BR)
-    @GetMapping("/reception/liste")
-    public String listeReceptions(Model model) {
-        List<BonReception> brs = brRepo.findAllByOrderByDateReceptionDesc();
-        model.addAttribute("brs", brs);
-        return "achat/br-liste";
-    }
-
-    // 3. Liste des Factures d'Achat
-    @GetMapping("/factures/liste")
-    public String listeFactures(Model model) {
-        List<FactureAchat> factures = factureRepo.findAll();
+        model.addAttribute("bonsValides", bonsValides);
+        model.addAttribute("activePage", "achat-reception");
         
-        // Calcul des sommes avec BigDecimal
-        BigDecimal montantPaye = factures.stream()
-                .filter(FactureAchat::isEstPayee)
-                .map(FactureAchat::getMontantTotalTtc)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-                
-        BigDecimal montantRestant = factures.stream()
-                .filter(f -> !f.isEstPayee())
-                .map(FactureAchat::getMontantTotalTtc)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return "achat/reception"; // Assure-toi que le fichier .html s'appelle ainsi
+    }
+    @GetMapping("/demandes/nouveau")
+    public String formulaireNouvelleDemande(Model model, HttpSession session) {
+        // Le DEMANDEUR et les ACHETEURS peuvent créer des DA
+        if (!isAuthenticated(session, "ADMIN", "DEMANDEUR", "ACHETEUR", "RESPONSABLE_ACHATS")) {
+            return "redirect:/login?error=access_denied";
+        }
 
-        model.addAttribute("factures", factures);
-        model.addAttribute("montantPaye", montantPaye);
-        model.addAttribute("montantRestant", montantRestant);
+        // On récupère les articles actifs pour le menu déroulant
+        model.addAttribute("articles", articleRepo.findByActifTrue());
+        model.addAttribute("activePage", "achat-demande-creation");
         
-        return "achat/factures-liste";
+        return "achat/demande-form"; 
     }
 }

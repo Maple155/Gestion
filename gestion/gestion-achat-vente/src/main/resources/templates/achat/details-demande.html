@@ -46,8 +46,11 @@
                             <i data-lucide="file-text" class="mr-2 w-5 text-blue-500"></i>
                             Offres (Proformas) reçues
                         </h2>
-                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold" 
-                            th:text="${proformas.size() + ' offre(s)'}">0 offre</span>
+                        
+                        <button onclick="ouvrirModaleProforma()" 
+                                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center shadow-sm transition-all active:scale-95">
+                            <i data-lucide="plus" class="mr-1.5 w-4"></i> Ajouter un Proforma
+                        </button>
                     </div>
                     
                     <div class="overflow-x-auto">
@@ -57,7 +60,7 @@
                                     <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Fournisseur</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Prix Unitaire HT</th>
                                     <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Délai</th>
-                                    <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Statut</th>
+                                    <th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase text-center">Statut</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -65,19 +68,21 @@
                                     <td class="px-6 py-4">
                                         <span class="font-semibold text-slate-700" th:text="${p.fournisseur.nom}">Fournisseur</span>
                                     </td>
-                                    <td class="px-6 py-4 text-slate-600 font-mono" 
-                                        th:text="${#numbers.formatDecimal(p.prixUnitaireHt, 1, 2) + ' €'}">0.00 €</td>
+                                    <td class="px-6 py-4 text-slate-600 font-mono font-bold" 
+                                        th:text="${#numbers.formatDecimal(p.prixUnitaireHt, 1, 'WHITESPACE', 2, 'COMMA') + ' Ar'}">0 Ar</td>
                                     <td class="px-6 py-4 text-slate-500 text-sm" 
                                         th:text="${p.delaiLivraisonJours + ' jours'}">5 j</td>
-                                    <td class="px-6 py-4">
-                                        <span th:if="${p.estSelectionne}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                    <td class="px-6 py-4 text-center">
+                                        <span th:if="${p.estSelectionne}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
                                             <i data-lucide="check" class="w-3 h-3 mr-1"></i> Retenu
                                         </span>
-                                        <span th:unless="${p.estSelectionne}" class="text-slate-400 text-xs italic">En attente</span>
+                                        <span th:unless="${p.estSelectionne}" class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">
+                                            En attente
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(proformas)}">
-                                    <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">
+                                    <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic text-sm">
                                         Aucun proforma n'a encore été enregistré pour cette demande.
                                     </td>
                                 </tr>
@@ -89,30 +94,30 @@
 
             <div class="space-y-6">
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <h3 class="font-bold text-slate-800 mb-4">Statut de la Demande</h3>
+                    <h3 class="font-bold text-slate-800 mb-4 text-sm uppercase tracking-wider">Statut de la Demande</h3>
                     <div class="flex items-center p-3 rounded-lg" 
                          th:classappend="${da.statut.name() == 'EN_ATTENTE' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-blue-50 text-blue-700 border border-blue-100'}">
                         <i data-lucide="info" class="w-5 mr-3"></i>
-                        <span class="font-bold uppercase text-sm" th:text="${da.statut}">STATUT</span>
+                        <span class="font-bold uppercase text-xs" th:text="${da.statut}">STATUT</span>
                     </div>
                     
                     <hr class="my-6 border-slate-100">
                     
-                    <h3 class="font-bold text-slate-800 mb-4 text-sm uppercase tracking-widest">Timeline</h3>
-                    <div class="relative pl-6 border-l-2 border-slate-100 space-y-6">
+                    <h3 class="font-bold text-slate-800 mb-4 text-xs uppercase tracking-widest">Timeline</h3>
+                    <div class="relative pl-6 border-l-2 border-slate-100 space-y-6 text-sm">
                         <div class="relative">
                             <div class="absolute -left-[31px] bg-blue-500 w-4 h-4 rounded-full border-4 border-white"></div>
-                            <p class="text-xs font-bold text-slate-800">Création</p>
-                            <p class="text-xs text-slate-400" th:text="${#temporals.format(da.dateDemande, 'dd/MM/yyyy HH:mm')}">Date</p>
+                            <p class="font-bold text-slate-800">Création de la DA</p>
+                            <p class="text-[11px] text-slate-400" th:text="${#temporals.format(da.dateDemande, 'dd/MM/yyyy HH:mm')}">Date</p>
                         </div>
                         <div class="relative" th:if="${da.statut.name() != 'EN_ATTENTE'}">
                             <div class="absolute -left-[31px] bg-slate-300 w-4 h-4 rounded-full border-4 border-white"></div>
-                            <p class="text-xs font-bold text-slate-500 italic">Traitement en cours...</p>
+                            <p class="font-bold text-slate-500 italic">Traitement en cours...</p>
                         </div>
                     </div>
                 </div>
                 
-                <div th:if="${da.statut.name() == 'EN_ATTENTE'}">
+                <div th:if="${da.statut.name() == 'EN_ATTENTE' && !#lists.isEmpty(proformas)}">
                     <a th:href="@{/achats/demandes/{id}/comparer(id=${da.id})}" 
                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center transition-all active:scale-95">
                         <i data-lucide="zap" class="mr-2 w-5"></i> Optimiser maintenant
@@ -120,5 +125,98 @@
                 </div>
             </div>
         </div>
+
+        <div id="modalProforma" class="fixed inset-0 z-[100] hidden overflow-y-auto">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="fermerModaleProforma()"></div>
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all">
+                    <div class="bg-slate-800 px-6 py-4 text-white flex justify-between items-center">
+                        <h3 class="font-bold">Enregistrer un Proforma</h3>
+                        <button onclick="fermerModaleProforma()" class="hover:bg-white/10 p-1 rounded-full">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="proformaForm" class="p-6 space-y-4">
+                        <input type="hidden" name="demandeAchatId" th:value="${da.id}">
+
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fournisseur</label>
+                            <select name="fournisseurId" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">-- Sélectionner --</option>
+                                <option th:each="f : ${fournisseurs}" th:value="${f.id}" th:text="${f.nom}"></option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prix Unitaire HT</label>
+                                <input type="number" step="0.01" name="prixUnitaireHt" required placeholder="0.00"
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Délai (jours)</label>
+                                <input type="number" name="delaiLivraisonJours" required placeholder="Ex: 5"
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex gap-3">
+                            <button type="button" onclick="fermerModaleProforma()" class="flex-1 px-4 py-2.5 text-slate-500 font-bold text-sm">Annuler</button>
+                            <button type="button" onclick="soumettreProforma()" 
+                                    class="flex-1 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 shadow-lg shadow-emerald-100 transition-all">
+                                Enregistrer l'offre
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            function ouvrirModaleProforma() {
+                document.getElementById('modalProforma').classList.remove('hidden');
+            }
+
+            function fermerModaleProforma() {
+                document.getElementById('modalProforma').classList.add('hidden');
+            }
+
+            async function soumettreProforma() {
+                const form = document.getElementById('proformaForm');
+                const formData = new FormData(form);
+
+                const data = {
+                    demandeAchat: { id: formData.get('demandeAchatId') },
+                    fournisseur: { id: formData.get('fournisseurId') },
+                    prixUnitaireHt: parseFloat(formData.get('prixUnitaireHt')),
+                    delaiLivraisonJours: parseInt(formData.get('delaiLivraisonJours')),
+                    tvaPourcentage: 20.0
+                };
+
+                if(!data.fournisseur.id || isNaN(data.prixUnitaireHt)) {
+                    alert("Veuillez remplir correctement les champs obligatoires.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/achats/proformas', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        const err = await response.json();
+                        alert("Erreur: " + (err.message || "Enregistrement impossible"));
+                    }
+                } catch (error) {
+                    console.error("Erreur:", error);
+                    alert("Erreur de connexion au serveur");
+                }
+            }
+        </script>
     </div>
 </div>

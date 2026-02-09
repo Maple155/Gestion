@@ -1,0 +1,125 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Devis</h1>
+                <p class="text-slate-500 text-sm">Liste des devis en cours.</p>
+            </div>
+            <a href="/ventes/devis/nouveau" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-xs font-bold">
+                Nouveau devis
+            </a>
+        </div>
+
+        <div th:if="${flashError}" class="mb-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded text-sm">
+            <span th:text="${flashError}">Erreur</span>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Référence</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Client</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Statut</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Total TTC</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr th:each="d : ${devis}" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-800 text-sm" th:text="${d.reference}">DEV-2026-000001</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${d.client.nom}">Client</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter"
+                                  th:classappend="${d.statut.name() == 'BROUILLON' ? ' bg-slate-200 text-slate-700' :
+                                                  d.statut.name() == 'A_VALIDER' ? ' bg-amber-100 text-amber-700' :
+                                                  d.statut.name() == 'VALIDE' ? ' bg-emerald-100 text-emerald-700' :
+                                                  d.statut.name() == 'EXPIRE' ? ' bg-slate-300 text-slate-700' :
+                                                  d.statut.name() == 'ANNULE' ? ' bg-rose-100 text-rose-700' : ''}"
+                                  th:text="${d.statut}">STATUT</span>
+                        </td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${d.totalTtc}">0</td>
+                        <td class="px-6 py-4 text-slate-600 text-sm" th:text="${#temporals.format(d.dateDevis, 'yyyy-MM-dd')}">date</td>
+                        <td class="px-6 py-4">
+                            <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'BROUILLON'}"
+                                  th:action="@{/ventes/devis/{id}/soumettre(id=${d.id})}" method="post" class="inline">
+                                <button class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Soumettre
+                                </button>
+                            </form>
+                            <a th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'BROUILLON'}"
+                               th:href="@{/ventes/devis/{id}/modifier(id=${d.id})}"
+                               class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-bold inline-block">
+                                Modifier
+                            </a>
+                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES'}"
+                                  th:action="@{/ventes/devis/{id}/valider(id=${d.id})}" method="post">
+                                <button th:if="${d.statut.name() == 'A_VALIDER'}"
+                                        class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Valider
+                                </button>
+                            </form>
+                            <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'A_VALIDER'}"
+                                    class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded text-xs font-bold"
+                                    data-action="@{/ventes/devis/{id}/refuser(id=${d.id})}"
+                                    data-title="Refus devis"
+                                    data-label="Motif du refus"
+                                    onclick="openMotifModal(this)">
+                                Refuser
+                            </button>
+                                <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'VALIDE'}"
+                                  th:action="@{/ventes/devis/{id}/commande(id=${d.id})}" method="post">
+                                <input type="hidden" name="modeReservation" value="IMMEDIATE" />
+                                <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold">
+                                    Transformer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(devis)}">
+                        <td colspan="6" class="px-6 py-10 text-center text-slate-400 italic">
+                            Aucun devis enregistré.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="motifModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 id="motifTitle" class="text-lg font-bold text-slate-800">Motif</h2>
+            <button type="button" class="text-slate-500" onclick="closeMotifModal()">✕</button>
+        </div>
+        <form id="motifForm" method="post">
+            <label id="motifLabel" class="text-xs font-bold text-slate-600 uppercase tracking-wider">Motif</label>
+            <input type="text" name="motif" class="mt-2 w-full border border-slate-300 rounded px-3 py-2 text-sm" required />
+            <div class="mt-4 flex justify-end gap-2">
+                <button type="button" class="px-4 py-2 rounded text-sm bg-slate-100" onclick="closeMotifModal()">Annuler</button>
+                <button type="submit" class="px-4 py-2 rounded text-sm bg-blue-600 text-white">Confirmer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openMotifModal(button) {
+        const modal = document.getElementById('motifModal');
+        const form = document.getElementById('motifForm');
+        const title = document.getElementById('motifTitle');
+        const label = document.getElementById('motifLabel');
+        form.action = button.getAttribute('data-action');
+        title.textContent = button.getAttribute('data-title');
+        label.textContent = button.getAttribute('data-label');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closeMotifModal() {
+        const modal = document.getElementById('motifModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
