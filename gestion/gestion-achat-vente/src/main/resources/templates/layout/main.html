@@ -65,6 +65,7 @@
 
                         <div>
                             <button onclick="toggleDropdown('br-menu', 'br-arrow')" class="nav-link-sub w-full justify-between pr-4 group">
+
                                 <span class="flex items-center">
                                     <i data-lucide="truck" class="w-3 h-3 mr-2 opacity-50"></i> Réceptions
                                 </span>
@@ -75,7 +76,7 @@
                                 <a th:href="@{/achats/reception/nouveau}" class="nav-link-sub !pl-4 py-1.5 text-xs">Nouveau BR</a>
                             </div>
                         </div>
-
+                        
                         <a th:href="@{/achats/factures/liste}" class="nav-link-sub">
                             <i data-lucide="credit-card" class="w-3 h-3 mr-2 opacity-50"></i> Factures
                         </a>
@@ -84,6 +85,21 @@
                         </a>
                         <a th:href="@{/achats/dashboard}" class="nav-link-sub">
                             <i data-lucide="file-text" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <button onclick="toggleDropdown('finance-menu', 'finance-arrow')" class="nav-link-main w-full group">
+                        <div class="flex items-center">
+                            <i data-lucide="landmark" class="mr-3 w-5 h-5 group-hover:text-emerald-400"></i>
+                            <span class="font-medium text-sm">Finance</span>
+                        </div>
+                        <i data-lucide="chevron-down" id="finance-arrow" class="w-4 h-4 opacity-50 transition-transform duration-300"></i>
+                    </button>
+                    <div id="finance-menu" class="dropdown-container">
+                        <a th:if="${session.userRole == 'ADMIN' or session.userRole == 'DAF'}"
+                           th:href="@{/finance/daf}" class="nav-link-sub">
+                            <i data-lucide="bar-chart-3" class="w-3 h-3 mr-2 opacity-50"></i> Dashboard DAF
                         </a>
                     </div>
                 </div>
