@@ -157,7 +157,7 @@ public class LoginController {
                 case "RESPONSABLE_VENTES":
                 case "MAGASINIER_SORTIE":
                 case "COMPTABLE_CLIENT":
-                    return "redirect:/ventes/devis/liste";
+                    // return "redirect:/ventes/devis/liste";
                     return "redirect:/main/dashboard";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
