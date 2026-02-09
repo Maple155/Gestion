@@ -22,6 +22,9 @@ public class ValorisationService {
     private final StockMovementRepository mouvementRepository;
     private final LotRepository lotRepository;
     private final ArticleRepository articleRepository;
+    private final HistoriqueCoutRepository historiqueRepository;
+    private final ClotureMensuelleRepository clotureRepository;
+    private final DepotRepository depotRepository; 
 
     /**
      * Calcul du CUMP (Coût Unitaire Moyen Pondéré) complet
@@ -101,7 +104,7 @@ public class ValorisationService {
     /**
      * Valorisation FIFO (First In, First Out)
      */
-    private BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
+    public BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
         log.info("Calcul valorisation FIFO pour article: {}", articleId);
 
         // Récupérer les lots disponibles triés par date réception (FIFO)
@@ -147,7 +150,7 @@ public class ValorisationService {
     /**
      * Valorisation FEFO (First Expired, First Out) pour produits périssables
      */
-    private BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
+    public BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
         log.info("Calcul valorisation FEFO pour article: {}", articleId);
 
         // Récupérer les lots triés par date de péremption (FEFO)
@@ -239,15 +242,96 @@ public class ValorisationService {
         log.info("Clôture mensuelle terminée: {} stocks clôturés", stocks.size());
     }
 
-    /**
-     * Sauvegarder dans l'historique des coûts
-     */
+    @Transactional
     private void sauvegarderHistoriqueCout(UUID articleId, UUID depotId, LocalDate dateEffet,
             BigDecimal coutUnitaire, Integer quantite,
             BigDecimal valeurStock, String methode, UUID utilisateurId) {
-        // À implémenter avec HistoriqueCoutRepository
-        log.info("Historique sauvegardé: Article {}, Date: {}, Valeur: {}",
-                articleId, dateEffet, valeurStock);
+
+        try {
+            Article article = articleRepository.findById(articleId)
+                    .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+
+            Depot depot = depotRepository.findById(depotId)
+                    .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
+
+            // Vérifier si un historique existe déjà pour cette date
+            Optional<HistoriqueCout> existing = historiqueRepository
+                    .findDernierByArticleAndDepot(articleId, depotId);
+
+            if (existing.isPresent() && existing.get().getDateEffet().equals(dateEffet)) {
+                log.debug("Historique déjà existant pour article {} à la date {}",
+                        article.getCodeArticle(), dateEffet);
+                return;
+            }
+
+            HistoriqueCout historique = HistoriqueCout.builder()
+                    .article(article)
+                    .depot(depot)
+                    .dateEffet(dateEffet)
+                    .coutUnitaireMoyen(coutUnitaire)
+                    .quantiteStock(quantite)
+                    .valeurStock(valeurStock)
+                    .methodeValorisation(methode)
+                    .createdBy(utilisateurId)
+                    .build();
+
+            historiqueRepository.save(historique);
+
+            log.debug("Historique sauvegardé: Article {}, Date: {}, Valeur: {}",
+                    article.getCodeArticle(), dateEffet, valeurStock);
+
+        } catch (Exception e) {
+            log.error("Erreur lors de la sauvegarde de l'historique: {}", e.getMessage(), e);
+            throw new RuntimeException("Erreur historique: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Nouvelle méthode : Clôturer le mois avec historique
+     */
+    @Transactional
+    public Map<String, Object> cloturerMoisComplet(Integer annee, Integer mois, UUID utilisateurId, ClotureService cls) {
+        log.info("Clôture mensuelle complète pour {}/{} par {}", mois, annee, utilisateurId);
+
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            // 1. Initialiser ou récupérer la clôture
+            ClotureMensuelle cloture = cls.initialiserCloture(annee, mois, utilisateurId);
+
+            // 2. Exécuter la clôture
+            cloture = cls.executerCloture(cloture.getId(), utilisateurId);
+
+            result.put("success", true);
+            result.put("cloture", cloture);
+            result.put("message", "Clôture exécutée avec succès");
+
+        } catch (Exception e) {
+            log.error("Erreur lors de la clôture: {}", e.getMessage(), e);
+            result.put("success", false);
+            result.put("message", "Erreur: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * Obtenir l'évolution des coûts pour un article
+     */
+    public List<Map<String, Object>> getEvolutionCoutArticle(UUID articleId, UUID depotId, int nbMois, ClotureService cls) {
+        List<HistoriqueCout> historiques = cls.getHistoriqueArticle(articleId, depotId, nbMois);
+
+        return historiques.stream()
+                .map(h -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", h.getDateEffet());
+                    map.put("coutUnitaire", h.getCoutUnitaireMoyen());
+                    map.put("quantite", h.getQuantiteStock());
+                    map.put("valeur", h.getValeurStock());
+                    map.put("methode", h.getMethodeValorisation());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
