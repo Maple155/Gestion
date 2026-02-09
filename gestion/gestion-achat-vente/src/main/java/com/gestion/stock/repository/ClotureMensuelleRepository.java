@@ -63,4 +63,5 @@ public interface ClotureMensuelleRepository extends JpaRepository<ClotureMensuel
        @Query("SELECT c FROM ClotureMensuelle c WHERE c.dateDebutPeriode BETWEEN :debut AND :fin ORDER BY c.dateDebutPeriode")
        List<ClotureMensuelle> findByDateDebutPeriodeBetween(@Param("debut") LocalDate debut,
                      @Param("fin") LocalDate fin);
+
 }

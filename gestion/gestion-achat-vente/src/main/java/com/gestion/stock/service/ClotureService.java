@@ -432,17 +432,16 @@ public class ClotureService {
         return clotureRepository.findProchainePeriodeACloturer();
     }
 
-    /**
-     * Statistiques des clôtures
-     */
+    // Dans la méthode getStatistiquesClotures() - LIGNE 444
+    @Transactional
     public Map<String, Object> getStatistiquesClotures() {
         Map<String, Object> stats = new HashMap<>();
 
-        // Nombre par statut
+        // Nombre par statut - CORRIGER
         List<Object[]> countByStatut = clotureRepository.countByStatut();
         Map<String, Long> parStatut = countByStatut.stream()
                 .collect(Collectors.toMap(
-                        row -> ((String) row[0]),
+                        row -> ((ClotureMensuelle.StatutCloture) row[0]).name(), // Convertir l'enum en String
                         row -> ((Long) row[1])));
 
         stats.put("parStatut", parStatut);
