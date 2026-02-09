@@ -68,6 +68,11 @@
                                     onclick="openMotifModal(this)">
                                 Refuser
                             </button>
+                            <a th:if="${session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES'}"
+                               th:href="@{/ventes/devis/{id}/pdf(id=${d.id})}"
+                               class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold inline-block">
+                                Export PDF
+                            </a>
                                 <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMMERCIAL' or session.userRole == 'RESPONSABLE_VENTES') and d.statut.name() == 'VALIDE'}"
                                   th:action="@{/ventes/devis/{id}/commande(id=${d.id})}" method="post">
                                 <input type="hidden" name="modeReservation" value="IMMEDIATE" />

@@ -7,6 +7,11 @@ import java.util.UUID;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.servlet.http.HttpSession;
 
 import com.gestion.vente.dto.CreateDevisRequest;
@@ -22,6 +27,19 @@ import com.gestion.vente.enums.ModePaiement;
 import com.gestion.vente.enums.StatutCommandeClient;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.entity.Article;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +61,9 @@ public class VenteViewController {
     private final BacklogStockVenteRepository backlogRepository;
     private final VenteService venteService;
     private final ArticleRepository articleRepository;
+
+    @Value("${app.logo.path:static/logo.png}")
+    private String logoPath;
 
     private void requireRole(HttpSession session, String... allowedRoles) {
         String role = (String) session.getAttribute("userRole");
@@ -156,6 +177,198 @@ public class VenteViewController {
         }
         model.addAttribute("activePage", "vente-devis");
         return "vente/devis-liste";
+    }
+
+    @GetMapping("/devis/{id}/pdf")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exporterDevisPdf(@PathVariable UUID id, HttpSession session) {
+        requireRole(session, "ADMIN", "COMMERCIAL", "RESPONSABLE_VENTES");
+        DevisVente devis = devisRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            float margin = 40;
+            float yStart = page.getMediaBox().getHeight() - margin;
+            float y = yStart;
+            float leading = 14;
+
+            PDPageContentStream content = new PDPageContentStream(document, page);
+
+            float logoHeight = 32;
+            float logoWidth = 120;
+            drawLogo(document, content, margin, yStart - logoHeight + 6, logoWidth, logoHeight);
+
+            writeText(content, "CORE ERP", margin, y, PDType1Font.HELVETICA_BOLD, 16);
+            writeText(content, "Devis" , page.getMediaBox().getWidth() - margin - 60, y, PDType1Font.HELVETICA_BOLD, 14);
+
+            y -= leading * 2;
+            writeText(content, "Référence: " + devis.getReference(), margin, y, PDType1Font.HELVETICA_BOLD, 11);
+            y -= leading;
+            writeText(content, "Date: " + (devis.getDateDevis() != null ? devis.getDateDevis().toLocalDate() : ""), margin, y, PDType1Font.HELVETICA, 10);
+            y -= leading;
+            writeText(content, "Statut: " + devis.getStatut(), margin, y, PDType1Font.HELVETICA, 10);
+            y -= leading * 1.5f;
+
+            writeText(content, "Client", margin, y, PDType1Font.HELVETICA_BOLD, 11);
+            y -= leading;
+            writeText(content, devis.getClient().getNom(), margin, y, PDType1Font.HELVETICA, 10);
+            y -= leading;
+            if (devis.getClient().getAdresse() != null) {
+                writeText(content, devis.getClient().getAdresse(), margin, y, PDType1Font.HELVETICA, 10);
+                y -= leading;
+            }
+            if (devis.getClient().getVille() != null) {
+                writeText(content, devis.getClient().getVille(), margin, y, PDType1Font.HELVETICA, 10);
+                y -= leading;
+            }
+
+            y -= leading;
+            float tableTop = y;
+            float tableWidth = page.getMediaBox().getWidth() - margin * 2;
+            float[] colWidths = new float[]{200, 40, 60, 50, 50, 60, 70};
+            String[] headers = new String[]{"Article", "Qté", "PU HT", "Rem %", "TVA %", "Total HT", "Total TTC"};
+
+            drawTableHeader(content, margin, y, colWidths, headers);
+            y -= leading;
+
+            for (LigneDevisVente ligne : devis.getLignes()) {
+                if (y < margin + 80) {
+                    content.close();
+                    page = new PDPage(PDRectangle.A4);
+                    document.addPage(page);
+                    content = new PDPageContentStream(document, page);
+                    y = page.getMediaBox().getHeight() - margin;
+                    drawTableHeader(content, margin, y, colWidths, headers);
+                    y -= leading;
+                }
+
+                String articleLabel = getArticleLabel(ligne.getArticleId());
+                String[] row = new String[]{
+                    articleLabel,
+                    String.valueOf(ligne.getQuantite()),
+                    formatMoney(ligne.getPrixUnitaireHt()),
+                    formatPercent(ligne.getRemisePourcentage()),
+                    formatPercent(ligne.getTvaPourcentage()),
+                    formatMoney(ligne.getTotalHt()),
+                    formatMoney(ligne.getTotalTtc())
+                };
+                drawTableRow(content, margin, y, colWidths, row);
+                y -= leading;
+            }
+
+            y -= leading;
+            if (y < margin + 60) {
+                content.close();
+                page = new PDPage(PDRectangle.A4);
+                document.addPage(page);
+                content = new PDPageContentStream(document, page);
+                y = page.getMediaBox().getHeight() - margin;
+            }
+
+            float totalsX = page.getMediaBox().getWidth() - margin - 220;
+            drawTotalsBox(content, totalsX, y, devis);
+
+            float footerY = margin + 40;
+            content.moveTo(margin, footerY + 10);
+            content.lineTo(page.getMediaBox().getWidth() - margin, footerY + 10);
+            content.stroke();
+            writeText(content, "Validité: " + (devis.getValiditeJours() != null ? devis.getValiditeJours() : 15) + " jours", margin, footerY, PDType1Font.HELVETICA, 9);
+            writeText(content, "Merci pour votre confiance.", margin, footerY - 12, PDType1Font.HELVETICA, 9);
+            writeText(content, "Conditions: paiement selon accord client.", margin, footerY - 24, PDType1Font.HELVETICA, 9);
+
+            content.close();
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            document.save(out);
+            byte[] bytes = out.toByteArray();
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + devis.getReference() + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(bytes);
+        } catch (IOException ex) {
+            throw new RuntimeException("Erreur génération PDF", ex);
+        }
+    }
+
+    private void writeText(PDPageContentStream content, String text, float x, float y,
+                           org.apache.pdfbox.pdmodel.font.PDFont font, float size) throws IOException {
+        content.setFont(font, size);
+        content.beginText();
+        content.newLineAtOffset(x, y);
+        content.showText(text != null ? text : "");
+        content.endText();
+    }
+
+    private void drawTableHeader(PDPageContentStream content, float x, float y, float[] widths, String[] headers) throws IOException {
+        float currentX = x;
+        content.setFont(PDType1Font.HELVETICA_BOLD, 9);
+        for (int i = 0; i < headers.length; i++) {
+            writeText(content, headers[i], currentX + 2, y, PDType1Font.HELVETICA_BOLD, 9);
+            currentX += widths[i];
+        }
+        content.moveTo(x, y - 2);
+        content.lineTo(x + sum(widths), y - 2);
+        content.stroke();
+    }
+
+    private void drawTableRow(PDPageContentStream content, float x, float y, float[] widths, String[] cells) throws IOException {
+        float currentX = x;
+        content.setFont(PDType1Font.HELVETICA, 9);
+        for (int i = 0; i < cells.length; i++) {
+            String value = cells[i] != null ? cells[i] : "";
+            writeText(content, value, currentX + 2, y, PDType1Font.HELVETICA, 9);
+            currentX += widths[i];
+        }
+    }
+
+    private void drawTotalsBox(PDPageContentStream content, float x, float y, DevisVente devis) throws IOException {
+        float boxWidth = 220;
+        float boxHeight = 60;
+        content.addRect(x, y - boxHeight, boxWidth, boxHeight);
+        content.stroke();
+        writeText(content, "Total HT: " + formatMoney(devis.getTotalHt()), x + 10, y - 18, PDType1Font.HELVETICA_BOLD, 10);
+        writeText(content, "TVA: " + formatMoney(devis.getTotalTva()), x + 10, y - 34, PDType1Font.HELVETICA, 10);
+        writeText(content, "Total TTC: " + formatMoney(devis.getTotalTtc()), x + 10, y - 50, PDType1Font.HELVETICA_BOLD, 10);
+    }
+
+    private float sum(float[] values) {
+        float total = 0;
+        for (float v : values) {
+            total += v;
+        }
+        return total;
+    }
+
+    private String formatMoney(BigDecimal value) {
+        BigDecimal v = value == null ? BigDecimal.ZERO : value;
+        return v.setScale(2, java.math.RoundingMode.HALF_UP).toString();
+    }
+
+    private String formatPercent(BigDecimal value) {
+        BigDecimal v = value == null ? BigDecimal.ZERO : value;
+        return v.setScale(2, java.math.RoundingMode.HALF_UP) + "%";
+    }
+
+    private String getArticleLabel(UUID articleId) {
+        return articleRepository.findById(articleId)
+            .map(a -> a.getCodeArticle() + " - " + a.getLibelle())
+            .orElse(articleId.toString());
+    }
+
+    private void drawLogo(PDDocument document, PDPageContentStream content, float x, float y, float width, float height) throws IOException {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(logoPath)) {
+            if (is == null) {
+                return;
+            }
+            BufferedImage image = ImageIO.read(is);
+            if (image == null) {
+                return;
+            }
+            PDImageXObject pdImage = LosslessFactory.createFromImage(document, image);
+            content.drawImage(pdImage, x, y, width, height);
+        }
     }
 
     @GetMapping("/devis/nouveau")
