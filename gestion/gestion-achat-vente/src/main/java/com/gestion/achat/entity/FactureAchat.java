@@ -32,6 +32,6 @@ public class FactureAchat {
 
     private LocalDate dateFacture;
 
-    @CreationTimestamp
+    @Transient
     private LocalDateTime dateEnregistrement;
 }

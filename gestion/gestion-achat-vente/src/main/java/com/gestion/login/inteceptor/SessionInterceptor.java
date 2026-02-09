@@ -95,6 +95,11 @@ public class SessionInterceptor implements HandlerInterceptor {
                 userRole.equalsIgnoreCase("MANAGER");
         }
 
+        // --- MODULE FINANCE ---
+        if (uri.startsWith("/finance/")) {
+            return userRole.equals("ADMIN") || userRole.equals("DAF");
+        }
+
         // --- MODULE COMPTABILITÉ (Inchangé) ---
         if (uri.startsWith("/comptabilite/")) {
             return userRole.equals("ADMIN") || userRole.equals("COMPTABLE");
