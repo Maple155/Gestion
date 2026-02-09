@@ -150,6 +150,7 @@ public class LoginController {
         if (role != null) {
             switch (role) {
                 case "ADMIN":
+                    return "redirect:/achats/demandes";
                 case "GESTIONNAIRE_STOCK":
                 case "RESPONSABLE_STOCK":
                     return "redirect:/main/dashboard";

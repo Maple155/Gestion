@@ -93,8 +93,9 @@ public class AchatController {
     public ResponseEntity<BonReception> recevoir(@PathVariable UUID bcId, @RequestParam boolean conforme, HttpSession session) {
         // Magasiniers
         checkAuth(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK");
-        stockService.creerEntreeStockFromReception(bcId, UUID.fromString(session.getAttribute("userId").toString()));
-        return ResponseEntity.ok(achatService.enregistrerReception(bcId, conforme, ""));
+        BonReception br = achatService.enregistrerReception(bcId, conforme, "");
+        stockService.creerEntreeStockFromReception(br.getId(), UUID.fromString(session.getAttribute("userId").toString()));
+        return ResponseEntity.ok(br);
     }
 
     @PostMapping("/bons-commande/{bcId}/facturer")

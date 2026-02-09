@@ -49,9 +49,9 @@ public class StockService {
                 var demande = proforma.getDemandeAchat();
 
                 // 3. Vérifier que la réception est conforme
-                if (!bonReception.isConforme()) {
-                        throw new RuntimeException("Le bon de réception n'est pas conforme");
-                }
+                // if (!bonReception.isConforme()) {
+                //         throw new RuntimeException("Le bon de réception n'est pas conforme");
+                // }
 
                 // 4. Trouver l'article par son ID (produit_id de la demande)
                 // Note: Vous devez adapter cette partie selon votre modèle
