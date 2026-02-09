@@ -10,6 +10,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.TransactionDefinition;
 
 import com.gestion.stock.entity.Stock;
 import com.gestion.stock.repository.DepotRepository;
@@ -17,6 +20,8 @@ import com.gestion.stock.repository.StockRepository;
 import com.gestion.stock.service.LivraisonService;
 import com.gestion.stock.service.ReservationService;
 import com.gestion.stock.service.SequenceGeneratorService;
+import com.gestion.achat.entity.DemandeAchat;
+import com.gestion.achat.repository.DemandeAchatRepository;
 import com.gestion.vente.dto.CreateAvoirRequest;
 import com.gestion.vente.dto.CreateCommandeFromDevisRequest;
 import com.gestion.vente.dto.CreateDevisRequest;
@@ -48,6 +53,9 @@ public class VenteService {
     private final StockRepository stockRepository;
     private final DepotRepository depotRepository;
     private final SequenceGeneratorService sequenceService;
+    private final DemandeAchatRepository demandeAchatRepository;
+    private final BacklogStockVenteRepository backlogRepository;
+    private final PlatformTransactionManager transactionManager;
 
     public DevisVente creerDevis(CreateDevisRequest request) {
         Client client = clientRepository.findById(request.getClientId())
@@ -64,8 +72,54 @@ public class VenteService {
         devis.setRemiseGlobale(nz(request.getRemiseGlobale()));
         devis.setCreePar(request.getCreePar());
         devis.setNotes(request.getNotes());
-        devis.setStatut(StatutDevis.A_VALIDER);
 
+        List<LigneDevisVente> lignes = new ArrayList<>();
+        for (LigneVenteRequest ligneReq : request.getLignes()) {
+            LigneDevisVente ligne = new LigneDevisVente();
+            ligne.setDevis(devis);
+            ligne.setArticleId(ligneReq.getArticleId());
+            ligne.setQuantite(ligneReq.getQuantite());
+            ligne.setPrixUnitaireHt(ligneReq.getPrixUnitaireHt());
+            ligne.setRemisePourcentage(nz(ligneReq.getRemisePourcentage()));
+            ligne.setTvaPourcentage(nz(ligneReq.getTvaPourcentage()));
+
+            VenteTotals ligneTotals = calculerLigne(ligneReq);
+            ligne.setTotalHt(ligneTotals.getTotalHt());
+            ligne.setTotalTtc(ligneTotals.getTotalTtc());
+            lignes.add(ligne);
+        }
+
+        VenteTotals totals = calculerTotauxGlobaux(request.getLignes(), devis.getRemiseGlobale());
+        devis.setTotalHt(totals.getTotalHt());
+        devis.setTotalTva(totals.getTotalTva());
+        devis.setTotalTtc(totals.getTotalTtc());
+        devis.setLignes(lignes);
+
+        return devisRepository.save(devis);
+    }
+
+    public DevisVente modifierDevis(UUID devisId, CreateDevisRequest request) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.BROUILLON) {
+            throw new RuntimeException("Seuls les devis en brouillon sont modifiables");
+        }
+
+        Client client = clientRepository.findById(request.getClientId())
+            .orElseThrow(() -> new RuntimeException("Client introuvable"));
+
+        if (request.getLignes() == null || request.getLignes().isEmpty()) {
+            throw new RuntimeException("Le devis doit contenir au moins une ligne");
+        }
+
+        devis.setClient(client);
+        if (request.getValiditeJours() != null) {
+            devis.setValiditeJours(request.getValiditeJours());
+        }
+        devis.setRemiseGlobale(nz(request.getRemiseGlobale()));
+
+        devis.getLignes().clear();
         List<LigneDevisVente> lignes = new ArrayList<>();
         for (LigneVenteRequest ligneReq : request.getLignes()) {
             LigneDevisVente ligne = new LigneDevisVente();
@@ -95,6 +149,9 @@ public class VenteService {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
 
+        if (devis.getStatut() != StatutDevis.A_VALIDER) {
+            throw new RuntimeException("Le devis doit être soumis avant validation");
+        }
         if (devis.getStatut() == StatutDevis.ANNULE || devis.getStatut() == StatutDevis.EXPIRE) {
             throw new RuntimeException("Devis non validable");
         }
@@ -105,6 +162,36 @@ public class VenteService {
         return devisRepository.save(devis);
     }
 
+    public DevisVente soumettreDevis(UUID devisId) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.BROUILLON) {
+            throw new RuntimeException("Le devis est déjà soumis ou traité");
+        }
+
+        devis.setStatut(StatutDevis.A_VALIDER);
+        return devisRepository.save(devis);
+    }
+
+    public DevisVente refuserDevis(UUID devisId, UUID validePar, String motif) {
+        DevisVente devis = devisRepository.findById(devisId)
+            .orElseThrow(() -> new RuntimeException("Devis introuvable"));
+
+        if (devis.getStatut() != StatutDevis.A_VALIDER) {
+            throw new RuntimeException("Seul un devis en attente peut être refusé");
+        }
+
+        devis.setStatut(StatutDevis.ANNULE);
+        devis.setValidePar(validePar);
+        devis.setDateValidation(LocalDateTime.now());
+        if (motif != null && !motif.isBlank()) {
+            String existing = devis.getNotes() != null ? devis.getNotes() + "\n" : "";
+            devis.setNotes(existing + "Refus: " + motif.trim());
+        }
+        return devisRepository.save(devis);
+    }
+
     public CommandeClient creerCommandeDepuisDevis(UUID devisId, CreateCommandeFromDevisRequest request) {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
@@ -112,6 +199,8 @@ public class VenteService {
         if (devis.getStatut() != StatutDevis.VALIDE) {
             throw new RuntimeException("Le devis doit être validé avant transformation");
         }
+
+        verifierStockOuCreerBacklogEtDemande(devis);
 
         String modeReservation = request.getModeReservation() != null ? request.getModeReservation() : "IMMEDIATE";
         UUID depotId = request.getDepotLivraisonId();
@@ -176,9 +265,70 @@ public class VenteService {
         return saved;
     }
 
+    private void verifierStockOuCreerBacklogEtDemande(DevisVente devis) {
+        List<Shortage> shortages = new ArrayList<>();
+        for (LigneDevisVente ligne : devis.getLignes()) {
+            int disponible = stockRepository.findByArticleId(ligne.getArticleId()).stream()
+                .mapToInt(Stock::getQuantiteDisponible)
+                .sum();
+            if (disponible < ligne.getQuantite()) {
+                int manquant = ligne.getQuantite() - disponible;
+                shortages.add(new Shortage(ligne.getArticleId(), ligne.getQuantite(), disponible, manquant));
+            }
+        }
+
+        if (shortages.isEmpty()) {
+            return;
+        }
+
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        template.execute(status -> {
+            for (Shortage shortage : shortages) {
+                BacklogStockVente backlog = new BacklogStockVente();
+                backlog.setDevisId(devis.getId());
+                backlog.setArticleId(shortage.articleId);
+                backlog.setQuantiteDemandee(shortage.quantiteDemandee);
+                backlog.setQuantiteDisponible(shortage.quantiteDisponible);
+                backlog.setQuantiteManquante(shortage.quantiteManquante);
+                backlog.setNotes("Insuffisance stock pour devis " + devis.getReference());
+                backlogRepository.save(backlog);
+
+                DemandeAchat demande = new DemandeAchat();
+                demande.setProduitId(shortage.articleId);
+                demande.setQuantiteDemandee(shortage.quantiteManquante);
+                demande.setMotif("Besoin stock pour devis " + devis.getReference());
+                demandeAchatRepository.save(demande);
+            }
+            return null;
+        });
+
+        throw new RuntimeException("Stock insuffisant: demandes d'achat créées");
+    }
+
+    private static class Shortage {
+        private final UUID articleId;
+        private final int quantiteDemandee;
+        private final int quantiteDisponible;
+        private final int quantiteManquante;
+
+        private Shortage(UUID articleId, int quantiteDemandee, int quantiteDisponible, int quantiteManquante) {
+            this.articleId = articleId;
+            this.quantiteDemandee = quantiteDemandee;
+            this.quantiteDisponible = quantiteDisponible;
+            this.quantiteManquante = quantiteManquante;
+        }
+    }
+
     public LivraisonClient creerLivraison(UUID commandeId, CreateLivraisonRequest request) {
         CommandeClient commande = commandeRepository.findById(commandeId)
             .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        boolean hasMissingReservation = commande.getLignes().stream()
+            .anyMatch(ligne -> ligne.getReservationStockId() == null);
+        if (hasMissingReservation) {
+            throw new RuntimeException("Livraison impossible: stock non réservé pour toutes les lignes");
+        }
 
         LivraisonClient livraison = new LivraisonClient();
         livraison.setReference(genererReferenceLivraison());
@@ -197,19 +347,8 @@ public class VenteService {
             ligne.setQuantiteLivree(ligneCommande.getQuantite());
             lignes.add(ligne);
 
-            if (ligneCommande.getReservationStockId() != null) {
-                livraisonService.creerSortieStock(ligneCommande.getReservationStockId(), request.getUtilisateurId(),
-                    "Livraison commande " + commande.getReference());
-            } else {
-                livraisonService.livrerDirectement(
-                    ligneCommande.getArticleId(),
-                    commande.getDepotLivraisonId(),
-                    ligneCommande.getQuantite(),
-                    commande.getId(),
-                    request.getUtilisateurId(),
-                    "Livraison directe commande " + commande.getReference()
-                );
-            }
+            livraisonService.creerSortieStock(ligneCommande.getReservationStockId(), request.getUtilisateurId(),
+                "Livraison commande " + commande.getReference());
 
             ligneCommande.setStatut(StatutLigneCommande.LIVREE);
         }
@@ -303,6 +442,45 @@ public class VenteService {
         avoir.setMotif(request.getMotif());
 
         return avoirRepository.save(avoir);
+    }
+
+    public CommandeClient annulerCommande(UUID commandeId, UUID validePar, String motif) {
+        CommandeClient commande = commandeRepository.findById(commandeId)
+            .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (commande.getStatut() == StatutCommandeClient.LIVREE
+            || commande.getStatut() == StatutCommandeClient.FACTUREE) {
+            throw new RuntimeException("Impossible d'annuler une commande livrée ou facturée");
+        }
+
+        commande.setStatut(StatutCommandeClient.ANNULEE);
+        commande.setValidePar(validePar);
+        commande.setDateValidation(LocalDateTime.now());
+        if (motif != null && !motif.isBlank()) {
+            String existing = commande.getNotes() != null ? commande.getNotes() + "\n" : "";
+            commande.setNotes(existing + "Annulation: " + motif.trim());
+        }
+
+        return commandeRepository.save(commande);
+    }
+
+    public CommandeClient debloquerCommande(UUID commandeId, UUID validePar, String motif) {
+        CommandeClient commande = commandeRepository.findById(commandeId)
+            .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (commande.getStatut() != StatutCommandeClient.EN_ATTENTE) {
+            throw new RuntimeException("Seules les commandes en attente peuvent être débloquées");
+        }
+
+        commande.setStatut(StatutCommandeClient.CONFIRMEE);
+        commande.setValidePar(validePar);
+        commande.setDateValidation(LocalDateTime.now());
+        if (motif != null && !motif.isBlank()) {
+            String existing = commande.getNotes() != null ? commande.getNotes() + "\n" : "";
+            commande.setNotes(existing + "Déblocage: " + motif.trim());
+        }
+
+        return commandeRepository.save(commande);
     }
 
     private UUID resolveDepotId(UUID depotLivraisonId) {
