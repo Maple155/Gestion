@@ -121,6 +121,15 @@ public class DashboardController {
 
         // Synthèse des méthodes de valorisation
         Map<String, Object> valorisation = valorisationService.getSyntheseValorisation();
+
+        BigDecimal coutSortiesFifo = valorisationService.getCoutMoyenSortiesFIFO();
+        BigDecimal coutSortiesFefo = valorisationService.getCoutMoyenSortiesFEFO();
+        BigDecimal differenceCout = valorisationService.getDifferenceCout();
+        
+        valorisation.put("coutSortiesFifo", coutSortiesFifo);
+        valorisation.put("coutSortiesFefo", coutSortiesFefo);
+        valorisation.put("differenceCout", differenceCout);
+        
         model.addAttribute("valorisation", valorisation);
 
         // Détail par méthode

@@ -361,13 +361,13 @@
                                 </div>
                                     <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                                         <span class="text-sm font-bold text-blue-700">Différence</span>
-                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0} ? 'text-rose-600' : 'text-emerald-600'"
-                                              class="font-bold text-lg">
-                                            <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0}">+</span>
-                                            <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
-                                                +1,80 €
-                                            </span>
-                                        </span>
+                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
+                                            class="font-bold text-lg">
+                                          <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0}">+</span>
+                                          <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
+                                              +1,80 €
+                                          </span>
+                                      </span>
                                     </div>
                                 </div>
                             </div>
