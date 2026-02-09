@@ -1,6 +1,9 @@
 package com.gestion.stock.repository;
 
 import com.gestion.stock.entity.Stock;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -140,4 +143,9 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
         @Query("SELECT s FROM Stock s WHERE s.dateDernierMouvement < :dateLimite " +
                         "AND s.quantiteTheorique > 0")
         List<Stock> findStocksObsoletes(@Param("dateLimite") LocalDateTime dateLimite);
+
+        Page<Stock> findByDepotId(UUID depotId, Pageable pageable);
+    
+        // Méthode pour compter les stocks par dépôt
+        Long countByDepotId(UUID depotId);
 }
