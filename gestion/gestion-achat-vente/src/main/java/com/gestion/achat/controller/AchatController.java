@@ -1,6 +1,7 @@
 package com.gestion.achat.controller;
 
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,8 @@ import jakarta.servlet.http.HttpSession;
 import com.gestion.achat.entity.*;
 import com.gestion.achat.enums.StatutDemande;
 import com.gestion.achat.repository.DemandeAchatRepository;
+import com.gestion.achat.repository.FactureAchatRepository;
+import com.gestion.achat.repository.ProformaRepository;
 import com.gestion.achat.service.*;
 import com.gestion.stock.service.StockService;
 
@@ -24,6 +27,8 @@ public class AchatController {
     private final AchatService achatService;
     private final DemandeAchatRepository demandeRepo;
     private final StockService stockService;
+    private final ProformaRepository proformaRepo;
+    private final FactureAchatRepository factureRepo;
     // ... repositories ...
 
     private void checkAuth(HttpSession session, String... allowedRoles) {
@@ -97,5 +102,59 @@ public class AchatController {
         // Rôle COMPTABLE ou DAF pour rapprochement 3-way match
         checkAuth(session, "ADMIN", "COMPTABLE", "DAF");
         return ResponseEntity.ok(achatService.enregistrerFacture(bcId, numFacture, LocalDate.now()));
+    }
+    @PostMapping("/proformas")
+    public ResponseEntity<Proforma> creerProforma(@RequestBody Proforma proforma, HttpSession session) {
+        // Seul l'acheteur ou l'admin peut saisir les offres reçues
+        checkAuth(session, "ADMIN", "ACHETEUR", "RESPONSABLE_ACHATS");
+        
+        log.info("Saisie d'un nouveau proforma pour la DA: {}", proforma.getDemandeAchat().getId());
+        
+        // Sauvegarde simple via repository
+        Proforma nouveauProforma = proformaRepo.save(proforma);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nouveauProforma);
+    }
+    @GetMapping("/proformas/{id}")
+    public ResponseEntity<Proforma> getProformaById(@PathVariable UUID id) {
+        return proformaRepo.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @GetMapping("/factures/{id}")
+    public ResponseEntity<?> getFactureById(@PathVariable UUID id) {
+        // 1. On cherche la facture
+        java.util.Optional<FactureAchat> factureOpt = factureRepo.findById(id);
+        
+        // 2. Si elle n'existe pas, on sort tout de suite
+        if (factureOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Facture non trouvée");
+        }
+
+        // 3. Si elle existe, on construit le DTO manuellement
+        FactureAchat f = factureOpt.get();
+        java.util.Map<String, Object> dto = new java.util.HashMap<>();
+        
+        dto.put("id", f.getId());
+        dto.put("numeroFacture", f.getNumeroFactureFournisseur());
+        dto.put("dateFacture", f.getDateFacture());
+        // On descend dans les relations pour récupérer le nom du fournisseur
+        dto.put("fournisseurNom", f.getBonCommande().getProforma().getFournisseur().getNom());
+        dto.put("referenceBc", f.getBonCommande().getReferenceBc());
+        dto.put("montantTotal", f.getMontantTotalTtc());
+        dto.put("estPayee", f.isEstPayee());
+
+        // 4. On retourne le JSON
+        return ResponseEntity.ok(dto);
+    }
+    @PostMapping("/factures")
+    public ResponseEntity<?> creerFacture(@RequestBody FactureAchat facture, HttpSession session) {
+        checkAuth(session, "ADMIN", "COMPTABLE", "DAF", "ACHETEUR");
+        
+        // On peut ajouter une vérification ici pour s'assurer qu'un BC n'a pas déjà de facture
+        if (factureRepo.existsByBonCommandeId(facture.getBonCommande().getId())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ce Bon de Commande est déjà facturé."));
+        }
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(factureRepo.save(facture));
     }
 }

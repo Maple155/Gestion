@@ -57,16 +57,19 @@ public class AchatViewController {
 
     @GetMapping("/demandes/{id}")
     public String voirDetailsDemande(@PathVariable UUID id, Model model, HttpSession session) {
-        // Le demandeur, l'acheteur et les valideurs peuvent voir les détails
         if (!isAuthenticated(session, "ADMIN", "DEMANDEUR", "ACHETEUR", "RESPONSABLE_ACHATS", "APPRO_N1", "APPRO_N2", "APPRO_N3", "DAF")) {
             return "redirect:/login";
         }
         DemandeAchat da = demandeRepo.findById(id).orElseThrow(() -> new RuntimeException("Demande introuvable"));
+        
         model.addAttribute("da", da);
         model.addAttribute("proformas", proformaRepo.findByDemandeAchatId(id));
+        
+        // AJOUTER CECI : Pour alimenter le <select> du pop-up
+        model.addAttribute("fournisseurs", fournisseurRepo.findAll()); 
+        
         return "achat/details-demande"; 
     }
-
     @GetMapping("/bons-commande/liste")
     public String listeBonsCommande(Model model, HttpSession session) {
         // Un simple DEMANDEUR n'a pas accès à la liste globale des BC
@@ -86,7 +89,6 @@ public class AchatViewController {
         model.addAttribute("brs", brRepo.findAllByOrderByDateReceptionDesc());
         return "achat/br-liste";
     }
-
     @GetMapping("/factures/liste")
     public String listeFactures(Model model, HttpSession session) {
         if (!isAuthenticated(session, "ADMIN", "COMPTABLE", "DAF", "ACHETEUR")) {
@@ -94,9 +96,16 @@ public class AchatViewController {
         }
 
         List<FactureAchat> factures = factureRepo.findAll();
+        
+        // Récupérer les BC qui n'ont PAS encore de facture
+        // On filtre en Java pour simplifier, ou via une requête personnalisée
+        List<BonCommande> bcsSansFacture = bcRepo.findAll().stream()
+                .filter(bc -> !factureRepo.existsByBonCommandeId(bc.getId()))
+                .toList();
 
-        // CALCUL DES TOTAUX
-        // On filtre les payées et on fait la somme
+        model.addAttribute("factures", factures);
+        model.addAttribute("bcsDisponibles", bcsSansFacture); // Pour le pop-up
+        
         java.math.BigDecimal totalPaye = factures.stream()
                 .filter(f -> f.isEstPayee())
                 .map(FactureAchat::getMontantTotalTtc)
@@ -107,12 +116,9 @@ public class AchatViewController {
                 .filter(f -> !f.isEstPayee())
                 .map(FactureAchat::getMontantTotalTtc)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-        // INJECTION DANS LE MODELE
-        model.addAttribute("factures", factures);
         model.addAttribute("montantPaye", totalPaye);
         model.addAttribute("montantRestant", totalReste);
-        
+
         return "achat/factures-liste";
     }
 
