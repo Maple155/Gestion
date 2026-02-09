@@ -49,7 +49,6 @@ public class Utilisateur {
     public enum Role {
         // --- ADMINISTRATION ---
         ADMIN,
-        MANAGER,
 
         // --- MODULE ACHATS (Ton Cahier des Charges) ---
         DEMANDEUR,           // Créer DA, pas de validation
