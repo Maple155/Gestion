@@ -23,7 +23,7 @@ public interface StockMovementRepository
               extends JpaRepository<StockMovement, UUID>, JpaSpecificationExecutor<StockMovement> {
 
        StockMovement findByReference(String reference);
-                     
+
        List<StockMovement> findByArticleIdAndDepotIdOrderByDateMouvementDesc(UUID articleId, UUID depotId);
 
        List<StockMovement> findByBonReceptionId(UUID bonReceptionId);
@@ -278,4 +278,17 @@ public interface StockMovementRepository
                      @Param("depotId") UUID depotId,
                      @Param("dateDebut") LocalDate dateDebut,
                      @Param("dateFin") LocalDate dateFin);
+
+       @Query("SELECT m FROM StockMovement m " +
+                     "JOIN m.article a " +
+                     "WHERE m.type.sens = 'SORTIE' " +
+                     "AND m.statut = 'VALIDE' " +
+                     "AND a.methodeValorisation = :methode " +
+                     "AND m.dateMouvement >= :dateDebut " +
+                     "AND m.dateMouvement <= :dateFin " +
+                     "ORDER BY m.dateMouvement DESC")
+       List<StockMovement> findSortiesByMethodeValorisation(
+                     @Param("methode") String methode,
+                     @Param("dateDebut") LocalDateTime dateDebut,
+                     @Param("dateFin") LocalDateTime dateFin);
 }
