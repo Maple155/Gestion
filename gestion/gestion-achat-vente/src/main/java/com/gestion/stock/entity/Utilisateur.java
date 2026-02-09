@@ -71,6 +71,8 @@ public class Utilisateur {
         RESPONSABLE_VENTES,
 
         // --- BASE ---
-        UTILISATEUR
+        UTILISATEUR,
+
+        MANAGER
     }
 }

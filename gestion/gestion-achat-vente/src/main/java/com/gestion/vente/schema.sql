@@ -104,6 +104,19 @@ CREATE TABLE lignes_commandes_clients (
     statut VARCHAR(50) DEFAULT 'EN_ATTENTE' -- EN_ATTENTE, RESERVEE, LIVREE, ANNULEE
 );
 
+-- 3.b Backlog stock (insuffisance)
+CREATE TABLE backlog_stock_vente (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    devis_id UUID REFERENCES devis_vente(id),
+    article_id UUID NOT NULL REFERENCES articles(id),
+    quantite_demandee INTEGER NOT NULL,
+    quantite_disponible INTEGER NOT NULL,
+    quantite_manquante INTEGER NOT NULL,
+    statut VARCHAR(50) DEFAULT 'EN_ATTENTE',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 4. Livraisons
 CREATE TABLE livraisons_clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
