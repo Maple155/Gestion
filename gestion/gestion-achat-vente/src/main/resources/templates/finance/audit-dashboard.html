@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">Finance - Audit</h1>
+            <p class="text-slate-500 text-sm">Détection des anomalies et incohérences.</p>
+        </div>
+
+        <div class="mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <div th:if="${#lists.isEmpty(mismatches)}" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded">
+                    <i class="bi bi-check-circle"></i> <strong>Aucune anomalie détectée.</strong> Tous les contrôles sont passés avec succès.
+                </div>
+                <div th:unless="${#lists.isEmpty(mismatches)}" class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded">
+                    <i class="bi bi-exclamation-triangle"></i> <strong>Anomalies détectées :</strong> <span th:text="${#lists.size(mismatches)}"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200">
+                <h2 class="text-sm font-bold text-slate-700">Anomalies et Incohérences</h2>
+            </div>
+            <table class="w-full text-left border-collapse" th:unless="${#lists.isEmpty(mismatches)}">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">N° Facture</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Référence BC</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Motif</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Montant</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <tr th:each="mismatch : ${mismatches}" class="hover:bg-slate-50">
+                        <td class="px-6 py-4 text-sm text-slate-900" th:text="${mismatch.numeroFacture}">-</td>
+                        <td class="px-6 py-4 text-sm text-slate-900" th:text="${mismatch.referenceBc}">-</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold" 
+                                  th:classappend="${mismatch.motif.contains('manquant')} ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'"
+                                  th:text="${mismatch.motif}">-</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-semibold text-slate-900" th:text="${#numbers.formatDecimal(mismatch.montant, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div th:if="${#lists.isEmpty(mismatches)}" class="px-6 py-4">
+                <p class="text-slate-500 text-center">Aucune donnée à afficher</p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
