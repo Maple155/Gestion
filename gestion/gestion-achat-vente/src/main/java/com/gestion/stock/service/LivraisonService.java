@@ -37,13 +37,25 @@ public class LivraisonService {
         ReservationStock reservation = reservationStockRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Réservation non trouvée: " + reservationId));
 
+        log.info("Sortie stock depuis réservation {} - article: {} - depot: {} - reservee: {} - prelevee: {} - restante: {} - statut: {}",
+                reservation.getId(),
+                reservation.getArticle() != null ? reservation.getArticle().getId() : null,
+                reservation.getDepot() != null ? reservation.getDepot().getId() : null,
+                reservation.getQuantiteReservee(),
+                reservation.getQuantitePrelevee(),
+                reservation.getQuantiteRestante(),
+                reservation.getStatut());
+
         // Vérifier si la réservation est toujours active
         if (!ReservationStock.ReservationStatus.ACTIVE.equals(reservation.getStatut())) {
+                        log.warn("Réservation inactive: {} - statut: {}", reservation.getId(), reservation.getStatut());
             throw new RuntimeException("La réservation n'est pas active");
         }
 
         // Vérifier quantité restante
         if (reservation.getQuantiteRestante() <= 0) {
+                        log.warn("Réservation sans quantité restante: {} - restante: {}",
+                                        reservation.getId(), reservation.getQuantiteRestante());
             throw new RuntimeException("Aucune quantité à livrer");
         }
 
@@ -54,6 +66,12 @@ public class LivraisonService {
                 .orElseThrow(() -> new RuntimeException("Stock non trouvé"));
 
         if (stock.getQuantiteDisponible() < reservation.getQuantiteRestante()) {
+            log.warn("Stock insuffisant pour réservation {} - article: {} - depot: {} - disponible: {} - restante: {}",
+                    reservation.getId(),
+                    reservation.getArticle().getId(),
+                    reservation.getDepot().getId(),
+                    stock.getQuantiteDisponible(),
+                    reservation.getQuantiteRestante());
             throw new RuntimeException("Stock insuffisant. Disponible: " + stock.getQuantiteDisponible());
         }
 

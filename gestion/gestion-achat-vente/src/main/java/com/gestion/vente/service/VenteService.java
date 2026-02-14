@@ -34,10 +34,12 @@ import com.gestion.vente.enums.*;
 import com.gestion.vente.repository.*;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class VenteService {
 
     private final ClientRepository clientRepository;
@@ -196,17 +198,26 @@ public class VenteService {
         DevisVente devis = devisRepository.findById(devisId)
             .orElseThrow(() -> new RuntimeException("Devis introuvable"));
 
+        if (commandeRepository.existsByDevisId(devisId)) {
+            throw new RuntimeException("Le devis a déjà été transformé en bon de commande");
+        }
+
         if (devis.getStatut() != StatutDevis.VALIDE) {
             throw new RuntimeException("Le devis doit être validé avant transformation");
         }
 
-        verifierStockOuCreerBacklogEtDemande(devis);
-
         String modeReservation = request.getModeReservation() != null ? request.getModeReservation() : "IMMEDIATE";
         UUID depotId = request.getDepotLivraisonId();
         if (depotId == null && "IMMEDIATE".equalsIgnoreCase(modeReservation)) {
-            depotId = resolveDepotIdForReservation(devis.getLignes());
+            try {
+                depotId = resolveDepotIdForReservation(devis.getLignes());
+            } catch (RuntimeException ex) {
+                verifierStockOuCreerBacklogEtDemande(devis, null);
+                throw ex;
+            }
         }
+        verifierStockOuCreerBacklogEtDemande(devis, depotId);
+
         if (depotId == null) {
             depotId = resolveDepotId(null);
         }
@@ -265,12 +276,19 @@ public class VenteService {
         return saved;
     }
 
-    private void verifierStockOuCreerBacklogEtDemande(DevisVente devis) {
+    private void verifierStockOuCreerBacklogEtDemande(DevisVente devis, UUID depotId) {
         List<Shortage> shortages = new ArrayList<>();
         for (LigneDevisVente ligne : devis.getLignes()) {
-            int disponible = stockRepository.findByArticleId(ligne.getArticleId()).stream()
-                .mapToInt(Stock::getQuantiteDisponible)
-                .sum();
+            int disponible;
+            if (depotId != null) {
+                disponible = stockRepository.findByArticleIdAndDepotId(ligne.getArticleId(), depotId)
+                    .map(Stock::getQuantiteDisponible)
+                    .orElse(0);
+            } else {
+                disponible = stockRepository.findByArticleId(ligne.getArticleId()).stream()
+                    .mapToInt(Stock::getQuantiteDisponible)
+                    .sum();
+            }
             if (disponible < ligne.getQuantite()) {
                 int manquant = ligne.getQuantite() - disponible;
                 shortages.add(new Shortage(ligne.getArticleId(), ligne.getQuantite(), disponible, manquant));
@@ -319,9 +337,12 @@ public class VenteService {
         CommandeClient commande = commandeRepository.findById(commandeId)
             .orElseThrow(() -> new RuntimeException("Commande introuvable"));
 
+        log.info("Début livraison commande {} - lignes: {}", commande.getReference(), commande.getLignes().size());
+
         boolean hasMissingReservation = commande.getLignes().stream()
             .anyMatch(ligne -> ligne.getReservationStockId() == null);
         if (hasMissingReservation) {
+            log.warn("Livraison refusée: réservations manquantes pour commande {}", commande.getReference());
             throw new RuntimeException("Livraison impossible: stock non réservé pour toutes les lignes");
         }
 
@@ -342,6 +363,13 @@ public class VenteService {
             ligne.setQuantiteLivree(ligneCommande.getQuantite());
             lignes.add(ligne);
 
+            log.info("Préparation sortie stock - cmd: {} - ligne: {} - article: {} - quantite: {} - reservation: {}",
+                commande.getReference(),
+                ligneCommande.getId(),
+                ligneCommande.getArticleId(),
+                ligneCommande.getQuantite(),
+                ligneCommande.getReservationStockId());
+
             livraisonService.creerSortieStock(ligneCommande.getReservationStockId(), request.getUtilisateurId(),
                 "Livraison commande " + commande.getReference());
 
@@ -355,6 +383,7 @@ public class VenteService {
 
         livraisonRepository.save(livraison);
         commandeRepository.save(commande);
+        log.info("Livraison terminée: {} - commande: {}", livraison.getReference(), commande.getReference());
         return livraison;
     }
 
@@ -446,6 +475,31 @@ public class VenteService {
         if (commande.getStatut() == StatutCommandeClient.LIVREE
             || commande.getStatut() == StatutCommandeClient.FACTUREE) {
             throw new RuntimeException("Impossible d'annuler une commande livrée ou facturée");
+        }
+
+        if (commande.getLignes() != null) {
+            for (LigneCommandeClient ligne : commande.getLignes()) {
+                UUID reservationId = ligne.getReservationStockId();
+                if (reservationId == null) {
+                    continue;
+                }
+                try {
+                    var reservation = reservationService.getReservationById(reservationId);
+                    if (reservation.getStatut() == com.gestion.stock.entity.ReservationStock.ReservationStatus.ACTIVE) {
+                        reservationService.annulerReservation(reservationId);
+                        if (reservation.getArticle() != null && reservation.getDepot() != null
+                            && reservation.getQuantiteReservee() != null) {
+                            stockRepository.decrementerQuantiteReservee(
+                                reservation.getArticle().getId(),
+                                reservation.getDepot().getId(),
+                                reservation.getQuantiteReservee()
+                            );
+                        }
+                    }
+                } catch (RuntimeException ex) {
+                    log.warn("Libération réservation échouée: {} - {}", reservationId, ex.getMessage());
+                }
+            }
         }
 
         commande.setStatut(StatutCommandeClient.ANNULEE);
