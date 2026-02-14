@@ -178,7 +178,13 @@ public class LoginController {
         
         return "redirect:/achats/demandes";
     }
-    
+    @GetMapping("/home")
+    public String managerHome(HttpSession session) {
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+        return "home"; // Affiche home.html
+    }
     @GetMapping("/")
     public String home() {
         return "redirect:/login";

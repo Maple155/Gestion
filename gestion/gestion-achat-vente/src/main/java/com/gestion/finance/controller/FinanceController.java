@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,10 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.gestion.achat.entity.BonCommande;
 import com.gestion.achat.entity.BonReception;
 import com.gestion.achat.entity.FactureAchat;
-import com.gestion.achat.repository.BonCommandeRepository;
 import com.gestion.achat.repository.BonReceptionRepository;
 import com.gestion.achat.repository.FactureAchatRepository;
-import com.gestion.stock.entity.Stock;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.repository.StockRepository;
 import com.gestion.stock.service.ValorisationService;
@@ -34,13 +31,13 @@ import lombok.RequiredArgsConstructor;
 public class FinanceController {
 
     private final FactureAchatRepository factureAchatRepository;
-    private final BonCommandeRepository bonCommandeRepository;
     private final BonReceptionRepository bonReceptionRepository;
     private final StockRepository stockRepository;
     private final ArticleRepository articleRepository;
     private final LigneCommandeClientRepository ligneCommandeClientRepository;
     private final ValorisationService valorisationService;
 
+    // --- DASHBOARD PRINCIPAL (DAF) ---
     @GetMapping("/daf")
     public String dashboardDaf(Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
@@ -49,13 +46,14 @@ public class FinanceController {
         model.addAttribute("mismatchCount", mismatches.size());
         model.addAttribute("mismatches", mismatches);
 
+        // Stock
         BigDecimal comptable = getValeurStockComptable();
         BigDecimal operationnelle = getValeurStockOperationnelle();
-        BigDecimal ecart = operationnelle.subtract(comptable);
         model.addAttribute("valeurComptable", comptable);
         model.addAttribute("valeurOperationnelle", operationnelle);
-        model.addAttribute("ecartStock", ecart);
+        model.addAttribute("ecartStock", operationnelle.subtract(comptable));
 
+        // Rentabilité
         MarginKpi margin = computeMarge();
         model.addAttribute("margeTotale", margin.margeTotale);
         model.addAttribute("caTotal", margin.chiffreAffaires);
@@ -66,45 +64,125 @@ public class FinanceController {
         return "finance/daf-dashboard";
     }
 
-    private void requireRole(HttpSession session, String... allowedRoles) {
-        String role = (String) session.getAttribute("userRole");
-        if (role == null) {
-            throw new RuntimeException("Rôle utilisateur manquant");
-        }
-        for (String allowed : allowedRoles) {
-            if (allowed.equals(role)) {
-                return;
-            }
-        }
-        throw new RuntimeException("Accès refusé pour le rôle: " + role);
+    // --- FOURNISSEURS (ACHATS) ---
+    @GetMapping("/fournisseurs")
+    public String dashboardFournisseurs(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        List<FactureAchat> factures = factureAchatRepository.findAll();
+        
+        BigDecimal totalDu = factures.stream()
+            .filter(f -> !f.isEstPayee())
+            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalPaye = factures.stream()
+            .filter(FactureAchat::isEstPayee)
+            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("factures", factures);
+        model.addAttribute("totalDu", totalDu);
+        model.addAttribute("totalPaye", totalPaye);
+        model.addAttribute("nombreFactures", factures.size());
+        model.addAttribute("activePage", "finance-fournisseurs");
+
+        return "finance/fournisseurs-dashboard";
     }
+
+    // --- CLIENTS (VENTES) ---
+    @GetMapping("/clients")
+    public String dashboardClients(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        MarginKpi margin = computeMarge();
+        model.addAttribute("caTotal", margin.chiffreAffaires);
+        model.addAttribute("margeTotal", margin.margeTotale);
+        model.addAttribute("activePage", "finance-clients");
+
+        return "finance/clients-dashboard";
+    }
+
+    // --- TRESORERIE ---
+    @GetMapping("/tresorerie")
+    public String dashboardTresorerie(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        // On considère le CA comme l'argent "théorique" rentré (Encaissements)
+        BigDecimal encaissements = computeMarge().chiffreAffaires;
+        
+        // Seules les factures marquées "estPayee" sont des décaissements réels
+        BigDecimal decaissementsReels = factureAchatRepository.findAll().stream()
+            .filter(FactureAchat::isEstPayee)
+            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Les factures NON payées sont des dettes à court terme
+        BigDecimal dettesFournisseurs = factureAchatRepository.findAll().stream()
+            .filter(f -> !f.isEstPayee())
+            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("encaissements", encaissements);
+        model.addAttribute("decaissements", decaissementsReels);
+        model.addAttribute("dettesFournisseurs", dettesFournisseurs);
+        model.addAttribute("soldeTheorique", encaissements.subtract(decaissementsReels));
+        model.addAttribute("activePage", "finance-tresorerie");
+
+        return "finance/tresorerie-dashboard";
+    }
+
+    // --- AUDIT & STOCK ---
+    @GetMapping("/audit")
+    public String audit(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+        model.addAttribute("mismatches", buildMismatchList());
+        model.addAttribute("activePage", "finance-audit");
+        return "finance/audit-dashboard";
+    }
+
+    @GetMapping("/stock")
+    public String dashboardStock(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        BigDecimal comptable = getValeurStockComptable();
+        BigDecimal operationnelle = getValeurStockOperationnelle();
+
+        model.addAttribute("valeurComptable", comptable);
+        model.addAttribute("valeurOperationnelle", operationnelle);
+        model.addAttribute("ecartStock", operationnelle.subtract(comptable));
+        model.addAttribute("activePage", "finance-stock");
+
+        return "finance/stock-dashboard";
+    }
+
+    // --- LOGIQUE METIER PRIVÉE ---
 
     private List<MismatchItem> buildMismatchList() {
         List<MismatchItem> items = new ArrayList<>();
         List<FactureAchat> factures = factureAchatRepository.findAll();
+
         for (FactureAchat facture : factures) {
-            BonCommande bc = facture.getBonCommande();
+            BonCommande bc = facture.getBonCommande(); // Ne peut pas être nul selon ton entité
             String reason = null;
-            if (bc == null) {
-                reason = "BC manquant";
-            } else {
-                BonReception br = bonReceptionRepository.findByBonCommandeId(bc.getId()).orElse(null);
-                if (br == null) {
-                    reason = "BR manquant";
-                } else if (!br.isConforme()) {
-                    reason = "Réception non conforme";
-                } else if (facture.getMontantTotalTtc() != null && bc.getMontantTotalTtc() != null
-                        && facture.getMontantTotalTtc().compareTo(bc.getMontantTotalTtc()) != 0) {
-                    reason = "Montant facture != BC";
-                }
+
+            BonReception br = bonReceptionRepository.findByBonCommandeId(bc.getId()).orElse(null);
+
+            if (br == null) {
+                reason = "Facture reçue sans Bon de Réception";
+            } else if (!br.isConforme()) {
+                reason = "Réception déclarée non-conforme";
+            } else if (facture.getMontantTotalTtc().compareTo(bc.getMontantTotalTtc()) != 0) {
+                reason = "Écart de prix: Facture (" + facture.getMontantTotalTtc() + ") vs BC (" + bc.getMontantTotalTtc() + ")";
             }
 
             if (reason != null) {
                 items.add(new MismatchItem(
                     facture.getNumeroFactureFournisseur(),
-                    bc != null ? bc.getReferenceBc() : "-",
+                    bc.getReferenceBc(),
                     reason,
-                    facture.getMontantTotalTtc()
+                    facture.getMontantTotalTtc(),
+                    facture.isEstPayee()
                 ));
             }
         }
@@ -113,24 +191,19 @@ public class FinanceController {
 
     private BigDecimal getValeurStockComptable() {
         Object value = valorisationService.getSyntheseValorisation().get("valeurTotale");
-        if (value instanceof BigDecimal) {
-            return (BigDecimal) value;
-        }
-        return BigDecimal.ZERO;
+        return (value instanceof BigDecimal) ? (BigDecimal) value : BigDecimal.ZERO;
     }
 
     private BigDecimal getValeurStockOperationnelle() {
-        BigDecimal total = BigDecimal.ZERO;
-        List<Stock> stocks = stockRepository.findAll();
-        for (Stock stock : stocks) {
-            BigDecimal cout = stock.getArticle() != null ? stock.getArticle().getCoutStandard() : BigDecimal.ZERO;
-            if (cout == null) {
-                cout = BigDecimal.ZERO;
-            }
-            int quantite = stock.getQuantiteTheorique() != null ? stock.getQuantiteTheorique() : 0;
-            total = total.add(cout.multiply(BigDecimal.valueOf(quantite)));
-        }
-        return total.setScale(2, RoundingMode.HALF_UP);
+        return stockRepository.findAll().stream()
+            .map(s -> {
+                BigDecimal cout = (s.getArticle() != null && s.getArticle().getCoutStandard() != null) 
+                                 ? s.getArticle().getCoutStandard() : BigDecimal.ZERO;
+                int qte = (s.getQuantiteTheorique() != null) ? s.getQuantiteTheorique() : 0;
+                return cout.multiply(BigDecimal.valueOf(qte));
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
+            .setScale(2, RoundingMode.HALF_UP);
     }
 
     private MarginKpi computeMarge() {
@@ -143,158 +216,29 @@ public class FinanceController {
             BigDecimal cout = articleRepository.findById(ligne.getArticleId())
                 .map(a -> a.getCoutStandard() != null ? a.getCoutStandard() : BigDecimal.ZERO)
                 .orElse(BigDecimal.ZERO);
-            int quantite = ligne.getQuantite() != null ? ligne.getQuantite() : 0;
-            BigDecimal ligneCa = prixVente.multiply(BigDecimal.valueOf(quantite));
-            BigDecimal ligneMarge = prixVente.subtract(cout).multiply(BigDecimal.valueOf(quantite));
-            ca = ca.add(ligneCa);
-            marge = marge.add(ligneMarge);
+            
+            int qte = ligne.getQuantite() != null ? ligne.getQuantite() : 0;
+            ca = ca.add(prixVente.multiply(BigDecimal.valueOf(qte)));
+            marge = marge.add(prixVente.subtract(cout).multiply(BigDecimal.valueOf(qte)));
         }
 
-        BigDecimal taux = BigDecimal.ZERO;
-        if (ca.compareTo(BigDecimal.ZERO) > 0) {
-            taux = marge.divide(ca, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
-        }
+        BigDecimal taux = (ca.compareTo(BigDecimal.ZERO) > 0) 
+            ? marge.divide(ca, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)) 
+            : BigDecimal.ZERO;
+
         return new MarginKpi(ca, marge, taux.setScale(2, RoundingMode.HALF_UP));
     }
 
-    private static class MarginKpi {
-        private final BigDecimal chiffreAffaires;
-        private final BigDecimal margeTotale;
-        private final BigDecimal tauxMarge;
-
-        private MarginKpi(BigDecimal chiffreAffaires, BigDecimal margeTotale, BigDecimal tauxMarge) {
-            this.chiffreAffaires = chiffreAffaires;
-            this.margeTotale = margeTotale;
-            this.tauxMarge = tauxMarge;
+    private void requireRole(HttpSession session, String... allowedRoles) {
+        String role = (String) session.getAttribute("userRole");
+        if (role == null) throw new RuntimeException("Session expirée ou non autorisée");
+        for (String allowed : allowedRoles) {
+            if (allowed.equals(role)) return;
         }
+        throw new RuntimeException("Accès interdit pour votre profil");
     }
 
-    private static class MismatchItem {
-        private final String numeroFacture;
-        private final String referenceBc;
-        private final String motif;
-        private final BigDecimal montant;
-
-        private MismatchItem(String numeroFacture, String referenceBc, String motif, BigDecimal montant) {
-            this.numeroFacture = numeroFacture;
-            this.referenceBc = referenceBc;
-            this.motif = motif;
-            this.montant = montant;
-        }
-
-        public String getNumeroFacture() {
-            return numeroFacture;
-        }
-
-        public String getReferenceBc() {
-            return referenceBc;
-        }
-
-        public String getMotif() {
-            return motif;
-        }
-
-        public BigDecimal getMontant() {
-            return montant;
-        }
-    }
-
-    @GetMapping("/fournisseurs")
-    public String dashboardFournisseurs(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-
-        List<FactureAchat> factures = factureAchatRepository.findAll();
-
-        BigDecimal totalFactures = BigDecimal.ZERO;
-        int factureBloquees = 0;
-
-        for (FactureAchat f : factures) {
-            BigDecimal montant = f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO;
-            totalFactures = totalFactures.add(montant);
-
-            if (f.getBonCommande() == null) {
-                factureBloquees++;
-            }
-        }
-
-        model.addAttribute("totalFactures", totalFactures);
-        model.addAttribute("facturesBloquees", factureBloquees);
-        model.addAttribute("nombreFactures", factures.size());
-        model.addAttribute("activePage", "finance-fournisseurs");
-
-        return "finance/fournisseurs-dashboard";
-    }
-
-    @GetMapping("/clients")
-    public String dashboardClients(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-
-        List<LigneCommandeClient> lignes = ligneCommandeClientRepository.findAll();
-
-        BigDecimal ca = BigDecimal.ZERO;
-        int totalLignes = 0;
-
-        for (LigneCommandeClient l : lignes) {
-            BigDecimal prix = l.getPrixUnitaireHt() != null ? l.getPrixUnitaireHt() : BigDecimal.ZERO;
-            int qte = l.getQuantite() != null ? l.getQuantite() : 0;
-
-            ca = ca.add(prix.multiply(BigDecimal.valueOf(qte)));
-            totalLignes++;
-        }
-
-        model.addAttribute("caTotal", ca);
-        model.addAttribute("nbLignesVentes", totalLignes);
-        model.addAttribute("activePage", "finance-clients");
-
-        return "finance/clients-dashboard";
-    }
-
-    @GetMapping("/stock")
-    public String dashboardStock(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-
-        BigDecimal comptable = getValeurStockComptable();
-        BigDecimal operationnelle = getValeurStockOperationnelle();
-        BigDecimal ecart = operationnelle.subtract(comptable);
-
-        model.addAttribute("valeurComptable", comptable);
-        model.addAttribute("valeurOperationnelle", operationnelle);
-        model.addAttribute("ecartStock", ecart);
-        model.addAttribute("activePage", "finance-stock");
-
-        return "finance/stock-dashboard";
-    }
-
-    @GetMapping("/tresorerie")
-    public String dashboardTresorerie(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-
-        BigDecimal encaissements = computeMarge().chiffreAffaires;
-        BigDecimal decaissements = factureAchatRepository.findAll()
-            .stream()
-            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal cash = encaissements.subtract(decaissements);
-
-        model.addAttribute("encaissements", encaissements);
-        model.addAttribute("decaissements", decaissements);
-        model.addAttribute("cashEstime", cash);
-        model.addAttribute("activePage", "finance-tresorerie");
-
-        return "finance/tresorerie-dashboard";
-    }
-
-    @GetMapping("/audit")
-    public String audit(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-
-        List<MismatchItem> mismatches = buildMismatchList();
-
-        model.addAttribute("mismatches", mismatches);
-        model.addAttribute("activePage", "finance-audit");
-
-        return "finance/audit-dashboard";
-    }
-
+    // --- DATA HOLDERS (Records Java 17+) ---
+    private record MarginKpi(BigDecimal chiffreAffaires, BigDecimal margeTotale, BigDecimal tauxMarge) {}
+    public record MismatchItem(String numeroFacture, String referenceBc, String motif, BigDecimal montant, boolean payee) {}
 }

@@ -60,4 +60,6 @@ public interface BonReceptionRepository extends JpaRepository<BonReception, UUID
             @Param("conforme") Boolean conforme);
 
     Optional<BonReception> findByBonCommandeId(UUID bonCommandeId);
+
+    boolean existsByBonCommandeId(UUID id);
 }
