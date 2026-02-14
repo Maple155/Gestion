@@ -1,50 +1,44 @@
 <!DOCTYPE html>
-<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
 <body>
-<div th:replace="~{layout/main :: layout(~{::content})}">
     <div th:fragment="content">
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Finance - Trésorerie</h1>
-            <p class="text-slate-500 text-sm">Suivi des flux de trésorerie.</p>
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Flux de Trésorerie</h1>
+            <p class="text-slate-500">Suivi des encaissements réels et décaissements validés.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-emerald-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Encaissements</p>
-                <p class="text-xl font-bold text-emerald-600" th:text="${#numbers.formatDecimal(encaissements, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-2xl text-white shadow-xl">
+                    <p class="text-blue-100 text-sm font-medium uppercase tracking-widest">Trésorerie Nette Estimée</p>
+                    <h2 class="text-5xl font-black mt-2" th:text="${#numbers.formatCurrency(cashEstime)}">0.00 €</h2>
+                    <div class="mt-8 flex space-x-4">
+                        <div class="bg-white/10 px-4 py-2 rounded-lg">
+                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Encaissements (+)</p>
+                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(encaissements)}">0</p>
+                        </div>
+                        <div class="bg-white/10 px-4 py-2 rounded-lg">
+                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Décaissements (-)</p>
+                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(decaissements)}">0</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="bg-white border border-rose-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Décaissements</p>
-                <p class="text-xl font-bold text-rose-600" th:text="${#numbers.formatDecimal(decaissements, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4" th:classappend="${cashEstime >= 0} ? 'border-indigo-200 bg-indigo-50' : 'border-amber-200 bg-amber-50'">
-                <p class="text-xs text-slate-500">Cash Estimé</p>
-                <p class="text-xl font-bold" th:classappend="${cashEstime >= 0} ? 'text-indigo-600' : 'text-amber-600'" th:text="${#numbers.formatDecimal(cashEstime, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
-            </div>
-        </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="text-sm font-bold text-slate-700">Bilan de Trésorerie</h2>
-            </div>
-            <div class="px-6 py-4">
-                <ul class="space-y-3">
-                    <li class="flex justify-between">
-                        <span class="text-slate-600">Encaissements (CA)</span>
-                        <span class="font-semibold text-emerald-600" th:text="${#numbers.formatDecimal(encaissements, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
+            <div class="bg-white p-6 rounded-2xl border border-slate-200">
+                <h3 class="font-bold text-slate-800 mb-4">Note Méthodologique</h3>
+                <ul class="space-y-4 text-sm text-slate-600">
+                    <li class="flex items-start">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
+                        Encaissements basés sur les paiements clients enregistrés.
                     </li>
-                    <li class="flex justify-between">
-                        <span class="text-slate-600">Décaissements (Achats)</span>
-                        <span class="font-semibold text-rose-600" th:text="${#numbers.formatDecimal(decaissements, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
-                    </li>
-                    <li class="flex justify-between pt-3 border-t border-slate-200">
-                        <span class="text-slate-600 font-semibold">Cash Estimé</span>
-                        <span class="font-semibold text-lg" th:classappend="${cashEstime >= 0} ? 'text-emerald-600' : 'text-rose-600'" th:text="${#numbers.formatDecimal(cashEstime, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
+                    <li class="flex items-start">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
+                        Décaissements basés sur les factures d'achat marquées "Payées".
                     </li>
                 </ul>
             </div>
         </div>
     </div>
-</div>
 </body>
 </html>

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.gestion.achat.entity.BonCommande;
+import com.gestion.achat.enums.StatutFinance;
 
 @Repository
 public interface BonCommandeRepository extends JpaRepository<BonCommande, UUID> {
@@ -18,4 +19,6 @@ public interface BonCommandeRepository extends JpaRepository<BonCommande, UUID> 
     List<BonCommande> findPendingValidations();
 
     List<BonCommande> findAllByOrderByDateEmissionDesc();
+
+    List<BonCommande> findByStatutFinance(StatutFinance enAttenteValidation);
 }
