@@ -166,6 +166,9 @@ public class LoginController {
                     return "redirect:/ventes/devis/liste";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
+                case "FINANCE":
+                case "DAF":
+                    return "redirect:/finance/daf";
                 case "MANAGER":
                     return "redirect:home";
                 default:

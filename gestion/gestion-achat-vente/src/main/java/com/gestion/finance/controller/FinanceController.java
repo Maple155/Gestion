@@ -43,7 +43,7 @@ public class FinanceController {
 
     @GetMapping("/daf")
     public String dashboardDaf(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF");
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
 
         List<MismatchItem> mismatches = buildMismatchList();
         model.addAttribute("mismatchCount", mismatches.size());
@@ -198,4 +198,103 @@ public class FinanceController {
             return montant;
         }
     }
+
+    @GetMapping("/fournisseurs")
+    public String dashboardFournisseurs(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        List<FactureAchat> factures = factureAchatRepository.findAll();
+
+        BigDecimal totalFactures = BigDecimal.ZERO;
+        int factureBloquees = 0;
+
+        for (FactureAchat f : factures) {
+            BigDecimal montant = f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO;
+            totalFactures = totalFactures.add(montant);
+
+            if (f.getBonCommande() == null) {
+                factureBloquees++;
+            }
+        }
+
+        model.addAttribute("totalFactures", totalFactures);
+        model.addAttribute("facturesBloquees", factureBloquees);
+        model.addAttribute("nombreFactures", factures.size());
+        model.addAttribute("activePage", "finance-fournisseurs");
+
+        return "finance/fournisseurs-dashboard";
+    }
+
+    @GetMapping("/clients")
+    public String dashboardClients(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        List<LigneCommandeClient> lignes = ligneCommandeClientRepository.findAll();
+
+        BigDecimal ca = BigDecimal.ZERO;
+        int totalLignes = 0;
+
+        for (LigneCommandeClient l : lignes) {
+            BigDecimal prix = l.getPrixUnitaireHt() != null ? l.getPrixUnitaireHt() : BigDecimal.ZERO;
+            int qte = l.getQuantite() != null ? l.getQuantite() : 0;
+
+            ca = ca.add(prix.multiply(BigDecimal.valueOf(qte)));
+            totalLignes++;
+        }
+
+        model.addAttribute("caTotal", ca);
+        model.addAttribute("nbLignesVentes", totalLignes);
+        model.addAttribute("activePage", "finance-clients");
+
+        return "finance/clients-dashboard";
+    }
+
+    @GetMapping("/stock")
+    public String dashboardStock(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        BigDecimal comptable = getValeurStockComptable();
+        BigDecimal operationnelle = getValeurStockOperationnelle();
+        BigDecimal ecart = operationnelle.subtract(comptable);
+
+        model.addAttribute("valeurComptable", comptable);
+        model.addAttribute("valeurOperationnelle", operationnelle);
+        model.addAttribute("ecartStock", ecart);
+        model.addAttribute("activePage", "finance-stock");
+
+        return "finance/stock-dashboard";
+    }
+
+    @GetMapping("/tresorerie")
+    public String dashboardTresorerie(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        BigDecimal encaissements = computeMarge().chiffreAffaires;
+        BigDecimal decaissements = factureAchatRepository.findAll()
+            .stream()
+            .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal cash = encaissements.subtract(decaissements);
+
+        model.addAttribute("encaissements", encaissements);
+        model.addAttribute("decaissements", decaissements);
+        model.addAttribute("cashEstime", cash);
+        model.addAttribute("activePage", "finance-tresorerie");
+
+        return "finance/tresorerie-dashboard";
+    }
+
+    @GetMapping("/audit")
+    public String audit(Model model, HttpSession session) {
+        requireRole(session, "ADMIN", "DAF", "FINANCE");
+
+        List<MismatchItem> mismatches = buildMismatchList();
+
+        model.addAttribute("mismatches", mismatches);
+        model.addAttribute("activePage", "finance-audit");
+
+        return "finance/audit-dashboard";
+    }
+
 }
