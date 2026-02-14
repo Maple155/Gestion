@@ -14,61 +14,74 @@ import java.util.UUID;
 @Repository
 public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
-        Optional<Article> findByCodeArticle(String codeArticle);
+    Optional<Article> findByCodeArticle(String codeArticle);
 
-        Optional<Article> findByCodeBarre(String codeBarre);
+    Optional<Article> findByCodeBarre(String codeBarre);
 
-        List<Article> findByCategorieId(UUID categorieId);
+    List<Article> findByCategorieId(UUID categorieId);
 
-        List<Article> findByActifTrue();
+    List<Article> findByActifTrue();
 
-        @Query("SELECT a FROM Article a WHERE LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :search, '%')) " +
-                        "OR LOWER(a.libelle) LIKE LOWER(CONCAT('%', :search, '%')) " +
-                        "OR LOWER(a.codeBarre) LIKE LOWER(CONCAT('%', :search, '%'))")
-        List<Article> searchByCodeOrLibelleOrCodeBarre(@Param("search") String search);
+    @Query("SELECT a FROM Article a WHERE LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(a.libelle) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(a.codeBarre) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Article> searchByCodeOrLibelleOrCodeBarre(@Param("search") String search);
 
-        @Query("SELECT COUNT(a) FROM Article a WHERE a.actif = true")
-        long countActifs();
+    @Query("SELECT COUNT(a) FROM Article a WHERE a.actif = true")
+    long countActifs();
 
-        @Query("SELECT a FROM Article a WHERE a.gestionParLot = true AND a.actif = true")
-        List<Article> findArticlesGestionParLot();
+    @Query("SELECT a FROM Article a WHERE a.gestionParLot = true AND a.actif = true")
+    List<Article> findArticlesGestionParLot();
 
-        @Query("SELECT a FROM Article a WHERE a.methodeValorisation = :methode")
-        List<Article> findByMethodeValorisation(@Param("methode") String methode);
+    @Query("SELECT a FROM Article a WHERE a.methodeValorisation = :methode")
+    List<Article> findByMethodeValorisation(@Param("methode") String methode);
 
-        @Query("SELECT a FROM Article a WHERE " +
-                        "(:search IS NULL OR LOWER(a.codeArticle) LIKE :search " +
-                        " OR LOWER(a.libelle) LIKE :search " +
-                        " OR LOWER(a.codeBarre) LIKE :search) " +
-                        "AND (:categorieId IS NULL OR a.categorie.id = :categorieId) " +
-                        "AND (:actif IS NULL OR a.actif = :actif) " +
-                        "AND (:gestionParLot IS NULL OR a.gestionParLot = :gestionParLot)")
-        Page<Article> rechercherAvecFiltres(
-                        @Param("search") String search,
-                        @Param("categorieId") UUID categorieId,
-                        @Param("actif") Boolean actif,
-                        @Param("gestionParLot") Boolean gestionParLot,
-                        Pageable pageable);
+    @Query("SELECT a FROM Article a WHERE " +
+            "(:search IS NULL OR LOWER(a.codeArticle) LIKE :search " +
+            " OR LOWER(a.libelle) LIKE :search " +
+            " OR LOWER(a.codeBarre) LIKE :search) " +
+            "AND (:categorieId IS NULL OR a.categorie.id = :categorieId) " +
+            "AND (:actif IS NULL OR a.actif = :actif) " +
+            "AND (:gestionParLot IS NULL OR a.gestionParLot = :gestionParLot)")
+    Page<Article> rechercherAvecFiltres(
+            @Param("search") String search,
+            @Param("categorieId") UUID categorieId,
+            @Param("actif") Boolean actif,
+            @Param("gestionParLot") Boolean gestionParLot,
+            Pageable pageable);
 
-        boolean existsByCodeArticle(String codeArticle);
+    boolean existsByCodeArticle(String codeArticle);
 
-        long countByActifTrue();
+    long countByActifTrue();
 
-        long countByGestionParLotTrue();
+    long countByGestionParLotTrue();
 
-        long countByGestionParSerieTrue();
+    long countByGestionParSerieTrue();
 
-        @Query("SELECT a FROM Article a " +
-                        "LEFT JOIN FETCH a.categorie " +
-                        "WHERE a.gestionParLot = true " +
-                        "AND a.actif = true")
-        List<Article> findArticlesAvecGestionLot();
+    @Query("SELECT a FROM Article a " +
+            "LEFT JOIN FETCH a.categorie " +
+            "WHERE a.gestionParLot = true " +
+            "AND a.actif = true")
+    List<Article> findArticlesAvecGestionLot();
 
-        @Query("SELECT a FROM Article a " +
-                        "WHERE (LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :search, '%')) " +
-                        "OR LOWER(a.libelle) LIKE LOWER(CONCAT('%', :search, '%')) " +
-                        "OR LOWER(a.codeBarre) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-                        "AND a.actif = true " +
-                        "ORDER BY a.libelle")
-        List<Article> searchActifs(@Param("search") String search);
+    @Query("SELECT a FROM Article a " +
+            "WHERE (LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(a.libelle) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(a.codeBarre) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "AND a.actif = true " +
+            "ORDER BY a.libelle")
+    List<Article> searchActifs(@Param("search") String search);
+
+    // CORRECTION 1: Méthode pour recherche avec un seul paramètre
+    @Query("SELECT a FROM Article a WHERE a.actif = true AND " +
+           "(LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(a.libelle) LIKE LOWER(CONCAT('%', :search, '%')))")
+    List<Article> findByCodeArticleContainingOrLibelleContaining(@Param("search") String search);
+    
+    // CORRECTION 2: Méthode pour autocomplete avec limite
+    @Query("SELECT a FROM Article a WHERE a.actif = true AND " +
+           "(LOWER(a.codeArticle) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(a.libelle) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+           "ORDER BY a.codeArticle")
+    List<Article> findTop10ByCodeArticleContainingOrLibelleContainingAndActifTrue(@Param("query") String query);
 }

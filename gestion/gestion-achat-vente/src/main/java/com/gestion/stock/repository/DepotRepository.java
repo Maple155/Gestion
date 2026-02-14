@@ -32,4 +32,8 @@ public interface DepotRepository extends JpaRepository<Depot, UUID> {
     
     // Vérifier si un code existe déjà
     boolean existsByCode(String code);
+
+    List<Depot> findAllByActifTrue();
+    
+    Optional<Depot> findByActifTrueAndId(UUID id);
 }

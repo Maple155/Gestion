@@ -109,8 +109,9 @@ public class LoginController {
                 return "redirect:/ventes/devis/liste";
 
             case "GESTIONNAIRE_STOCK":
+            case "RESPONSABLE_STOCK":
             case "MAGASINIER":
-                return "redirect:/stock/articles";
+                return "redirect:/main/dashboard";
 
             default:
                 return "redirect:/achats/demandes";
