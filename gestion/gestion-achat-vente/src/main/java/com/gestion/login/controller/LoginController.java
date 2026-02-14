@@ -150,9 +150,10 @@ public class LoginController {
         if (role != null) {
             switch (role) {
                 case "ADMIN":
+                    return "redirect:/achats/demandes";
                 case "GESTIONNAIRE_STOCK":
                 case "RESPONSABLE_STOCK":
-                    return "redirect:/achats/demandes";
+                    return "redirect:/main/dashboard";
                 case "COMMERCIAL":
                     return "redirect:/ventes/devis/liste";
 
@@ -163,9 +164,11 @@ public class LoginController {
                     return "redirect:/ventes/devis/liste";
                 case "COMPTABLE_CLIENT":
                     return "redirect:/ventes/devis/liste";
-                    // return "redirect:/main/dashboard";
                 case "COMPTABLE":
                     return "redirect:/comptabilite/dashboard";
+                case "FINANCE":
+                case "DAF":
+                    return "redirect:/finance/daf";
                 case "MANAGER":
                     return "redirect:home";
                 default:

@@ -136,7 +136,7 @@
                   <div>
                     <div
                       class="kpi-value text-success"
-                      th:text="${kpis.tauxPrecision} + '%'"
+                      th:text="${kpis.tauxPrecision}"
                     >
                       98.5%
                     </div>
@@ -507,6 +507,63 @@
               </div>
             </div>
 
+            <div class="row mb-4">
+              <div class="col-12">
+                  <div class="card">
+                      <div class="card-header d-flex justify-content-between align-items-center">
+                          <h5 class="mb-0">
+                              <i class="bi bi-list-check"></i> Stocks par Dépôt
+                          </h5>
+                          <div>
+                              <select id="depotFilter" class="form-select form-select-sm w-auto d-inline-block me-2" onchange="filterStocksByDepot()">
+                                  <option value="">Tous les dépôts</option>
+                                  <option th:each="depot : ${depots}" 
+                                          th:value="${depot.id}"
+                                          th:text="${depot.nom}">
+                                      Dépôt Principal
+                                  </option>
+                              </select>
+                              <button class="btn btn-sm btn-outline-primary" onclick="refreshStocksList()">
+                                  <i class="bi bi-arrow-clockwise"></i>
+                              </button>
+                          </div>
+                      </div>
+                      <div class="card-body">
+                          <div class="table-responsive">
+                              <table class="table table-hover table-sm" id="stocksTable">
+                                  <thead>
+                                      <tr>
+                                          <th>Article</th>
+                                          <th>Code</th>
+                                          <th>Dépôt</th>
+                                          <th>Quantité théorique</th>
+                                          <th>Quantité réservée</th>
+                                          <th>Quantité disponible</th>
+                                          <th>Valeur (CUMP)</th>
+                                          <th>Dernier mouvement</th>
+                                          <th>Statut</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody id="stocksList">
+                                      <!-- Les données seront chargées dynamiquement via AJAX -->
+                                  </tbody>
+                              </table>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center mt-3">
+                              <div class="text-muted">
+                                  <span id="stocksCount">0</span> articles en stock
+                              </div>
+                              <nav>
+                                  <ul class="pagination pagination-sm mb-0" id="stocksPagination">
+                                      <!-- Pagination dynamique -->
+                                  </ul>
+                              </nav>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
             <!-- Top articles par valeur -->
             <div class="col-lg-4">
               <div class="card">
@@ -631,6 +688,170 @@
         // Implémenter l'export PDF/Excel
         alert("Export en cours de développement...");
       }
+
+      // Fonction pour charger la liste des stocks
+function loadStocksList(page = 0, size = 10, depotId = '') {
+  const url = new URL('/main/dashboard/api/stocks/liste', window.location.origin);
+  url.searchParams.append('page', page);
+  url.searchParams.append('size', size);
+  if (depotId) {
+      url.searchParams.append('depotId', depotId);
+  }
+  
+  fetch(url)
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              updateStocksTable(data.stocks);
+              updateStocksPagination(data);
+              document.getElementById('stocksCount').textContent = data.totalItems;
+          } else {
+              console.error('Erreur:', data.message);
+          }
+      })
+      .catch(error => {
+          console.error('Erreur chargement stocks:', error);
+      });
+}
+
+// Fonction pour mettre à jour le tableau des stocks
+function updateStocksTable(stocks) {
+  const tbody = document.getElementById('stocksList');
+  tbody.innerHTML = '';
+  
+  if (stocks.length === 0) {
+      tbody.innerHTML = `
+          <tr>
+              <td colspan="9" class="text-center text-muted">
+                  Aucun stock trouvé
+              </td>
+          </tr>
+      `;
+      return;
+  }
+  
+  stocks.forEach(stock => {
+      const row = document.createElement('tr');
+      
+      // Définir la classe en fonction du statut
+      let rowClass = '';
+      let statutBadge = '';
+      
+      switch(stock.statut) {
+          case 'RUPTURE':
+              rowClass = 'table-danger';
+              statutBadge = '<span class="badge bg-danger">Rupture</span>';
+              break;
+          case 'ALERTE':
+              rowClass = 'table-warning';
+              statutBadge = '<span class="badge bg-warning">Alerte</span>';
+              break;
+          case 'SURSTOCK':
+              rowClass = 'table-info';
+              statutBadge = '<span class="badge bg-info">Surstock</span>';
+              break;
+          default:
+              statutBadge = '<span class="badge bg-success">Normal</span>';
+      }
+      
+      row.className = rowClass;
+      
+      // Formater la date
+      const dateMouvement = stock.dateDernierMouvement 
+          ? new Date(stock.dateDernierMouvement).toLocaleDateString('fr-FR')
+          : 'N/A';
+      
+      // Formater la valeur monétaire
+      const valeurFormattee = new Intl.NumberFormat('fr-FR', {
+          style: 'currency',
+          currency: 'EUR'
+      }).format(stock.valeurStockCump);
+      
+      row.innerHTML = `
+          <td>${stock.articleLibelle}</td>
+          <td>
+              <a href="/main/dashboard/article/${stock.articleCode}" 
+                 class="text-decoration-none">
+                  ${stock.articleCode}
+              </a>
+          </td>
+          <td>${stock.depotNom} (${stock.depotCode})</td>
+          <td>${stock.quantiteTheorique}</td>
+          <td>${stock.quantiteReservee}</td>
+          <td class="fw-bold">${stock.quantiteDisponible}</td>
+          <td>${valeurFormattee}</td>
+          <td>${dateMouvement}</td>
+          <td>${statutBadge}</td>
+      `;
+      
+      tbody.appendChild(row);
+  });
+}
+
+// Fonction pour mettre à jour la pagination
+function updateStocksPagination(data) {
+  const pagination = document.getElementById('stocksPagination');
+  pagination.innerHTML = '';
+  
+  const currentPage = data.currentPage;
+  const totalPages = data.totalPages;
+  
+  // Bouton précédent
+  const prevLi = document.createElement('li');
+  prevLi.className = `page-item ${currentPage === 0 ? 'disabled' : ''}`;
+  prevLi.innerHTML = `
+      <a class="page-link" href="#" onclick="loadStocksList(${currentPage - 1})" aria-label="Précédent">
+          <span aria-hidden="true">&laquo;</span>
+      </a>
+  `;
+  pagination.appendChild(prevLi);
+  
+  // Pages numérotées
+  const startPage = Math.max(0, currentPage - 2);
+  const endPage = Math.min(totalPages - 1, currentPage + 2);
+  
+  for (let i = startPage; i <= endPage; i++) {
+      const pageLi = document.createElement('li');
+      pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+      pageLi.innerHTML = `
+          <a class="page-link" href="#" onclick="loadStocksList(${i})">
+              ${i + 1}
+          </a>
+      `;
+      pagination.appendChild(pageLi);
+  }
+  
+  // Bouton suivant
+  const nextLi = document.createElement('li');
+  nextLi.className = `page-item ${currentPage >= totalPages - 1 ? 'disabled' : ''}`;
+  nextLi.innerHTML = `
+      <a class="page-link" href="#" onclick="loadStocksList(${currentPage + 1})" aria-label="Suivant">
+          <span aria-hidden="true">&raquo;</span>
+      </a>
+  `;
+  pagination.appendChild(nextLi);
+}
+
+// Fonction pour filtrer par dépôt
+function filterStocksByDepot() {
+  const depotSelect = document.getElementById('depotFilter');
+  const depotId = depotSelect.value;
+  loadStocksList(0, 10, depotId);
+}
+
+// Fonction pour rafraîchir la liste
+function refreshStocksList() {
+  const depotSelect = document.getElementById('depotFilter');
+  loadStocksList(0, 10, depotSelect.value);
+}
+
+// Charger la liste des stocks au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+  loadStocksList();
+  
+  // Actualiser toutes les 2 minutes
+  setInterval(loadStocksList, 120000);
+});
 
       // Actualisation auto toutes les 5 minutes
       setInterval(refreshDashboard, 300000);

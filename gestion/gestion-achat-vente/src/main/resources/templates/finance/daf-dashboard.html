@@ -1,0 +1,157 @@
+<div th:replace="~{layout/main :: layout(~{::content})}">
+    <div th:fragment="content">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-slate-800">Finance - DAF</h1>
+            <p class="text-slate-500 text-sm">Vue consolidée des indicateurs finance.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Factures bloquées (3-way mismatch)</p>
+                <p class="text-xl font-bold text-rose-600" th:text="${mismatchCount}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Valeur stock comptable</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${valeurComptable}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Valeur stock opérationnelle</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${valeurOperationnelle}">0</p>
+                <p class="text-xs text-slate-400">Écart: <span th:text="${ecartStock}">0</span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Chiffre d'affaires</p>
+                <p class="text-xl font-bold text-indigo-600" th:text="${caTotal}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Marge totale</p>
+                <p class="text-xl font-bold text-emerald-600" th:text="${margeTotale}">0</p>
+            </div>
+            <div class="bg-white border border-slate-200 rounded-lg p-4">
+                <p class="text-xs text-slate-500">Taux de marge</p>
+                <p class="text-xl font-bold text-slate-800" th:text="${tauxMarge} + '%'">0%</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200">
+                <h2 class="text-sm font-bold text-slate-700">Factures bloquées (détail)</h2>
+            </div>
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Facture</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">BC</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Motif</th>
+                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Montant</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr th:each="m : ${mismatches}" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.numeroFacture}">FAC</td>
+                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.referenceBc}">BC</td>
+                        <td class="px-6 py-4 text-sm text-rose-600" th:text="${m.motif}">Motif</td>
+                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.montant}">0</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(mismatches)}">
+                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic">Aucune facture bloquée.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- Résumé trésorerie -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 mb-6">
+
+    <div class="bg-white border border-slate-200 rounded-lg p-4">
+        <p class="text-xs text-slate-500">Encaissements estimés</p>
+        <p class="text-xl font-bold text-emerald-600" th:text="${caTotal}">0</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-lg p-4">
+        <p class="text-xs text-slate-500">Décaissements estimés</p>
+        <p class="text-xl font-bold text-rose-600" th:text="${valeurComptable}">0</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-lg p-4">
+        <p class="text-xs text-slate-500">Cash estimé</p>
+        <p class="text-xl font-bold"
+           th:classappend="${caTotal.subtract(valeurComptable).signum() >= 0} ? 'text-emerald-600' : 'text-rose-600'"
+           th:text="${caTotal.subtract(valeurComptable)}">
+            0
+        </p>
+    </div>
+
+</div>
+
+
+<!-- Alertes Finance -->
+<div class="bg-white rounded-lg shadow-sm border border-slate-200 mb-6">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h2 class="text-sm font-bold text-slate-700">Alertes Finance</h2>
+    </div>
+
+    <div class="p-6 space-y-3 text-sm">
+
+        <div th:if="${mismatchCount > 0}"
+             class="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded">
+            ⚠ Factures bloquées détectées : <b th:text="${mismatchCount}">0</b>
+        </div>
+
+        <div th:if="${ecartStock.signum() != 0}"
+             class="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded">
+            ⚠ Écart de stock détecté : <b th:text="${ecartStock}">0</b>
+        </div>
+
+        <div th:if="${tauxMarge < 10}"
+             class="bg-indigo-50 border border-indigo-200 text-indigo-700 p-3 rounded">
+            ⚠ Taux de marge faible : <b th:text="${tauxMarge} + '%'">0%</b>
+        </div>
+
+        <div th:if="${mismatchCount == 0 and ecartStock.signum() == 0}"
+             class="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded">
+            ✔ Aucun risque critique détecté
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Navigation Finance -->
+<div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+    <h2 class="text-sm font-bold text-slate-700 mb-4">Modules Finance</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
+
+        <a href="/finance/fournisseurs"
+           class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded text-center font-semibold">
+            Fournisseurs
+        </a>
+
+        <a href="/finance/clients"
+           class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded text-center font-semibold">
+            Clients
+        </a>
+
+        <a href="/finance/stock"
+           class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded text-center font-semibold">
+            Audit Stock
+        </a>
+
+        <a href="/finance/tresorerie"
+           class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded text-center font-semibold">
+            Trésorerie
+        </a>
+
+        <a href="/finance/audit"
+           class="bg-slate-50 hover:bg-slate-100 border border-slate-200 p-3 rounded text-center font-semibold">
+            Journal Audit
+        </a>
+
+    </div>
+</div>
+
+        </div>
+    </div>
+</div>

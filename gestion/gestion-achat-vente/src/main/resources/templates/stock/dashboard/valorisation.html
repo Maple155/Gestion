@@ -12,6 +12,85 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Styles pour les modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Badge statut clôture */
+        .badge-statut {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .badge-ouverte {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .badge-en-cours {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .badge-cloturee {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-validee {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge-rejetee {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-archivee {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+    </style>
 </head>
 <body class="bg-slate-50">
     <div class="flex h-screen">
@@ -29,11 +108,12 @@
                         </div>
                         <div>
                             <h1 class="text-xl font-bold text-slate-800">Dashboard Valorisation</h1>
-                            <p class="text-sm text-slate-500">Analyse détaillée des méthodes FIFO, FEFO et CUMP</p>
+                            <p class="text-sm text-slate-500">Analyse détaillée des méthodes FIFO, FEFO, CUMP, Clôtures et Historique</p>
                         </div>
                     </div>
                 </div>
             </header>
+            
             <!-- Main Content Area -->
             <main class="p-8">
                 <!-- KPI Valorisation -->
@@ -152,6 +232,104 @@
                     </div>
                 </div>
 
+                <!-- Nouvelle Section : Historique des Coûts -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h5 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="bi bi-clock-history mr-2"></i> Historique des Coûts
+                        </h5>
+                        <div class="flex space-x-2">
+                            <select id="historiqueMoisSelect" class="text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="3">3 derniers mois</option>
+                                <option value="6" selected>6 derniers mois</option>
+                                <option value="12">12 derniers mois</option>
+                            </select>
+                            <button onclick="chargerHistoriqueCout()" 
+                                    class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-700">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <div class="flex space-x-4">
+                                <button id="btnChartCout" onclick="changerTypeChart('cout')" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">
+                                    Évolution des Coûts
+                                </button>
+                                <button id="btnChartValeur" onclick="changerTypeChart('valeur')" 
+                                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300">
+                                    Évolution de la Valeur
+                                </button>
+                                <button id="btnChartQuantite" onclick="changerTypeChart('quantite')" 
+                                        class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300">
+                                    Évolution des Quantités
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative" style="height: 300px;">
+                            <canvas id="historiqueCoutChart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nouvelle Section : Clôture Mensuelle -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                        <h5 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="bi bi-calendar-month mr-2"></i> Clôture Mensuelle
+                        </h5>
+                        <button onclick="ouvrirModalCloture()" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center">
+                            <i class="bi bi-lock mr-2"></i> Nouvelle Clôture
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <!-- Statut des clôtures -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                                <div class="text-sm text-emerald-600 mb-1">Clôtures Validées</div>
+                                <div class="text-2xl font-bold text-emerald-700" id="countValidees">0</div>
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                                <div class="text-sm text-amber-600 mb-1">En Cours</div>
+                                <div class="text-2xl font-bold text-amber-700" id="countEnCours">0</div>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <div class="text-sm text-blue-600 mb-1">À Clôturer</div>
+                                <div class="text-2xl font-bold text-blue-700" id="countOuvertes">0</div>
+                            </div>
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                <div class="text-sm text-slate-600 mb-1">Dernière Clôture</div>
+                                <div class="text-lg font-bold text-slate-800" id="derniereCloture">-</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Liste des clôtures récentes -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left">Période</th>
+                                        <th class="px-4 py-3 text-left">Statut</th>
+                                        <th class="px-4 py-3 text-left">Valeur Stock</th>
+                                        <th class="px-4 py-3 text-left">Mouvements</th>
+                                        <th class="px-4 py-3 text-left">Clôturé par</th>
+                                        <th class="px-4 py-3 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableauClotures">
+                                    <tr>
+                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                            Chargement des données...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Comparaison Graphique -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
                     <div class="px-6 py-4 border-b border-slate-100">
@@ -180,16 +358,16 @@
                                               th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
                                             24,30 €
                                         </span>
-                                    </div>
+                                </div>
                                     <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                                         <span class="text-sm font-bold text-blue-700">Différence</span>
-                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0} ? 'text-rose-600' : 'text-emerald-600'"
-                                              class="font-bold text-lg">
-                                            <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'].compareTo(java.math.BigDecimal.ZERO) > 0}">+</span>
-                                            <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
-                                                +1,80 €
-                                            </span>
-                                        </span>
+                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
+                                            class="font-bold text-lg">
+                                          <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0}">+</span>
+                                          <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
+                                              +1,80 €
+                                          </span>
+                                      </span>
                                     </div>
                                 </div>
                             </div>
@@ -234,9 +412,127 @@
         </div>
     </div>
 
+    <!-- Modal Nouvelle Clôture -->
+    <div id="modalCloture" class="modal-overlay">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                        <i class="bi bi-calendar-check mr-2"></i> Nouvelle Clôture Mensuelle
+                    </h3>
+                    <button onclick="fermerModalCloture()" class="text-slate-400 hover:text-slate-600">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-2">Période à clôturer</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Mois</label>
+                                <select id="clotureMois" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="1">Janvier</option>
+                                    <option value="2">Février</option>
+                                    <option value="3">Mars</option>
+                                    <option value="4">Avril</option>
+                                    <option value="5">Mai</option>
+                                    <option value="6">Juin</option>
+                                    <option value="7">Juillet</option>
+                                    <option value="8">Août</option>
+                                    <option value="9">Septembre</option>
+                                    <option value="10">Octobre</option>
+                                    <option value="11">Novembre</option>
+                                    <option value="12">Décembre</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Année</label>
+                                <select id="clotureAnnee" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <!-- Rempli dynamiquement -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center text-blue-700 mb-2">
+                            <i class="bi bi-info-circle mr-2"></i>
+                            <span class="font-bold">Information</span>
+                        </div>
+                        <p class="text-sm text-blue-600">
+                            La clôture mensuelle va :
+                            <ul class="list-disc pl-5 mt-2 text-sm text-blue-600 space-y-1">
+                                <li>Geler les coûts unitaires pour la période</li>
+                                <li>Calculer la valorisation FIFO, FEFO et CUMP</li>
+                                <li>Générer les rapports de clôture</li>
+                                <li>Archiver l'historique des coûts</li>
+                            </ul>
+                        </p>
+                    </div>
+                    
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div class="flex items-center text-amber-700 mb-2">
+                            <i class="bi bi-exclamation-triangle mr-2"></i>
+                            <span class="font-bold">Vérifications recommandées</span>
+                        </div>
+                        <p class="text-sm text-amber-600">
+                            Avant de lancer la clôture, vérifiez que :
+                            <ul class="list-disc pl-5 mt-2 text-sm text-amber-600 space-y-1">
+                                <li>Tous les mouvements de la période sont saisis</li>
+                                <li>Les réceptions fournisseurs sont complètes</li>
+                                <li>Les inventaires sont terminés</li>
+                                <li>Les coûts unitaires sont corrects</li>
+                            </ul>
+                        </p>
+                    </div>
+                    
+                    <div id="modalMessage" class="hidden"></div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button onclick="fermerModalCloture()"
+                                class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors">
+                            Annuler
+                        </button>
+                        <button onclick="executerCloture()" id="btnExecuterCloture"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center">
+                            <i class="bi bi-lock mr-2"></i> Exécuter la Clôture
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Clôture -->
+    <div id="modalDetailsCloture" class="modal-overlay">
+        <div class="modal-content max-w-3xl">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                        <i class="bi bi-file-earmark-text mr-2"></i> Détails de la Clôture
+                    </h3>
+                    <button onclick="fermerModalDetailsCloture()" class="text-slate-400 hover:text-slate-600">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="detailsClotureContent">
+                    <!-- Rempli dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script th:inline="javascript">
         // Initialiser les icônes
         lucide.createIcons();
+        
+        // Variables globales
+        let historiqueChart = null;
+        let comparaisonChart = null;
+        let typeChartActuel = 'cout';
+        let clotureActuelleId = null;
 
         // Graphique de comparaison
         const comparaisonData = {
@@ -258,48 +554,539 @@
             }],
         };
 
-        window.onload = function() {
-            // Graphique comparatif
-            const ctx = document.getElementById("comparaisonChart").getContext("2d");
-            new Chart(ctx, {
-                type: "bar",
-                data: comparaisonData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: "rgba(0,0,0,0.05)"
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    return new Intl.NumberFormat("fr-FR", {
-                                        style: "currency",
-                                        currency: "EUR",
-                                        notation: "compact",
-                                    }).format(value);
-                                }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: "rgba(0,0,0,0.05)"
-                            }
-                        }
+        // Format monétaire
+        function formatMonetaire(valeur) {
+            return new Intl.NumberFormat("fr-FR", {
+                style: "currency",
+                currency: "EUR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(valeur);
+        }
+
+        // Gestion des modals
+        function ouvrirModalCloture() {
+            const modal = document.getElementById('modalCloture');
+            modal.style.display = 'flex';
+            initialiserFormCloture();
+        }
+
+        function fermerModalCloture() {
+            const modal = document.getElementById('modalCloture');
+            modal.style.display = 'none';
+        }
+
+        function ouvrirModalDetailsCloture(clotureId) {
+            const modal = document.getElementById('modalDetailsCloture');
+            modal.style.display = 'flex';
+            chargerDetailsCloture(clotureId);
+        }
+
+        function fermerModalDetailsCloture() {
+            const modal = document.getElementById('modalDetailsCloture');
+            modal.style.display = 'none';
+        }
+
+        // Initialiser le formulaire de clôture
+        function initialiserFormCloture() {
+            const anneeSelect = document.getElementById('clotureAnnee');
+            anneeSelect.innerHTML = '';
+            
+            const anneeCourante = new Date().getFullYear();
+            for (let i = anneeCourante; i >= anneeCourante - 5; i--) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                anneeSelect.appendChild(option);
+            }
+            
+            const moisCourant = new Date().getMonth() + 1;
+            document.getElementById('clotureMois').value = moisCourant;
+            document.getElementById('clotureAnnee').value = anneeCourante;
+            
+            // Charger la prochaine période à clôturer
+            fetch('/main/dashboard/api/clotures/prochaine-periode')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.mois) {
+                        document.getElementById('clotureMois').value = data.mois;
+                        document.getElementById('clotureAnnee').value = data.annee;
+                    }
+                })
+                .catch(err => console.error('Erreur chargement prochaine période:', err));
+        }
+
+        // Exécuter une clôture
+        function executerCloture() {
+            const mois = document.getElementById('clotureMois').value;
+            const annee = document.getElementById('clotureAnnee').value;
+            const btnExecuter = document.getElementById('btnExecuterCloture');
+            const modalMessage = document.getElementById('modalMessage');
+            
+            btnExecuter.disabled = true;
+            btnExecuter.innerHTML = '<i class="bi bi-hourglass-split mr-2"></i> Exécution en cours...';
+            
+            modalMessage.className = 'bg-blue-50 border border-blue-200 rounded-lg p-4';
+            modalMessage.innerHTML = `
+                <div class="flex items-center text-blue-700 mb-2">
+                    <i class="bi bi-info-circle mr-2"></i>
+                    <span class="font-bold">Exécution en cours</span>
+                </div>
+                <p class="text-sm text-blue-600">
+                    La clôture du mois ${mois}/${annee} est en cours d'exécution.<br>
+                    Cette opération peut prendre plusieurs minutes...
+                </p>
+            `;
+            modalMessage.classList.remove('hidden');
+            
+            fetch(`/main/dashboard/api/clotures/executer?mois=${mois}&annee=${annee}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    modalMessage.className = 'bg-emerald-50 border border-emerald-200 rounded-lg p-4';
+                    modalMessage.innerHTML = `
+                        <div class="flex items-center text-emerald-700 mb-2">
+                            <i class="bi bi-check-circle mr-2"></i>
+                            <span class="font-bold">Clôture réussie</span>
+                        </div>
+                        <p class="text-sm text-emerald-600">
+                            ${data.message}<br>
+                            <small>Référence: ${data.cloture.reference || 'N/A'}</small>
+                        </p>
+                    `;
+                    
+                    // Fermer le modal après 3 secondes et recharger les données
+                    setTimeout(() => {
+                        fermerModalCloture();
+                        chargerStatistiquesClotures();
+                        chargerListeClotures();
+                    }, 3000);
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(err => {
+                modalMessage.className = 'bg-rose-50 border border-rose-200 rounded-lg p-4';
+                modalMessage.innerHTML = `
+                    <div class="flex items-center text-rose-700 mb-2">
+                        <i class="bi bi-x-circle mr-2"></i>
+                        <span class="font-bold">Erreur lors de la clôture</span>
+                    </div>
+                    <p class="text-sm text-rose-600">${err.message}</p>
+                `;
+                btnExecuter.disabled = false;
+                btnExecuter.innerHTML = '<i class="bi bi-lock mr-2"></i> Exécuter la Clôture';
+            });
+        }
+
+        // Charger les statistiques des clôtures
+        function chargerStatistiquesClotures() {
+            fetch('/main/dashboard/api/clotures/statistiques')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.parStatut) {
+                        document.getElementById('countValidees').textContent = 
+                            data.parStatut.VALIDEE || 0;
+                        document.getElementById('countEnCours').textContent = 
+                            (data.parStatut.EN_COURS || 0) + (data.parStatut.CLOTUREE || 0);
+                        document.getElementById('countOuvertes').textContent = 
+                            (data.parStatut.OUVERTE || 0) + (data.parStatut.REJETEE || 0);
+                    }
+                    
+                    if (data.derniereCloture) {
+                        const cloture = data.derniereCloture;
+                        document.getElementById('derniereCloture').textContent = 
+                            `${cloture.mois}/${cloture.annee} - ${formatMonetaire(cloture.valeurStockTotal || 0)}`;
+                    }
+                })
+                .catch(err => console.error('Erreur chargement statistiques:', err));
+        }
+
+        // Charger la liste des clôtures
+        function chargerListeClotures() {
+            fetch('/main/dashboard/api/clotures/liste?limit=10')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('tableauClotures');
+                    tbody.innerHTML = '';
+                    
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                    Aucune clôture trouvée
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    data.forEach(cloture => {
+                        const badgeClass = getBadgeClass(cloture.statut);
+                        const badgeText = getBadgeText(cloture.statut);
+                        
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100';
+                        row.innerHTML = `
+                            <td class="px-4 py-3">
+                                <div class="font-bold text-slate-800">${cloture.mois}/${cloture.annee}</div>
+                                <div class="text-xs text-slate-500">
+                                    ${formatDate(cloture.dateDebutPeriode)} - ${formatDate(cloture.dateFinPeriode)}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="badge-statut ${badgeClass}">${badgeText}</span>
+                            </td>
+                            <td class="px-4 py-3 font-bold">
+                                ${formatMonetaire(cloture.valeurStockTotal || 0)}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="text-sm">${cloture.nombreMouvements || 0}</div>
+                                <div class="text-xs text-slate-500">
+                                    Entrées: ${formatMonetaire(cloture.valeurMouvementsEntree || 0)}<br>
+                                    Sorties: ${formatMonetaire(cloture.valeurMouvementsSortie || 0)}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="text-sm">${cloture.clotureParNom || 'N/A'}</div>
+                                <div class="text-xs text-slate-500">
+                                    ${formatDateTime(cloture.dateCloture)}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <button onclick="ouvrirModalDetailsCloture('${cloture.id}')"
+                                        class="text-blue-600 hover:text-blue-800 text-sm font-bold">
+                                    <i class="bi bi-eye mr-1"></i> Détails
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    console.error('Erreur chargement liste clôtures:', err);
+                    const tbody = document.getElementById('tableauClotures');
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-rose-600">
+                                Erreur de chargement des données
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        // Charger les détails d'une clôture
+        function chargerDetailsCloture(clotureId) {
+            fetch(`/main/dashboard/api/clotures/${clotureId}/details`)
+                .then(response => response.json())
+                .then(data => {
+                    const content = document.getElementById('detailsClotureContent');
+                    const badgeClass = getBadgeClass(data.statut);
+                    const badgeText = getBadgeText(data.statut);
+                    
+                    content.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <div class="text-sm text-slate-500 mb-1">Période</div>
+                                <div class="text-lg font-bold text-slate-800">
+                                    ${data.mois}/${data.annee}
+                                </div>
+                                <div class="text-sm text-slate-500 mt-1">
+                                    ${formatDate(data.dateDebutPeriode)} - ${formatDate(data.dateFinPeriode)}
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-50 p-4 rounded-lg">
+                                <div class="text-sm text-slate-500 mb-1">Statut</div>
+                                <div class="text-lg">
+                                    <span class="badge-statut ${badgeClass}">${badgeText}</span>
+                                </div>
+                                <div class="text-sm text-slate-500 mt-1">
+                                    Clôturé le: ${formatDateTime(data.dateCloture)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div class="bg-white border border-slate-200 p-4 rounded-lg">
+                                <h6 class="font-bold text-slate-700 mb-3">Valeurs Stock</h6>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Valeur totale:</span>
+                                        <span class="font-bold text-slate-800">
+                                            ${formatMonetaire(data.valeurStockTotal || 0)}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Articles valorisés:</span>
+                                        <span class="font-bold text-slate-800">
+                                            ${data.nombreArticlesValorises || 0}/${data.nombreArticles || 0}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Taux couverture:</span>
+                                        <span class="font-bold ${data.tauxCouverture > 95 ? 'text-emerald-600' : 'text-amber-600'}">
+                                            ${data.tauxCouverture || 0}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white border border-slate-200 p-4 rounded-lg">
+                                <h6 class="font-bold text-slate-700 mb-3">Mouvements Période</h6>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Nombre mouvements:</span>
+                                        <span class="font-bold text-slate-800">
+                                            ${data.nombreMouvements || 0}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Valeur entrées:</span>
+                                        <span class="font-bold text-emerald-600">
+                                            ${formatMonetaire(data.valeurMouvementsEntree || 0)}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-sm text-slate-600">Valeur sorties:</span>
+                                        <span class="font-bold text-rose-600">
+                                            ${formatMonetaire(data.valeurMouvementsSortie || 0)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${data.commentaires ? `
+                        <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                            <h6 class="font-bold text-blue-700 mb-2">Commentaires</h6>
+                            <p class="text-sm text-blue-600">${data.commentaires}</p>
+                        </div>
+                        ` : ''}
+                        
+                        ${data.rapportGeneres ? `
+                        <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-lg">
+                            <h6 class="font-bold text-emerald-700 mb-2">Rapports générés</h6>
+                            <p class="text-sm text-emerald-600 mb-3">
+                                Les rapports suivants ont été générés:
+                            </p>
+                            <div class="space-y-2">
+                                ${data.rapportGeneres.split(';').map(rapport => `
+                                    <div class="flex items-center">
+                                        <i class="bi bi-file-pdf text-rose-600 mr-2"></i>
+                                        <span class="text-sm text-slate-700">${rapport}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    `;
+                })
+                .catch(err => {
+                    const content = document.getElementById('detailsClotureContent');
+                    content.innerHTML = `
+                        <div class="bg-rose-50 border border-rose-200 p-4 rounded-lg">
+                            <div class="flex items-center text-rose-700 mb-2">
+                                <i class="bi bi-x-circle mr-2"></i>
+                                <span class="font-bold">Erreur</span>
+                            </div>
+                            <p class="text-sm text-rose-600">Impossible de charger les détails de la clôture</p>
+                        </div>
+                    `;
+                });
+        }
+
+        // Charger l'historique des coûts
+        function chargerHistoriqueCout() {
+            const moisSelect = document.getElementById('historiqueMoisSelect');
+            const nbMois = moisSelect.value;
+            
+            fetch(`/main/dashboard/api/historique/cout?mois=${nbMois}`)
+                .then(response => response.json())
+                .then(data => {
+                    mettreAJourHistoriqueChart(data);
+                })
+                .catch(err => console.error('Erreur chargement historique:', err));
+        }
+
+        // Changer le type de graphique historique
+        function changerTypeChart(type) {
+            typeChartActuel = type;
+            
+            // Mettre à jour les boutons
+            document.getElementById('btnChartCout').className = 
+                type === 'cout' ? 'px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold' :
+                'px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300';
+            
+            document.getElementById('btnChartValeur').className = 
+                type === 'valeur' ? 'px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold' :
+                'px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300';
+            
+            document.getElementById('btnChartQuantite').className = 
+                type === 'quantite' ? 'px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold' :
+                'px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-300';
+            
+            // Recharger les données
+            chargerHistoriqueCout();
+        }
+
+// Mettre à jour le graphique historique
+function mettreAJourHistoriqueChart(data) {
+    const canvas = document.getElementById('historiqueCoutChart');
+    const ctx = canvas.getContext('2d');
+    
+    if (historiqueChart) {
+        historiqueChart.destroy();
+    }
+    
+    let labels = [];
+    let datasets = [];
+    
+    // Convertir les noms de propriétés pour correspondre au backend
+    if (typeChartActuel === 'cout') {
+        labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
+        datasets = [{
+            label: 'Coût Unitaire Moyen (€)',
+            data: data.map(item => item.coutMoyen || 0), // Déjà correct
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.4
+        }];
+    } else if (typeChartActuel === 'valeur') {
+        labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
+        datasets = [{
+            label: 'Valeur Stock Totale (€)',
+            data: data.map(item => item.valeurTotale || 0), // Correction ici
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4
+        }];
+    } else {
+        labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
+        datasets = [{
+            label: 'Quantité Stock',
+            data: data.map(item => item.quantiteTotale || 0), // Correction ici
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            fill: true,
+            tension: 0.4
+        }];
+    }
+    
+    historiqueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
                     },
-                    plugins: {
-                        legend: {
-                            display: false
+                    ticks: {
+                        callback: function(value) {
+                            if (typeChartActuel === 'cout' || typeChartActuel === 'valeur') {
+                                return new Intl.NumberFormat("fr-FR", {
+                                    style: "currency",
+                                    currency: "EUR",
+                                    notation: "compact",
+                                }).format(value);
+                            }
+                            return value.toLocaleString('fr-FR');
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (typeChartActuel === 'cout' || typeChartActuel === 'valeur') {
+                                label += formatMonetaire(context.parsed.y);
+                            } else {
+                                label += context.parsed.y.toLocaleString('fr-FR');
+                            }
+                            return label;
                         }
                     }
                 }
+            }
+        }
+    });
+}
+
+        // Fonctions utilitaires
+        function getBadgeClass(statut) {
+            switch(statut) {
+                case 'OUVERTE': return 'badge-ouverte';
+                case 'EN_COURS': return 'badge-en-cours';
+                case 'CLOTUREE': return 'badge-cloturee';
+                case 'VALIDEE': return 'badge-validee';
+                case 'REJETEE': return 'badge-rejetee';
+                case 'ARCHIVEE': return 'badge-archivee';
+                default: return 'badge-archivee';
+            }
+        }
+
+        function getBadgeText(statut) {
+            switch(statut) {
+                case 'OUVERTE': return 'Ouverte';
+                case 'EN_COURS': return 'En Cours';
+                case 'CLOTUREE': return 'Clôturée';
+                case 'VALIDEE': return 'Validée';
+                case 'REJETEE': return 'Rejetée';
+                case 'ARCHIVEE': return 'Archivée';
+                default: return statut;
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return 'N/A';
+            const date = new Date(dateTimeStr);
+            return date.toLocaleDateString('fr-FR') + ' ' + date.toLocaleTimeString('fr-FR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
             });
+        }
 
-            chargerTableauDetail();
-        };
+        function formatMoisAnnee(mois, annee) {
+            const moisNoms = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            return `${moisNoms[mois - 1]} ${annee}`;
+        }
 
+        // Charger le tableau de valorisation détaillé (votre fonction existante)
         function chargerTableauDetail() {
             fetch("/main/dashboard/api/valorisation/detail")
                 .then((response) => {
@@ -359,47 +1146,109 @@
                                 <div class="text-xs text-slate-500">${item.libelle || ""}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                                    item.methode === "FIFO" ? "bg-emerald-100 text-emerald-700" :
-                                    item.methode === "FEFO" ? "bg-amber-100 text-amber-700" :
-                                    "bg-cyan-100 text-cyan-700"
-                                }">
-                                    ${item.methode || "CUMP"}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 font-bold">${item.quantite || 0}</td>
-                            <td class="px-6 py-4 font-bold ${valorisationFifo > 0 ? 'text-emerald-600' : 'text-slate-400'}">
-                                ${formatMonetaire(valorisationFifo)}
-                            </td>
-                            <td class="px-6 py-4 font-bold ${valorisationFefo > 0 ? 'text-amber-600' : 'text-slate-400'}">
-                                ${formatMonetaire(valorisationFefo)}
-                            </td>
-                            <td class="px-6 py-4 font-bold ${valorisationCump > 0 ? 'text-cyan-600' : 'text-slate-400'}">
-                                ${formatMonetaire(valorisationCump)}
-                            </td>
-                            <td class="px-6 py-4 font-bold ${diffClass}">
-                                ${diffText}
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                })
-                .catch((err) => {
-                    console.error("Erreur chargement détail valorisation", err);
-                    const tbody = document.getElementById("valorisationTableBody");
-                    const loadingRow = document.getElementById("loadingRow");
-                    if (loadingRow) loadingRow.remove();
-                    
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="px-6 py-8 text-center text-rose-600">
-                                Erreur de chargement des données<br>
-                                <small class="text-slate-500">Vérifiez la console pour plus de détails</small>
-                            </td>
-                        </tr>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${                                    item.methode === "FIFO" ? "bg-emerald-100 text-emerald-700" :
+                                item.methode === "FEFO" ? "bg-amber-100 text-amber-700" :
+                                "bg-cyan-100 text-cyan-700"
+                            }">
+                                ${item.methode || "CUMP"}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-bold">${item.quantite || 0}</td>
+                        <td class="px-6 py-4 font-bold ${valorisationFifo > 0 ? 'text-emerald-600' : 'text-slate-400'}">
+                            ${formatMonetaire(valorisationFifo)}
+                        </td>
+                        <td class="px-6 py-4 font-bold ${valorisationFefo > 0 ? 'text-amber-600' : 'text-slate-400'}">
+                            ${formatMonetaire(valorisationFefo)}
+                        </td>
+                        <td class="px-6 py-4 font-bold ${valorisationCump > 0 ? 'text-cyan-600' : 'text-slate-400'}">
+                            ${formatMonetaire(valorisationCump)}
+                        </td>
+                        <td class="px-6 py-4 font-bold ${diffClass}">
+                            ${diffText}
+                        </td>
                     `;
+                    tbody.appendChild(row);
                 });
+            })
+            .catch((err) => {
+                console.error("Erreur chargement détail valorisation", err);
+                const tbody = document.getElementById("valorisationTableBody");
+                const loadingRow = document.getElementById("loadingRow");
+                if (loadingRow) loadingRow.remove();
+                
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-rose-600">
+                            Erreur de chargement des données<br>
+                            <small class="text-slate-500">Vérifiez la console pour plus de détails</small>
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+
+    // Initialisation au chargement de la page
+    window.onload = function() {
+        // Graphique comparatif
+        const ctx = document.getElementById("comparaisonChart").getContext("2d");
+        comparaisonChart = new Chart(ctx, {
+            type: "bar",
+            data: comparaisonData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: "rgba(0,0,0,0.05)"
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return new Intl.NumberFormat("fr-FR", {
+                                    style: "currency",
+                                    currency: "EUR",
+                                    notation: "compact",
+                                }).format(value);
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: "rgba(0,0,0,0.05)"
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Charger toutes les données
+        chargerTableauDetail();
+        chargerStatistiquesClotures();
+        chargerListeClotures();
+        chargerHistoriqueCout();
+        
+        // Remplir les options d'années dans le modal
+        initialiserFormCloture();
+    };
+
+    // Fermer les modals en cliquant à l'extérieur
+    window.onclick = function(event) {
+        const modalCloture = document.getElementById('modalCloture');
+        const modalDetails = document.getElementById('modalDetailsCloture');
+        
+        if (event.target === modalCloture) {
+            fermerModalCloture();
         }
-    </script>
+        if (event.target === modalDetails) {
+            fermerModalDetailsCloture();
+        }
+    };
+</script>
 </body>
 </html>

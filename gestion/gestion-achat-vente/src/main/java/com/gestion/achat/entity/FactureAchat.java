@@ -5,8 +5,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +30,6 @@ public class FactureAchat {
 
     private LocalDate dateFacture;
 
-    @CreationTimestamp
+    @Transient
     private LocalDateTime dateEnregistrement;
 }

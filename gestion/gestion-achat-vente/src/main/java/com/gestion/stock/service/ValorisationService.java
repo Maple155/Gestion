@@ -22,6 +22,9 @@ public class ValorisationService {
     private final StockMovementRepository mouvementRepository;
     private final LotRepository lotRepository;
     private final ArticleRepository articleRepository;
+    private final HistoriqueCoutRepository historiqueRepository;
+    private final ClotureMensuelleRepository clotureRepository;
+    private final DepotRepository depotRepository; 
 
     /**
      * Calcul du CUMP (Coût Unitaire Moyen Pondéré) complet
@@ -101,7 +104,7 @@ public class ValorisationService {
     /**
      * Valorisation FIFO (First In, First Out)
      */
-    private BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
+    public BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
         log.info("Calcul valorisation FIFO pour article: {}", articleId);
 
         // Récupérer les lots disponibles triés par date réception (FIFO)
@@ -147,7 +150,7 @@ public class ValorisationService {
     /**
      * Valorisation FEFO (First Expired, First Out) pour produits périssables
      */
-    private BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
+    public BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
         log.info("Calcul valorisation FEFO pour article: {}", articleId);
 
         // Récupérer les lots triés par date de péremption (FEFO)
@@ -239,15 +242,96 @@ public class ValorisationService {
         log.info("Clôture mensuelle terminée: {} stocks clôturés", stocks.size());
     }
 
-    /**
-     * Sauvegarder dans l'historique des coûts
-     */
+    @Transactional
     private void sauvegarderHistoriqueCout(UUID articleId, UUID depotId, LocalDate dateEffet,
             BigDecimal coutUnitaire, Integer quantite,
             BigDecimal valeurStock, String methode, UUID utilisateurId) {
-        // À implémenter avec HistoriqueCoutRepository
-        log.info("Historique sauvegardé: Article {}, Date: {}, Valeur: {}",
-                articleId, dateEffet, valeurStock);
+
+        try {
+            Article article = articleRepository.findById(articleId)
+                    .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+
+            Depot depot = depotRepository.findById(depotId)
+                    .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
+
+            // Vérifier si un historique existe déjà pour cette date
+            Optional<HistoriqueCout> existing = historiqueRepository
+                    .findDernierByArticleAndDepot(articleId, depotId);
+
+            if (existing.isPresent() && existing.get().getDateEffet().equals(dateEffet)) {
+                log.debug("Historique déjà existant pour article {} à la date {}",
+                        article.getCodeArticle(), dateEffet);
+                return;
+            }
+
+            HistoriqueCout historique = HistoriqueCout.builder()
+                    .article(article)
+                    .depot(depot)
+                    .dateEffet(dateEffet)
+                    .coutUnitaireMoyen(coutUnitaire)
+                    .quantiteStock(quantite)
+                    .valeurStock(valeurStock)
+                    .methodeValorisation(methode)
+                    .createdBy(utilisateurId)
+                    .build();
+
+            historiqueRepository.save(historique);
+
+            log.debug("Historique sauvegardé: Article {}, Date: {}, Valeur: {}",
+                    article.getCodeArticle(), dateEffet, valeurStock);
+
+        } catch (Exception e) {
+            log.error("Erreur lors de la sauvegarde de l'historique: {}", e.getMessage(), e);
+            throw new RuntimeException("Erreur historique: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Nouvelle méthode : Clôturer le mois avec historique
+     */
+    @Transactional
+    public Map<String, Object> cloturerMoisComplet(Integer annee, Integer mois, UUID utilisateurId, ClotureService cls) {
+        log.info("Clôture mensuelle complète pour {}/{} par {}", mois, annee, utilisateurId);
+
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            // 1. Initialiser ou récupérer la clôture
+            ClotureMensuelle cloture = cls.initialiserCloture(annee, mois, utilisateurId);
+
+            // 2. Exécuter la clôture
+            cloture = cls.executerCloture(cloture.getId(), utilisateurId);
+
+            result.put("success", true);
+            result.put("cloture", cloture);
+            result.put("message", "Clôture exécutée avec succès");
+
+        } catch (Exception e) {
+            log.error("Erreur lors de la clôture: {}", e.getMessage(), e);
+            result.put("success", false);
+            result.put("message", "Erreur: " + e.getMessage());
+        }
+
+        return result;
+    }
+
+    /**
+     * Obtenir l'évolution des coûts pour un article
+     */
+    public List<Map<String, Object>> getEvolutionCoutArticle(UUID articleId, UUID depotId, int nbMois, ClotureService cls) {
+        List<HistoriqueCout> historiques = cls.getHistoriqueArticle(articleId, depotId, nbMois);
+
+        return historiques.stream()
+                .map(h -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("date", h.getDateEffet());
+                    map.put("coutUnitaire", h.getCoutUnitaireMoyen());
+                    map.put("quantite", h.getQuantiteStock());
+                    map.put("valeur", h.getValeurStock());
+                    map.put("methode", h.getMethodeValorisation());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -379,7 +463,9 @@ public class ValorisationService {
         BigDecimal valeurTotale = valeurFifoTotal.add(valeurFefoTotal).add(valeurCumpTotal);
 
         synthese.put("valeurFifo", valeurFifoTotal);
+        synthese.put("coutSortiesFifo", getCoutMoyenSortiesFIFO());
         synthese.put("valeurFefo", valeurFefoTotal);
+        synthese.put("coutSortiesFefo", getCoutMoyenSortiesFEFO());
         synthese.put("valeurCump", valeurCumpTotal);
         synthese.put("valeurTotale", valeurTotale);
         synthese.put("articlesFifo", articlesFifo);
@@ -404,6 +490,127 @@ public class ValorisationService {
         }
 
         return synthese;
+    }
+
+    public BigDecimal getCoutMoyenSortiesFIFO() {
+        log.info("Calcul coût moyen sorties FIFO");
+        
+        LocalDate dateDebut = LocalDate.now().minusMonths(3);
+        LocalDateTime dateDebutTime = dateDebut.atStartOfDay();
+        LocalDateTime dateFinTime = LocalDate.now().atTime(23, 59, 59);
+    
+        // Récupérer tous les articles FIFO
+        List<Article> articlesFifo = articleRepository.findByMethodeValorisation("FIFO");
+        
+        if (articlesFifo.isEmpty()) {
+            log.warn("Aucun article FIFO trouvé");
+            return BigDecimal.ZERO;
+        }
+        
+        List<UUID> articleIds = articlesFifo.stream()
+            .map(Article::getId)
+            .collect(Collectors.toList());
+        
+        // Récupérer tous les mouvements de sortie pour ces articles
+        List<StockMovement> allMovements = mouvementRepository.findAll();
+        
+        List<StockMovement> sortiesFifo = allMovements.stream()
+            .filter(m -> articleIds.contains(m.getArticle().getId()))
+            .filter(m -> m.getType().getSens() == MovementType.SensMouvement.SORTIE)
+            .filter(m -> m.getStatut() == StockMovement.MovementStatus.VALIDE)
+            .filter(m -> m.getDateMouvement().isAfter(dateDebutTime) && 
+                         m.getDateMouvement().isBefore(dateFinTime))
+            .collect(Collectors.toList());
+        
+        if (sortiesFifo.isEmpty()) {
+            log.warn("Aucune sortie FIFO trouvée pour les 3 derniers mois");
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal totalValeur = BigDecimal.ZERO;
+        BigDecimal totalQuantite = BigDecimal.ZERO;
+        
+        for (StockMovement mvt : sortiesFifo) {
+            if (mvt.getQuantite() > 0 && mvt.getCoutUnitaire() != null) {
+                totalValeur = totalValeur.add(
+                    mvt.getCoutUnitaire().multiply(BigDecimal.valueOf(mvt.getQuantite()))
+                );
+                totalQuantite = totalQuantite.add(BigDecimal.valueOf(mvt.getQuantite()));
+            }
+        }
+        
+        if (totalQuantite.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        
+        return totalValeur.divide(totalQuantite, 4, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Calculer le coût moyen des sorties FEFO
+     */
+    public BigDecimal getCoutMoyenSortiesFEFO() {
+        log.info("Calcul coût moyen sorties FEFO");
+        
+        LocalDate dateDebut = LocalDate.now().minusMonths(3);
+        LocalDateTime dateDebutTime = dateDebut.atStartOfDay();
+        LocalDateTime dateFinTime = LocalDate.now().atTime(23, 59, 59);
+    
+        // Récupérer tous les articles FEFO
+        List<Article> articlesFefo = articleRepository.findByMethodeValorisation("FEFO");
+        
+        if (articlesFefo.isEmpty()) {
+            log.warn("Aucun article FEFO trouvé");
+            return BigDecimal.ZERO;
+        }
+        
+        List<UUID> articleIds = articlesFefo.stream()
+            .map(Article::getId)
+            .collect(Collectors.toList());
+        
+        // Récupérer tous les mouvements de sortie pour ces articles
+        List<StockMovement> allMovements = mouvementRepository.findAll();
+        
+        List<StockMovement> sortiesFefo = allMovements.stream()
+            .filter(m -> articleIds.contains(m.getArticle().getId()))
+            .filter(m -> m.getType().getSens() == MovementType.SensMouvement.SORTIE)
+            .filter(m -> m.getStatut() == StockMovement.MovementStatus.VALIDE)
+            .filter(m -> m.getDateMouvement().isAfter(dateDebutTime) && 
+                         m.getDateMouvement().isBefore(dateFinTime))
+            .collect(Collectors.toList());
+        
+        if (sortiesFefo.isEmpty()) {
+            log.warn("Aucune sortie FEFO trouvée pour les 3 derniers mois");
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal totalValeur = BigDecimal.ZERO;
+        BigDecimal totalQuantite = BigDecimal.ZERO;
+        
+        for (StockMovement mvt : sortiesFefo) {
+            if (mvt.getQuantite() > 0 && mvt.getCoutUnitaire() != null) {
+                totalValeur = totalValeur.add(
+                    mvt.getCoutUnitaire().multiply(BigDecimal.valueOf(mvt.getQuantite()))
+                );
+                totalQuantite = totalQuantite.add(BigDecimal.valueOf(mvt.getQuantite()));
+            }
+        }
+        
+        if (totalQuantite.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        
+        return totalValeur.divide(totalQuantite, 4, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Calculer la différence de coût entre FIFO et FEFO
+     */
+    public BigDecimal getDifferenceCout() {
+        BigDecimal coutFifo = getCoutMoyenSortiesFIFO();
+        BigDecimal coutFefo = getCoutMoyenSortiesFEFO();
+        
+        return coutFefo.subtract(coutFifo);
     }
 
     public Map<String, Object> getDetailValorisationParMethode(String methode) {
@@ -642,54 +849,91 @@ public class ValorisationService {
 
     public List<Map<String, Object>> getValorisationDetailForDashboard() {
         List<Map<String, Object>> details = new ArrayList<>();
-
+    
         // Récupérer tous les articles
         List<Article> articles = articleRepository.findAll();
-
+    
         for (Article article : articles) {
             Map<String, Object> detail = new HashMap<>();
-
+    
             // Récupérer tous les stocks pour cet article
             List<Stock> stocks = stockRepository.findByArticleId(article.getId());
-
+    
             if (!stocks.isEmpty()) {
-                // Calculer les valorisations
+                // Calculer les valorisations pour TOUTES les méthodes
                 BigDecimal valorisationFifo = BigDecimal.ZERO;
                 BigDecimal valorisationFefo = BigDecimal.ZERO;
                 BigDecimal valorisationCump = BigDecimal.ZERO;
                 Integer quantiteTotale = 0;
-
+    
                 for (Stock stock : stocks) {
-                    // Pour chaque dépôt, calculer la valorisation
-                    switch (article.getMethodeValorisation()) {
-                        case "FIFO":
-                            valorisationFifo = valorisationFifo.add(stock.getValeurStockCump());
-                            break;
-                        case "FEFO":
-                            valorisationFefo = valorisationFefo.add(stock.getValeurStockCump());
-                            break;
-                        case "CUMP":
-                            valorisationCump = valorisationCump.add(stock.getValeurStockCump());
-                            break;
-                    }
+                    // Calculer TOUJOURS les 3 valorisations pour pouvoir comparer
+                    BigDecimal fifoStock = calculerValorisationFIFO(article.getId(), stock.getDepot().getId());
+                    BigDecimal fefoStock = calculerValorisationFEFO(article.getId(), stock.getDepot().getId());
+                    BigDecimal cumpStock = calculerValorisationCUMP(article.getId(), stock.getDepot().getId());
+                    
+                    valorisationFifo = valorisationFifo.add(fifoStock);
+                    valorisationFefo = valorisationFefo.add(fefoStock);
+                    valorisationCump = valorisationCump.add(cumpStock);
+                    
                     quantiteTotale += stock.getQuantiteTheorique();
                 }
-
-                // S'assurer que toutes les méthodes ont une valeur (même si 0)
+    
+                // Calculer la différence en pourcentage basée sur la méthode de l'article
+                String difference = "N/A";
+                String methode = article.getMethodeValorisation();
+                
+                if ("FIFO".equals(methode)) {
+                    // Pour FIFO: comparer FIFO vs CUMP
+                    if (valorisationCump.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal diffPourcentage = valorisationFifo
+                            .subtract(valorisationCump)
+                            .divide(valorisationCump, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100));
+                        difference = String.format("%.2f%%", diffPourcentage);
+                    } else if (valorisationFifo.compareTo(BigDecimal.ZERO) > 0) {
+                        // Si CUMP est 0 mais FIFO a une valeur, afficher +100%
+                        difference = "+100.00%";
+                    }
+                } else if ("FEFO".equals(methode)) {
+                    // Pour FEFO: comparer FEFO vs CUMP
+                    if (valorisationCump.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal diffPourcentage = valorisationFefo
+                            .subtract(valorisationCump)
+                            .divide(valorisationCump, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100));
+                        difference = String.format("%.2f%%", diffPourcentage);
+                    } else if (valorisationFefo.compareTo(BigDecimal.ZERO) > 0) {
+                        // Si CUMP est 0 mais FEFO a une valeur, afficher +100%
+                        difference = "+100.00%";
+                    }
+                } else if ("CUMP".equals(methode)) {
+                    // Pour CUMP: comparer CUMP vs FIFO
+                    if (valorisationFifo.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal diffPourcentage = valorisationCump
+                            .subtract(valorisationFifo)
+                            .divide(valorisationFifo, 4, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(100));
+                        difference = String.format("%.2f%%", diffPourcentage);
+                    } else {
+                        difference = "0.00%";
+                    }
+                }
+    
                 detail.put("codeArticle", article.getCodeArticle());
                 detail.put("libelle", article.getLibelle());
-                detail.put("methode", article.getMethodeValorisation());
+                detail.put("methode", methode);
                 detail.put("quantite", quantiteTotale);
                 detail.put("valorisationFifo", valorisationFifo);
                 detail.put("valorisationFefo", valorisationFefo);
                 detail.put("valorisationCump", valorisationCump);
-
+                detail.put("difference", difference);
+    
                 details.add(detail);
             }
         }
-
-        // Limiter aux 50 premiers pour éviter des données trop lourdes
-        return details.stream().limit(50).collect(Collectors.toList());
+    
+        return details;
     }
 
     public BigDecimal calculerValorisationFIFOTotale() {

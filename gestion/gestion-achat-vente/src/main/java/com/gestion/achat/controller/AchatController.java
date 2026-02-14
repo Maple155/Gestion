@@ -93,11 +93,10 @@ public class AchatController {
     public ResponseEntity<BonReception> recevoir(@PathVariable UUID bcId, @RequestParam boolean conforme, HttpSession session) {
         // Magasiniers
         checkAuth(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK");
-        BonReception recep = achatService.enregistrerReception(bcId, conforme, "");
-        stockService.creerEntreeStockFromReception(recep.getId(), UUID.fromString(session.getAttribute("userId").toString()));
-        return ResponseEntity.ok(recep);
+        BonReception br = achatService.enregistrerReception(bcId, conforme, "");
+        stockService.creerEntreeStockFromReception(br.getId(), UUID.fromString(session.getAttribute("userId").toString()));
+        return ResponseEntity.ok(br);
     }
-
     @PostMapping("/bons-commande/{bcId}/facturer")
     public ResponseEntity<FactureAchat> facturer(@PathVariable UUID bcId, @RequestParam String numFacture, HttpSession session) {
         // Rôle COMPTABLE ou DAF pour rapprochement 3-way match
