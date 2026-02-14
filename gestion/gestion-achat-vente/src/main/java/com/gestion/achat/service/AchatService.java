@@ -62,7 +62,7 @@ public class AchatService {
 
         BonReception br = new BonReception();
         br.setBonCommande(bc);
-        br.setConforme(conforme);
+        br.setConforme(true);
         br.setObservations(obs);
 
         if (conforme) {

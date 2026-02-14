@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<body>
+    <div th:fragment="content" class="max-w-6xl mx-auto px-4">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 tracking-tight">Finance Fournisseurs</h1>
+                <p class="text-sm text-slate-500">Flux de trésorerie et pilotage des dettes.</p>
+            </div>
+            <div class="bg-slate-900 px-6 py-3 rounded-xl shadow-lg border border-slate-700">
+                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1 tracking-widest">Cash Disponible</p>
+                <p class="text-xl font-black text-emerald-400" 
+                   th:text="${#numbers.formatDecimal(soldeDisponible, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</p>
+            </div>
+        </div>
+
+        <div class="space-y-12">
+            
+            <section id="section-bc">
+                <div class="flex flex-col gap-4 mb-4 border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-5 bg-amber-400 rounded-full"></span>
+                        <h2 class="font-bold text-slate-700 uppercase text-[10px] tracking-widest">Engagements BC</h2>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <input type="text" id="searchBC" placeholder="Filtrer fournisseur..." onkeyup="applyFiltersBC()"
+                               class="text-xs border border-slate-200 rounded-lg px-3 py-2 w-48 outline-none focus:ring-2 focus:ring-amber-300">
+                        
+                        <select id="sortBC" onchange="applyFiltersBC()" class="text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none">
+                            <option value="price-desc">Prix Décroissant</option>
+                            <option value="price-asc">Prix Croissant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="w-full text-sm" id="tableBC">
+                        <thead class="bg-slate-50 text-[10px] uppercase text-slate-400 border-b border-slate-100 text-left">
+                            <tr>
+                                <th class="px-6 py-3 font-bold">Référence</th>
+                                <th class="px-6 py-3 font-bold">Fournisseur</th>
+                                <th class="px-6 py-3 font-bold">Montant TTC</th>
+                                <th class="px-6 py-3 text-right font-bold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="bodyBC">
+                            <tr th:each="bc : ${bcEnAttente}" 
+                                class="bc-row hover:bg-slate-50/50"
+                                th:data-price="${bc.montantTotalTtc}"
+                                th:data-fournisseur="${bc.fournisseur != null ? bc.fournisseur.nom : 'Inconnu'}">
+                                <td class="px-6 py-4 font-mono text-indigo-600 font-bold" th:text="${bc.referenceBc}">BC-000</td>
+                                <td class="px-6 py-4 text-slate-700 font-medium" th:text="${bc.fournisseur != null ? bc.fournisseur.nom : '---'}">Fournisseur</td>
+                                <td class="px-6 py-4 font-bold text-slate-900" 
+                                    th:text="${#numbers.formatDecimal(bc.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</td>
+                                <td class="px-6 py-4 text-right">
+                                    <form th:action="@{/finance/fournisseurs/valider-bc/{id}(id=${bc.id})}" method="post">
+                                        <button type="submit" class="bg-slate-800 text-white text-[10px] font-black px-4 py-2 rounded shadow hover:bg-black transition-all">VALIDER</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="section-factures">
+                <div class="flex flex-col gap-4 mb-4 border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-5 bg-blue-500 rounded-full"></span>
+                        <h2 class="font-bold text-slate-700 uppercase text-[10px] tracking-widest">Factures Impayées</h2>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <select id="filterPay" onchange="applyFiltersFactures()" class="text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none">
+                            <option value="all">Tous les statuts</option>
+                            <option value="ready">Solvables (Cash OK)</option>
+                            <option value="blocked">Bloqués (Insuffisant)</option>
+                        </select>
+
+                        <select id="sortFacture" onchange="applyFiltersFactures()" class="text-xs border border-slate-200 rounded-lg px-3 py-2 outline-none">
+                            <option value="date-desc">Plus récent</option>
+                            <option value="price-asc">Prix Croissant</option>
+                            <option value="price-desc">Prix Décroissant</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table class="w-full text-sm" id="tableFactures">
+                        <thead class="bg-slate-50 text-[10px] uppercase text-slate-400 border-b border-slate-100 text-left">
+                            <tr>
+                                <th class="px-6 py-3 font-bold">N° / Date</th>
+                                <th class="px-6 py-3 font-bold">Montant TTC</th>
+                                <th class="px-6 py-3 font-bold text-left">Trésorerie</th>
+                                <th class="px-6 py-3 text-right font-bold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="bodyFactures">
+                            <tr th:each="f : ${facturesImpayees}" 
+                                class="facture-row hover:bg-slate-50/50"
+                                th:data-price="${f.montantTotalTtc}"
+                                th:data-date="${f.dateFacture}"
+                                th:data-solvable="${soldeDisponible >= f.montantTotalTtc}">
+                                <td class="px-6 py-4">
+                                    <div class="font-bold text-slate-800" th:text="${f.numeroFactureFournisseur}">FAC-000</div>
+                                    <div class="text-[10px] text-slate-400" 
+                                         th:text="${f.dateFacture != null ? #temporals.format(f.dateFacture, 'dd/MM/yyyy') : 'Sans date'}">Date</div>
+                                </td>
+                                <td class="px-6 py-4 font-black" th:text="${#numbers.formatDecimal(f.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</td>
+                                <td class="px-6 py-4">
+                                    <span th:if="${soldeDisponible >= f.montantTotalTtc}" class="text-emerald-500 text-[9px] font-black uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Prêt</span>
+                                    <span th:if="${soldeDisponible < f.montantTotalTtc}" class="text-rose-400 text-[9px] font-black uppercase bg-rose-50 px-2 py-0.5 rounded border border-rose-100 italic">Attente</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <form th:action="@{/finance/fournisseurs/payer-facture/{id}(id=${f.id})}" method="post">
+                                        <button type="submit" 
+                                                th:disabled="${soldeDisponible < f.montantTotalTtc}"
+                                                th:class="${soldeDisponible < f.montantTotalTtc} ? 'bg-slate-100 text-slate-300 cursor-not-allowed border border-slate-200' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'"
+                                                class="text-[10px] font-black px-5 py-2 rounded-lg transition-all uppercase">
+                                            PAYER
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <script>
+            function applyFiltersBC() {
+                const search = document.getElementById('searchBC').value.toLowerCase();
+                const sort = document.getElementById('sortBC').value;
+                const container = document.getElementById('bodyBC');
+                const rows = Array.from(container.getElementsByClassName('bc-row'));
+
+                rows.forEach(row => {
+                    const fournisseur = row.getAttribute('data-fournisseur').toLowerCase();
+                    row.style.display = fournisseur.includes(search) ? "" : "none";
+                });
+
+                sortRows(rows, sort, container);
+            }
+
+            function applyFiltersFactures() {
+                const status = document.getElementById('filterPay').value;
+                const sort = document.getElementById('sortFacture').value;
+                const container = document.getElementById('bodyFactures');
+                const rows = Array.from(container.getElementsByClassName('facture-row'));
+
+                rows.forEach(row => {
+                    const isSolvable = row.getAttribute('data-solvable') === 'true';
+                    let show = (status === 'all') || (status === 'ready' && isSolvable) || (status === 'blocked' && !isSolvable);
+                    row.style.display = show ? "" : "none";
+                });
+
+                sortRows(rows, sort, container);
+            }
+
+            function sortRows(rows, type, container) {
+                rows.sort((a, b) => {
+                    if (type.includes('price')) {
+                        const valA = parseFloat(a.getAttribute('data-price')) || 0;
+                        const valB = parseFloat(b.getAttribute('data-price')) || 0;
+                        return type === 'price-asc' ? valA - valB : valB - valA;
+                    } else if (type.includes('date')) {
+                        const valA = a.getAttribute('data-date') || '';
+                        const valB = b.getAttribute('data-date') || '';
+                        return type === 'date-asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    }
+                });
+                rows.forEach(row => container.appendChild(row));
+            }
+        </script>
+    </div>
+</body>
+</html>

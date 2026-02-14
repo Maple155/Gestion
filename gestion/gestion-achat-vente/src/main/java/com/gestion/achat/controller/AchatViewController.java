@@ -155,7 +155,7 @@ public class AchatViewController {
         // On récupère les BC qui sont validés/signés mais qui n'ont pas encore de Bon de Réception
         // Adapté selon tes noms de champs (ex: status ou check via jointure)
         List<BonCommande> bonsValides = bcRepo.findAll().stream()
-                .filter(bc -> !brRepo.existsById(bc.getId())) // Évite les doubles réceptions
+                .filter(bc -> !brRepo.existsByBonCommandeId(bc.getId())) // Évite les doubles réceptions
                 .toList();
 
         model.addAttribute("bonsValides", bonsValides);

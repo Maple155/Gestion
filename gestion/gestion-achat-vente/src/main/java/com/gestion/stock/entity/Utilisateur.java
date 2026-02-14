@@ -65,6 +65,7 @@ public class Utilisateur {
         RESPONSABLE_STOCK,
         MAGASINIER_SORTIE,
         COMPTABLE,
+        FINANCE,
         
         // --- MODULE VENTES ---
         COMMERCIAL,

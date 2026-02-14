@@ -294,11 +294,6 @@ public class VenteService {
                 backlog.setNotes("Insuffisance stock pour devis " + devis.getReference());
                 backlogRepository.save(backlog);
 
-                DemandeAchat demande = new DemandeAchat();
-                demande.setProduitId(shortage.articleId);
-                demande.setQuantiteDemandee(shortage.quantiteManquante);
-                demande.setMotif("Besoin stock pour devis " + devis.getReference());
-                demandeAchatRepository.save(demande);
             }
             return null;
         });

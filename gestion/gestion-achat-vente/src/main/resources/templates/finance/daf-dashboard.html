@@ -1,66 +1,64 @@
-<div th:replace="~{layout/main :: layout(~{::content})}">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<body>
     <div th:fragment="content">
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Finance - DAF</h1>
-            <p class="text-slate-500 text-sm">Vue consolidée des indicateurs finance.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Factures bloquées (3-way mismatch)</p>
-                <p class="text-xl font-bold text-rose-600" th:text="${mismatchCount}">0</p>
+        <div class="flex justify-between items-end mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Direction Financière</h1>
+                <p class="text-slate-500" th:text="${'Analyse du ' + #temporals.format(dateJour, 'dd MMMM yyyy')}"></p>
             </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Valeur stock comptable</p>
-                <p class="text-xl font-bold text-slate-800" th:text="${valeurComptable}">0</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Valeur stock opérationnelle</p>
-                <p class="text-xl font-bold text-slate-800" th:text="${valeurOperationnelle}">0</p>
-                <p class="text-xs text-slate-400">Écart: <span th:text="${ecartStock}">0</span></p>
+            <div th:if="${mismatchCount > 0}" class="bg-rose-100 text-rose-700 px-4 py-2 rounded-full text-xs font-bold animate-pulse">
+                ⚠ <span th:text="${mismatchCount}">0</span> ANOMALIES DÉTECTÉES
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Chiffre d'affaires</p>
-                <p class="text-xl font-bold text-indigo-600" th:text="${caTotal}">0</p>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-slate-900 p-5 rounded-xl text-white">
+                <p class="text-[10px] uppercase text-slate-400 font-bold">Chiffre d'Affaires</p>
+                <h4 class="text-2xl font-black mt-1" th:text="${#numbers.formatCurrency(caTotal)}">0</h4>
             </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Marge totale</p>
-                <p class="text-xl font-bold text-emerald-600" th:text="${margeTotale}">0</p>
+            <div class="bg-white p-5 rounded-xl border border-slate-200">
+                <p class="text-[10px] uppercase text-slate-400 font-bold">Marge Brute (<span th:text="${tauxMarge}">0</span>%)</p>
+                <h4 class="text-2xl font-black text-emerald-600 mt-1" th:text="${#numbers.formatCurrency(margeTotale)}">0</h4>
             </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Taux de marge</p>
-                <p class="text-xl font-bold text-slate-800" th:text="${tauxMarge} + '%'">0%</p>
+            <div class="bg-white p-5 rounded-xl border border-slate-200">
+                <p class="text-[10px] uppercase text-slate-400 font-bold">Écart Valeur Stock</p>
+                <h4 class="text-2xl font-black mt-1" th:classappend="${ecartStock != 0 ? 'text-rose-500' : 'text-slate-800'}" 
+                    th:text="${#numbers.formatCurrency(ecartStock)}">0</h4>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-slate-200">
+                <p class="text-[10px] uppercase text-slate-400 font-bold">Val. Opérationnelle</p>
+                <h4 class="text-2xl font-black text-blue-600 mt-1" th:text="${#numbers.formatCurrency(valeurOperationnelle)}">0</h4>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="text-sm font-bold text-slate-700">Factures bloquées (détail)</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 bg-rose-50 border-b border-rose-100">
+                <h2 class="font-bold text-rose-800 flex items-center">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i> Anomalies de Facturation (Audit)
+                </h2>
             </div>
             <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-50 border-b border-slate-200">
+                <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
                     <tr>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Facture</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">BC</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Motif</th>
-                        <th class="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">Montant</th>
+                        <th class="px-6 py-3 font-bold">Facture</th>
+                        <th class="px-6 py-3 font-bold">BC Source</th>
+                        <th class="px-6 py-3 font-bold text-rose-600">Motif du litige</th>
+                        <th class="px-6 py-3 font-bold">Montant TTC</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr th:each="m : ${mismatches}" class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.numeroFacture}">FAC</td>
-                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.referenceBc}">BC</td>
-                        <td class="px-6 py-4 text-sm text-rose-600" th:text="${m.motif}">Motif</td>
-                        <td class="px-6 py-4 text-sm text-slate-700" th:text="${m.montant}">0</td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(mismatches)}">
-                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic">Aucune facture bloquée.</td>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    <tr th:each="m : ${mismatches}" class="hover:bg-rose-50/30">
+                        <td class="px-6 py-3 font-medium" th:text="${m.numeroFacture}">FA-000</td>
+                        <td class="px-6 py-3 text-slate-500" th:text="${m.referenceBc}">BC-000</td>
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-bold" th:text="${m.motif}">Erreur</span>
+                        </td>
+                        <td class="px-6 py-3 font-bold" th:text="${#numbers.formatCurrency(m.montant)}">0</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
+</body>
+</html>

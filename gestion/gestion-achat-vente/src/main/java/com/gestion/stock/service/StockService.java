@@ -49,16 +49,16 @@ public class StockService {
                 var demande = proforma.getDemandeAchat();
 
                 // 3. Vérifier que la réception est conforme
-                if (!bonReception.isConforme()) {
-                        throw new RuntimeException("Le bon de réception n'est pas conforme");
-                }
+                // if (!bonReception.isConforme()) {
+                //         throw new RuntimeException("Le bon de réception n'est pas conforme");
+                // }
 
                 // 4. Trouver l'article par son ID (produit_id de la demande)
                 // Note: Vous devez adapter cette partie selon votre modèle
                 UUID articleId = demande.getProduitId(); // À vérifier selon votre modèle
 
                 Article article = articleRepository.findById(articleId)
-                                .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+                                .orElseThrow(() -> new RuntimeException("Article non trouvé"+articleId));
 
                 // 5. Récupérer le dépôt par défaut
                 Depot depot = depotRepository.findByCode("DEP-CENTRAL")
