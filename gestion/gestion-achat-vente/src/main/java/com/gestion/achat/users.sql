@@ -31,3 +31,8 @@ VALUES
 
 -- MAGASIN
 (gen_random_uuid(), 'pierre_magasin', 'p.martin@erp.com', 'pass123', 'MARTIN', 'Pierre', 'GESTIONNAIRE_STOCK', 'Logistique', 'Magasinier', TRUE);
+
+
+INSERT INTO utilisateurs (id, username, email, password, nom, prenom, role, service, poste, actif)
+VALUES 
+(gen_random_uuid(), 'Randy', 'randy@finance.com', 'huhu', 'Robinson', 'Randy', 'FINANCE', 'finance', 'Administrateur financier', TRUE);

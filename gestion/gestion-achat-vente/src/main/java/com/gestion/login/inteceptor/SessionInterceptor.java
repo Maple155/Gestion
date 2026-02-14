@@ -80,7 +80,8 @@ public class SessionInterceptor implements HandlerInterceptor {
             return userRole.equals("ADMIN") ||
                     userRole.equals("GESTIONNAIRE_STOCK") ||
                     userRole.equals("RESPONSABLE_STOCK") ||
-                    userRole.equals("MAGASINIER_SORTIE");
+                    userRole.equals("MAGASINIER_SORTIE") ||
+                    userRole.equals("MANAGER");
         }
 
         // --- MODULE VENTES (Inchangé) ---
@@ -97,7 +98,7 @@ public class SessionInterceptor implements HandlerInterceptor {
 
         // --- MODULE FINANCE ---
         if (uri.startsWith("/finance/")) {
-            return userRole.equals("ADMIN") || userRole.equals("DAF");
+            return userRole.equals("ADMIN") || userRole.equals("DAF") || userRole.equals("FINANCE");
         }
 
         // --- MODULE COMPTABILITÉ (Inchangé) ---

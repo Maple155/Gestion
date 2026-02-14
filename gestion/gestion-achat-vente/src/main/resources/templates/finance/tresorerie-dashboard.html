@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<body>
+    <div th:fragment="content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Flux de Trésorerie</h1>
+            <p class="text-slate-500">Suivi des encaissements réels et décaissements validés.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-2xl text-white shadow-xl">
+                    <p class="text-blue-100 text-sm font-medium uppercase tracking-widest">Trésorerie Nette Estimée</p>
+                    <h2 class="text-5xl font-black mt-2" th:text="${#numbers.formatCurrency(cashEstime)}">0.00 €</h2>
+                    <div class="mt-8 flex space-x-4">
+                        <div class="bg-white/10 px-4 py-2 rounded-lg">
+                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Encaissements (+)</p>
+                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(encaissements)}">0</p>
+                        </div>
+                        <div class="bg-white/10 px-4 py-2 rounded-lg">
+                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Décaissements (-)</p>
+                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(decaissements)}">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl border border-slate-200">
+                <h3 class="font-bold text-slate-800 mb-4">Note Méthodologique</h3>
+                <ul class="space-y-4 text-sm text-slate-600">
+                    <li class="flex items-start">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
+                        Encaissements basés sur les paiements clients enregistrés.
+                    </li>
+                    <li class="flex items-start">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
+                        Décaissements basés sur les factures d'achat marquées "Payées".
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

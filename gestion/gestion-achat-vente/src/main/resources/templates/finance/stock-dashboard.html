@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<body>
+    <div th:fragment="content">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Valorisation des Stocks</h1>
+            <p class="text-slate-500">Écart entre vision comptable et stock théorique physique.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase">Valeur Comptable</p>
+                <p class="text-xs text-slate-500 mb-2">(Issue du service valorisation)</p>
+                <h3 class="text-2xl font-bold text-slate-800" th:text="${#numbers.formatCurrency(valeurComptable)}">0</h3>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase">Valeur Opérationnelle</p>
+                <p class="text-xs text-slate-500 mb-2">(Qte Théorique × Coût Standard)</p>
+                <h3 class="text-2xl font-bold text-blue-600" th:text="${#numbers.formatCurrency(valeurOperationnelle)}">0</h3>
+            </div>
+
+            <div class="p-6 rounded-xl border" th:classappend="${ecartStock != 0 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}">
+                <p class="text-[10px] font-black uppercase" th:classappend="${ecartStock != 0 ? 'text-rose-400' : 'text-emerald-400'}">Écart de Valorisation</p>
+                <p class="text-xs mb-2" th:classappend="${ecartStock != 0 ? 'text-rose-500' : 'text-emerald-500'}">Différentiel d'inventaire</p>
+                <h3 class="text-2xl font-bold" th:classappend="${ecartStock != 0 ? 'text-rose-700' : 'text-emerald-700'}" th:text="${#numbers.formatCurrency(ecartStock)}">0</h3>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

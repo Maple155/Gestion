@@ -58,7 +58,7 @@ public class StockService {
                 UUID articleId = demande.getProduitId(); // À vérifier selon votre modèle
 
                 Article article = articleRepository.findById(articleId)
-                                .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+                                .orElseThrow(() -> new RuntimeException("Article non trouvé"+articleId));
 
                 // 5. Récupérer le dépôt par défaut
                 Depot depot = depotRepository.findByCode("DEP-CENTRAL")
