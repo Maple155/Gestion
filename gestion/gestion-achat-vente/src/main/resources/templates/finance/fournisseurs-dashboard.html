@@ -49,9 +49,9 @@
                             <tr th:each="bc : ${bcEnAttente}" 
                                 class="bc-row hover:bg-slate-50/50"
                                 th:data-price="${bc.montantTotalTtc}"
-                                th:data-fournisseur="${bc.fournisseur != null ? bc.fournisseur.nom : 'Inconnu'}">
+                                th:data-fournisseur="${bc.proforma != null && bc.proforma.fournisseur != null ? bc.proforma.fournisseur.nom : 'Inconnu'}">
                                 <td class="px-6 py-4 font-mono text-indigo-600 font-bold" th:text="${bc.referenceBc}">BC-000</td>
-                                <td class="px-6 py-4 text-slate-700 font-medium" th:text="${bc.fournisseur != null ? bc.fournisseur.nom : '---'}">Fournisseur</td>
+                                <td class="px-6 py-4 text-slate-700 font-medium" th:text="${bc.proforma != null && bc.proforma.fournisseur != null ? bc.proforma.fournisseur.nom : '---'}">Fournisseur</td>
                                 <td class="px-6 py-4 font-bold text-slate-900" 
                                     th:text="${#numbers.formatDecimal(bc.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</td>
                                 <td class="px-6 py-4 text-right">

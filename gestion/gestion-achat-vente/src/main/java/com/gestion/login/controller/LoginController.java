@@ -112,7 +112,8 @@ public class LoginController {
             case "RESPONSABLE_STOCK":
             case "MAGASINIER":
                 return "redirect:/main/dashboard";
-
+            case "MANAGER":
+                return "redirect:/home";
             default:
                 return "redirect:/achats/demandes";
         }
@@ -130,5 +131,17 @@ public class LoginController {
     @GetMapping("/")
     public String root() {
         return "redirect:/login";
+    }
+
+    @GetMapping("/home")
+    public String home(HttpSession session) {
+        String role = (String) session.getAttribute("userRole");
+        if (role == null) {
+            return "redirect:/login";
+        }
+        if (!"MANAGER".equals(role)) {
+            return "redirect:/dashboard";
+        }
+        return "home";
     }
 }
