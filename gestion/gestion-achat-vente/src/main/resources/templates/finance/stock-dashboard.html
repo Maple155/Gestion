@@ -1,50 +1,31 @@
 <!DOCTYPE html>
-<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
 <body>
-<div th:replace="~{layout/main :: layout(~{::content})}">
     <div th:fragment="content">
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-slate-800">Finance - Stock</h1>
-            <p class="text-slate-500 text-sm">Analyse des valorisations de stock.</p>
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-slate-800">Valorisation des Stocks</h1>
+            <p class="text-slate-500">Écart entre vision comptable et stock théorique physique.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Valeur Comptable</p>
-                <p class="text-xl font-bold text-indigo-600" th:text="${#numbers.formatDecimal(valeurComptable, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase">Valeur Comptable</p>
+                <p class="text-xs text-slate-500 mb-2">(Issue du service valorisation)</p>
+                <h3 class="text-2xl font-bold text-slate-800" th:text="${#numbers.formatCurrency(valeurComptable)}">0</h3>
             </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4">
-                <p class="text-xs text-slate-500">Valeur Opérationnelle</p>
-                <p class="text-xl font-bold text-slate-800" th:text="${#numbers.formatDecimal(valeurOperationnelle, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-lg p-4" th:classappend="${ecartStock >= 0} ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'">
-                <p class="text-xs text-slate-500">Écart Stock</p>
-                <p class="text-xl font-bold" th:classappend="${ecartStock >= 0} ? 'text-emerald-600' : 'text-rose-600'" th:text="${#numbers.formatDecimal(ecartStock, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</p>
-            </div>
-        </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="text-sm font-bold text-slate-700">Analyse de Stock</h2>
+            <div class="bg-white p-6 rounded-xl border border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase">Valeur Opérationnelle</p>
+                <p class="text-xs text-slate-500 mb-2">(Qte Théorique × Coût Standard)</p>
+                <h3 class="text-2xl font-bold text-blue-600" th:text="${#numbers.formatCurrency(valeurOperationnelle)}">0</h3>
             </div>
-            <div class="px-6 py-4">
-                <ul class="space-y-3">
-                    <li class="flex justify-between">
-                        <span class="text-slate-600">Valeur Comptable</span>
-                        <span class="font-semibold text-slate-900" th:text="${#numbers.formatDecimal(valeurComptable, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
-                    </li>
-                    <li class="flex justify-between">
-                        <span class="text-slate-600">Valeur Opérationnelle</span>
-                        <span class="font-semibold text-slate-900" th:text="${#numbers.formatDecimal(valeurOperationnelle, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
-                    </li>
-                    <li class="flex justify-between">
-                        <span class="text-slate-600">Écart</span>
-                        <span class="font-semibold" th:classappend="${ecartStock >= 0} ? 'text-emerald-600' : 'text-rose-600'" th:text="${#numbers.formatDecimal(ecartStock, 1, 'DEFAULT', 2, 'DEFAULT')} + ' €'">0 €</span>
-                    </li>
-                </ul>
+
+            <div class="p-6 rounded-xl border" th:classappend="${ecartStock != 0 ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'}">
+                <p class="text-[10px] font-black uppercase" th:classappend="${ecartStock != 0 ? 'text-rose-400' : 'text-emerald-400'}">Écart de Valorisation</p>
+                <p class="text-xs mb-2" th:classappend="${ecartStock != 0 ? 'text-rose-500' : 'text-emerald-500'}">Différentiel d'inventaire</p>
+                <h3 class="text-2xl font-bold" th:classappend="${ecartStock != 0 ? 'text-rose-700' : 'text-emerald-700'}" th:text="${#numbers.formatCurrency(ecartStock)}">0</h3>
             </div>
         </div>
     </div>
-</div>
 </body>
 </html>

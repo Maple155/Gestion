@@ -97,7 +97,6 @@ public class AchatController {
         stockService.creerEntreeStockFromReception(br.getId(), UUID.fromString(session.getAttribute("userId").toString()));
         return ResponseEntity.ok(br);
     }
-
     @PostMapping("/bons-commande/{bcId}/facturer")
     public ResponseEntity<FactureAchat> facturer(@PathVariable UUID bcId, @RequestParam String numFacture, HttpSession session) {
         // Rôle COMPTABLE ou DAF pour rapprochement 3-way match

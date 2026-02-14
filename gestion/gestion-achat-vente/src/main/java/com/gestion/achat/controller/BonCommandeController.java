@@ -2,14 +2,11 @@ package com.gestion.achat.controller;
 
 import java.util.UUID;
 import java.text.DecimalFormat;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.ui.Model;
-import com.gestion.achat.dto.UpdateStatutFinanceRequest;
 import com.gestion.achat.entity.BonCommande;
 import com.gestion.achat.service.BonCommandeService;
 import org.springframework.stereotype.Controller;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
 import com.gestion.achat.enums.*;
@@ -37,11 +34,6 @@ public class BonCommandeController {
     public String updateStatutFinance(
             @PathVariable UUID id,
             @RequestParam("statutFinance") StatutFinance request) {
-
-        BonCommande updated = bonCommandeService.updateStatutFinance(
-                id,
-                request
-        );
 
         return "home";
     }
