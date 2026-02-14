@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Valorisation détaillée - ERP Stock</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Flatpickr pour les dates -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Styles pour les modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+        
+        .filter-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        
+        .badge-methode {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .badge-fifo {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .badge-fefo {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
+        
+        .badge-cump {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .total-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .export-btn {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .export-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        
+        .table-container {
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .table-header h3 {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .pagination button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            color: #475569;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination .active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div class="flex h-screen">
+        <!-- Sidebar Stock -->
+        <div th:replace="~{fragments/sidebar_stock}"></div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Top Header -->
+            <header class="top-header px-8 py-4 bg-white border-b border-slate-200 sticky top-0 z-10">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                            <i data-lucide="calculator" class="w-5 h-5 text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Valorisation détaillée des stocks</h1>
+                            <p class="text-sm text-slate-500">Analyse par article, mouvement et valorisation</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'export -->
+                    <div class="flex items-center space-x-3">
+                        <button onclick="rafraichirDonnees()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                            Actualiser
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content Area -->
+            <main class="p-8">
+                <!-- Filtres de recherche -->
+                <div class="filter-card mb-8">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                                <i data-lucide="filter" class="w-5 h-5 mr-2 text-blue-600"></i>
+                                Filtres de recherche
+                            </h2>
+                            <button onclick="reinitialiserFiltres()" class="text-sm text-slate-500 hover:text-slate-700 flex items-center">
+                                <i data-lucide="x-circle" class="w-4 h-4 mr-1"></i>
+                                Réinitialiser
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- Dépôt -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                    <i data-lucide="warehouse" class="w-3 h-3 inline mr-1"></i>
+                                    Dépôt
+                                </label>
+                                <select id="filtreDepot" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Tous les dépôts</option>
+                                    <option th:each="depot : ${depots}" 
+                                            th:value="${depot.id}" 
+                                            th:text="${depot.nom}"></option>
+                                </select>
+                            </div>
+                            
+                            <!-- Article (recherche avec autocomplete) -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                    <i data-lucide="package" class="w-3 h-3 inline mr-1"></i>
+                                    Article
+                                </label>
+                                <input type="text" 
+                                       id="filtreArticle" 
+                                       placeholder="Rechercher un article..." 
+                                       class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <div id="articleSuggestions" class="hidden absolute bg-white border border-slate-200 rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto z-50"></div>
+                            </div>
+                            
+                            <!-- Méthode de valorisation -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                    <i data-lucide="trending-up" class="w-3 h-3 inline mr-1"></i>
+                                    Méthode
+                                </label>
+                                <select id="filtreMethode" class="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Toutes les méthodes</option>
+                                    <option value="FIFO">FIFO (First In, First Out)</option>
+                                    <option value="FEFO">FEFO (First Expired, First Out)</option>
+                                    <option value="CUMP">CUMP (Coût Unitaire Moyen Pondéré)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Période -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                                    <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>
+                                    Période
+                                </label>
+                                <div class="flex space-x-2">
+                                    <input type="text" 
+                                           id="dateDebut" 
+                                           placeholder="Date début" 
+                                           class="w-1/2 border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <input type="text" 
+                                           id="dateFin" 
+                                           placeholder="Date fin" 
+                                           class="w-1/2 border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Boutons d'action -->
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button onclick="appliquerFiltres()" 
+                                    class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center">
+                                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                                Appliquer les filtres
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cartes de synthèse -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-1">Valeur totale du stock</p>
+                                <p class="text-2xl font-bold text-slate-800" id="valeurTotale">0 €</p>
+                            </div>
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="wallet" class="w-5 h-5 text-blue-600"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="variationValeur">Par rapport au mois dernier</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-1">Quantité totale</p>
+                                <p class="text-2xl font-bold text-slate-800" id="quantiteTotale">0</p>
+                            </div>
+                            <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="package" class="w-5 h-5 text-emerald-600"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="nombreArticles">articles</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-1">Coût unitaire moyen</p>
+                                <p class="text-2xl font-bold text-slate-800" id="coutMoyen">0 €</p>
+                            </div>
+                            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-600"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="methodeDominante">Méthode dominante: -</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-1">Rotation du stock</p>
+                                <p class="text-2xl font-bold text-slate-800" id="rotationStock">-</p>
+                            </div>
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="refresh-ccw" class="w-5 h-5 text-purple-600"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="joursRotation">jours de couverture</p>
+                    </div>
+                </div>
+                
+                <!-- Tableau des articles avec valorisation -->
+                <div class="table-container">
+                    <div class="table-header flex justify-between items-center">
+                        <h3 class="flex items-center">
+                            <i data-lucide="list" class="w-5 h-5 mr-2 text-slate-400"></i>
+                            Détail des articles en stock
+                        </h3>
+                        <span class="text-sm text-slate-500" id="compteurLignes">0 article(s)</span>
+                    </div>
+                    
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Article</th>
+                                    <th>Méthode</th>
+                                    <th>Prix unitaire</th>
+                                    <th>Qté entrée</th>
+                                    <th>Date entrée</th>
+                                    <th>Qté sortie</th>
+                                    <th>Qté restante</th>
+                                    <th>Valorisation</th>
+                                    <th>Dernier mouvement</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableauValorisation">
+                                <tr id="loadingRow">
+                                    <td colspan="9" class="px-6 py-8 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                            <p class="mt-4 text-sm text-slate-500">Chargement des données...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button onclick="changerPage('premiere')" id="btnPremiere" disabled>
+                            <i data-lucide="chevrons-left" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="changerPage('precedente')" id="btnPrecedente" disabled>
+                            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                        </button>
+                        <span id="infoPagination" class="text-sm text-slate-600">Page 1 sur 1</span>
+                        <button onclick="changerPage('suivante')" id="btnSuivante" disabled>
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="changerPage('derniere')" id="btnDerniere" disabled>
+                            <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <!-- Modal détails article -->
+    <div id="modalDetailsArticle" class="modal-overlay">
+        <div class="modal-content">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                        <i data-lucide="package" class="mr-2"></i> Détails de l'article
+                    </h3>
+                    <button onclick="fermerModalDetails()" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div id="detailsArticleContent" class="space-y-4">
+                    <!-- Rempli dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        // Initialiser les icônes
+        lucide.createIcons();
+        
+        // Variables globales
+        let pageActuelle = 0;
+        let taillePage = 10;
+        let totalPages = 1;
+        let donneesFiltrees = [];
+        
+        // Initialiser les datepickers
+        flatpickr("#dateDebut", {
+            locale: "fr",
+            dateFormat: "d/m/Y",
+            maxDate: "today",
+            defaultDate: new Date(new Date().setMonth(new Date().getMonth() - 1))
+        });
+        
+        flatpickr("#dateFin", {
+            locale: "fr",
+            dateFormat: "d/m/Y",
+            maxDate: "today",
+            defaultDate: "today"
+        });
+        
+        function chargerDonneesValorisation() {
+            const depot = document.getElementById('filtreDepot').value;
+            const article = document.getElementById('filtreArticle').value;
+            const methode = document.getElementById('filtreMethode').value;
+            const dateDebut = document.getElementById('dateDebut').value;
+            const dateFin = document.getElementById('dateFin').value;
+            
+            // Construire l'URL avec les paramètres
+            let url = '/stock/valorisation/api/detail-filtre?';
+            const params = [];
+            
+            if (depot) params.push(`depotId=${encodeURIComponent(depot)}`);
+            if (article) params.push(`article=${encodeURIComponent(article)}`);
+            if (methode) params.push(`methode=${encodeURIComponent(methode)}`);
+            if (dateDebut) {
+                // Convertir format dd/MM/yyyy en yyyy-MM-dd
+                const [jour, mois, annee] = dateDebut.split('/');
+                params.push(`dateDebut=${annee}-${mois}-${jour}`);
+            }
+            if (dateFin) {
+                const [jour, mois, annee] = dateFin.split('/');
+                params.push(`dateFin=${annee}-${mois}-${jour}`);
+            }
+            
+            url += params.join('&');
+            
+            // Afficher le loader
+            document.getElementById('tableauValorisation').innerHTML = `
+                <tr id="loadingRow">
+                    <td colspan="9" class="px-6 py-8 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                            <p class="mt-4 text-sm text-slate-500">Chargement des données...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erreur HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Données reçues:", data);
+                    
+                    // Vérifier si data est un tableau
+                    if (Array.isArray(data)) {
+                        donneesFiltrees = data;
+                        mettreAJourTableau();
+                        mettreAJourStatistiques(data);
+                    } else {
+                        // Si c'est un objet avec une erreur
+                        console.error("Données invalides:", data);
+                        throw new Error("Format de données invalide");
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur chargement données:', err);
+                    document.getElementById('tableauValorisation').innerHTML = `
+                        <tr>
+                            <td colspan="9" class="px-6 py-8 text-center text-rose-600">
+                                <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                                Erreur de chargement des données<br>
+                                <small class="text-slate-500">${err.message}</small>
+                            </td>
+                        </tr>
+                    `;
+                    lucide.createIcons();
+                    
+                    // Initialiser avec tableau vide
+                    donneesFiltrees = [];
+                    mettreAJourTableau();
+                    mettreAJourStatistiques([]);
+                });
+        }
+        
+        // Mettre à jour le tableau avec pagination
+        function mettreAJourTableau() {
+            const tbody = document.getElementById('tableauValorisation');
+            const loadingRow = document.getElementById('loadingRow');
+            if (loadingRow) loadingRow.remove();
+            
+            if (!donneesFiltrees || donneesFiltrees.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-slate-500">
+                            <i data-lucide="package-x" class="w-12 h-12 mx-auto mb-2 text-slate-300"></i>
+                            Aucun article trouvé avec les filtres sélectionnés
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            // Pagination
+            const debut = pageActuelle * taillePage;
+            const fin = Math.min(debut + taillePage, donneesFiltrees.length);
+            totalPages = Math.ceil(donneesFiltrees.length / taillePage);
+            
+            document.getElementById('infoPagination').textContent = 
+                `Page ${pageActuelle + 1} sur ${totalPages}`;
+            
+            // Activer/désactiver boutons pagination
+            document.getElementById('btnPremiere').disabled = pageActuelle === 0;
+            document.getElementById('btnPrecedente').disabled = pageActuelle === 0;
+            document.getElementById('btnSuivante').disabled = pageActuelle === totalPages - 1;
+            document.getElementById('btnDerniere').disabled = pageActuelle === totalPages - 1;
+            
+            tbody.innerHTML = '';
+            
+            for (let i = debut; i < fin; i++) {
+                const item = donneesFiltrees[i];
+                const badgeClass = getBadgeClasse(item.methode);
+                
+                // Formater les dates
+                const dateEntree = item.dateEntree ? new Date(item.dateEntree).toLocaleDateString('fr-FR') : '-';
+                const dateDernierMouvement = item.dateDernierMouvement ? new Date(item.dateDernierMouvement).toLocaleDateString('fr-FR') : '-';
+                
+                const row = document.createElement('tr');
+                row.style.cursor = 'pointer';
+                row.onclick = () => ouvrirModalDetails(item);
+                row.innerHTML = `
+                    <td>
+                        <div class="font-medium text-slate-800">${item.codeArticle || ''}</div>
+                        <div class="text-xs text-slate-500">${item.libelle || ''}</div>
+                    </td>
+                    <td>
+                        <span class="badge-methode ${badgeClass}">${item.methode}</span>
+                    </td>
+                    <td class="font-medium">${formatMonetaire(item.prixUnitaire)}</td>
+                    <td class="font-medium">${item.quantiteEntree || 0}</td>
+                    <td>${dateEntree}</td>
+                    <td class="font-medium">${item.quantiteSortie || 0}</td>
+                    <td class="font-medium ${item.quantiteRestante === 0 ? 'text-slate-400' : 'text-emerald-600'}">
+                        ${item.quantiteRestante || 0}
+                    </td>
+                    <td class="font-bold text-blue-600">${formatMonetaire(item.valorisation)}</td>
+                    <td class="text-sm text-slate-500">${dateDernierMouvement}</td>
+                `;
+                tbody.appendChild(row);
+            }
+            
+            lucide.createIcons();
+        }
+        
+    // Remplacer la fonction mettreAJourStatistiques() par celle-ci
+function mettreAJourStatistiques(data) {
+    // Vérifier que data est un tableau et non vide
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        document.getElementById('valeurTotale').textContent = '0 €';
+        document.getElementById('quantiteTotale').textContent = '0';
+        document.getElementById('nombreArticles').textContent = '0 articles';
+        document.getElementById('coutMoyen').textContent = '0 €';
+        document.getElementById('methodeDominante').textContent = 'Méthode dominante: -';
+        document.getElementById('rotationStock').textContent = '-';
+        document.getElementById('compteurLignes').textContent = '0 article(s)';
+        return;
+    }
+    
+    let valeurTotale = 0;
+    let quantiteTotale = 0;
+    let sommePrixUnitaire = 0;
+    let countPrix = 0;
+    let compteurMethodes = { FIFO: 0, FEFO: 0, CUMP: 0 };
+    
+    data.forEach(item => {
+        // S'assurer que les valeurs sont des nombres
+        const valorisation = parseFloat(item.valorisation) || 0;
+        const quantite = parseInt(item.quantiteRestante) || 0;
+        const prix = parseFloat(item.prixUnitaire) || 0;
+        
+        valeurTotale += valorisation;
+        quantiteTotale += quantite;
+        
+        if (prix > 0) {
+            sommePrixUnitaire += prix;
+            countPrix++;
+        }
+        
+        const methode = item.methode || 'CUMP';
+        if (compteurMethodes.hasOwnProperty(methode)) {
+            compteurMethodes[methode]++;
+        } else {
+            compteurMethodes.CUMP++;
+        }
+    });
+    
+    document.getElementById('valeurTotale').textContent = formatMonetaire(valeurTotale);
+    document.getElementById('quantiteTotale').textContent = quantiteTotale.toLocaleString('fr-FR');
+    document.getElementById('nombreArticles').textContent = `${data.length} articles`;
+    
+    const coutMoyen = countPrix > 0 ? sommePrixUnitaire / countPrix : 0;
+    document.getElementById('coutMoyen').textContent = formatMonetaire(coutMoyen);
+    
+    // Méthode dominante
+    let methodeDominante = 'CUMP';
+    let maxCount = 0;
+    for (const [methode, count] of Object.entries(compteurMethodes)) {
+        if (count > maxCount) {
+            maxCount = count;
+            methodeDominante = methode;
+        }
+    }
+    document.getElementById('methodeDominante').textContent = `Méthode dominante: ${methodeDominante}`;
+    
+    // Calcul rotation stock (simplifié)
+    const rotation = quantiteTotale > 0 ? (valeurTotale / quantiteTotale).toFixed(2) : '-';
+    document.getElementById('rotationStock').textContent = rotation;
+    
+    document.getElementById('compteurLignes').textContent = `${data.length} article(s)`;
+}
+
+// Ajouter une fonction pour charger les statistiques globales séparément
+function chargerStatistiquesGlobales() {
+    fetch('/stock/valorisation/api/statistiques')
+        .then(response => response.json())
+        .then(stats => {
+            if (stats && !stats.error) {
+                document.getElementById('valeurTotale').textContent = formatMonetaire(stats.valeurTotale || 0);
+                document.getElementById('quantiteTotale').textContent = (stats.quantiteTotale || 0).toLocaleString('fr-FR');
+                document.getElementById('nombreArticles').textContent = `${stats.nombreArticles || 0} articles`;
+                document.getElementById('coutMoyen').textContent = formatMonetaire(stats.coutMoyen || 0);
+                document.getElementById('methodeDominante').textContent = `Méthode dominante: ${stats.methodeDominante || 'CUMP'}`;
+                
+                const variation = stats.variation || 0;
+                const signe = variation > 0 ? '+' : '';
+                document.getElementById('variationValeur').innerHTML = 
+                    `${signe}${variation.toFixed(1)}% par rapport au mois dernier`;
+            }
+        })
+        .catch(err => console.error('Erreur chargement stats globales:', err));
+}
+        
+        // Appliquer les filtres
+        function appliquerFiltres() {
+            pageActuelle = 0;
+            chargerDonneesValorisation();
+        }
+        
+        // Réinitialiser les filtres
+        function reinitialiserFiltres() {
+            document.getElementById('filtreDepot').value = '';
+            document.getElementById('filtreArticle').value = '';
+            document.getElementById('filtreMethode').value = '';
+            document.getElementById('dateDebut')._flatpickr.setDate(new Date(new Date().setMonth(new Date().getMonth() - 1)));
+            document.getElementById('dateFin')._flatpickr.setDate(new Date());
+            appliquerFiltres();
+        }
+        
+        // Pagination
+        function changerPage(action) {
+            switch(action) {
+                case 'premiere':
+                    pageActuelle = 0;
+                    break;
+                case 'precedente':
+                    pageActuelle = Math.max(0, pageActuelle - 1);
+                    break;
+                case 'suivante':
+                    pageActuelle = Math.min(totalPages - 1, pageActuelle + 1);
+                    break;
+                case 'derniere':
+                    pageActuelle = totalPages - 1;
+                    break;
+            }
+            mettreAJourTableau();
+        }
+        
+        // Ouvrir modal détails article
+        function ouvrirModalDetails(article) {
+            const modal = document.getElementById('modalDetailsArticle');
+            const content = document.getElementById('detailsArticleContent');
+            
+            content.innerHTML = `
+                <div class="bg-slate-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500">Code article</p>
+                            <p class="font-bold">${article.codeArticle}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Libellé</p>
+                            <p class="font-bold">${article.libelle}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Méthode</p>
+                            <p class="font-bold">${article.methode}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500">Prix unitaire</p>
+                            <p class="font-bold">${formatMonetaire(article.prixUnitaire)}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Type</th>
+                                <th class="px-4 py-2 text-left">Quantité</th>
+                                <th class="px-4 py-2 text-left">Date</th>
+                                <th class="px-4 py-2 text-left">Lot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${article.mouvements ? article.mouvements.map(mvt => `
+                                <tr class="border-t border-slate-100">
+                                    <td class="px-4 py-2">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${mvt.type === 'ENTREE' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                                            ${mvt.type}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2">${mvt.quantite}</td>
+                                    <td class="px-4 py-2">${new Date(mvt.date).toLocaleDateString('fr-FR')}</td>
+                                    <td class="px-4 py-2">${mvt.lot || '-'}</td>
+                                </tr>
+                            `).join('') : `
+                                <tr>
+                                    <td colspan="4" class="px-4 py-4 text-center text-slate-500">
+                                        Aucun mouvement détaillé
+                                    </td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+        
+        function fermerModalDetails() {
+            document.getElementById('modalDetailsArticle').style.display = 'none';
+        }
+        
+        // Fonctions utilitaires
+        function getBadgeClasse(methode) {
+            switch(methode) {
+                case 'FIFO': return 'badge-fifo';
+                case 'FEFO': return 'badge-fefo';
+                case 'CUMP': return 'badge-cump';
+                default: return 'badge-cump';
+            }
+        }
+        
+        function formatMonetaire(valeur) {
+            if (!valeur && valeur !== 0) return '-';
+            return new Intl.NumberFormat("fr-FR", {
+                style: "currency",
+                currency: "EUR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(valeur);
+        }
+        
+        function rafraichirDonnees() {
+            appliquerFiltres();
+        }
+        
+        function exporterPDF() {
+            alert('Export PDF - À implémenter');
+        }
+        
+        function exporterExcel() {
+            alert('Export Excel - À implémenter');
+        }
+        
+        // Fermer le modal en cliquant à l'extérieur
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalDetailsArticle');
+            if (event.target === modal) {
+                fermerModalDetails();
+            }
+        };
+        
+// Remplacer la partie DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser les datepickers
+    flatpickr("#dateDebut", {
+        locale: "fr",
+        dateFormat: "d/m/Y",
+        maxDate: "today",
+        defaultDate: new Date(new Date().setMonth(new Date().getMonth() - 1))
+    });
+    
+    flatpickr("#dateFin", {
+        locale: "fr",
+        dateFormat: "d/m/Y",
+        maxDate: "today",
+        defaultDate: "today"
+    });
+    
+    // Charger les données
+    chargerDonneesValorisation();
+    chargerStatistiquesGlobales();
+    
+    // Initialiser les icônes
+    lucide.createIcons();
+});
+
+    </script>
+</body>
+</html>

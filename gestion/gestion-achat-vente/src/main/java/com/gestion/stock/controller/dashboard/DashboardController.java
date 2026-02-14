@@ -889,5 +889,10 @@ public class DashboardController {
         }
 
         return response;
+    }   
+
+    @GetMapping("/valorisation/detail")
+    public String redirectToValorisationDetail() {
+        return "redirect:/stock/valorisation/detail";
     }
 }

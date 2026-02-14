@@ -82,4 +82,22 @@ public interface HistoriqueCoutRepository extends JpaRepository<HistoriqueCout, 
     // Supprimer les historiques d'une période (en cas de rejet)
     @Transactional
     void deleteByAnneeAndMois(Integer annee, Integer mois);
+
+    List<HistoriqueCout> findByArticleIdOrderByDateEffetDesc(UUID articleId);
+    
+    List<HistoriqueCout> findTop12ByArticleIdOrderByDateEffetDesc(UUID articleId);
+    
+    @Query("SELECT h FROM HistoriqueCout h WHERE h.article.id = :articleId " +
+           "AND h.depot.id = :depotId ORDER BY h.dateEffet DESC")
+    List<HistoriqueCout> findByArticleAndDepot(
+            @Param("articleId") UUID articleId, 
+            @Param("depotId") UUID depotId);
+    
+    @Query("SELECT h FROM HistoriqueCout h WHERE h.article.id = :articleId " +
+           "AND h.depot.id = :depotId AND h.dateEffet <= :date " +
+           "ORDER BY h.dateEffet DESC")
+    Optional<HistoriqueCout> findDernierAvantDate(
+            @Param("articleId") UUID articleId,
+            @Param("depotId") UUID depotId,
+            @Param("date") LocalDate date);
 }

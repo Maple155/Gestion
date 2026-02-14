@@ -291,4 +291,22 @@ public interface StockMovementRepository
                      @Param("methode") String methode,
                      @Param("dateDebut") LocalDateTime dateDebut,
                      @Param("dateFin") LocalDateTime dateFin);
+
+    @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
+           "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
+           "ORDER BY m.dateMouvement DESC")
+    List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetween(
+            @Param("articleId") UUID articleId,
+            @Param("depotId") UUID depotId,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+    
+            @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
+            "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
+            "ORDER BY m.dateMouvement DESC")
+     List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetweenOrderByDateMouvementDesc(
+             @Param("articleId") UUID articleId,
+             @Param("depotId") UUID depotId,
+             @Param("debut") LocalDateTime debut,
+             @Param("fin") LocalDateTime fin);
 }

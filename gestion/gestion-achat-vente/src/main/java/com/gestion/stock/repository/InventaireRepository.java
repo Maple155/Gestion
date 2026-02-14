@@ -97,7 +97,9 @@ public interface InventaireRepository extends JpaRepository<Inventaire, UUID> {
             @Param("mois") Integer mois,
             @Param("annee") Integer annee);
 
-           // Ajoutez cette méthode
-           List<Inventaire> findTop5ByStatutOrderByDateFinDesc(String statut);
+            List<Inventaire> findTop5ByStatutOrderByDateFinDesc(Inventaire.StatutInventaire statut);
+    
+            // Ajouter aussi cette méthode
+            List<Inventaire> findTop1ByStatutOrderByDateFinDesc(Inventaire.StatutInventaire statut);
 
 }

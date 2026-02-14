@@ -110,7 +110,7 @@ try {
     private double calculerTauxPrecisionReel() {
         try {
             // Récupérer le dernier inventaire terminé
-            List<Inventaire> derniersInventaires = inventaireRepository.findTop5ByStatutOrderByDateFinDesc("TERMINE");
+            List<Inventaire> derniersInventaires = inventaireRepository.findTop5ByStatutOrderByDateFinDesc(Inventaire.StatutInventaire.TERMINE);
 
             if (derniersInventaires.isEmpty()) {
                 return 95.0; // Valeur par défaut si pas d'inventaire
