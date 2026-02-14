@@ -241,7 +241,9 @@ public class FinanceController {
             if (bc == null) {
                 reason = "Alerte : BC manquant (Violation règle métier)";
             } else {
-                BonReception br = bonReceptionRepository.findByBonCommandeId(bc.getId()).orElse(null);
+                BonReception br = bonReceptionRepository
+                    .findFirstByBonCommandeIdOrderByDateReceptionDesc(bc.getId())
+                    .orElse(null);
                 if (br == null) {
                     reason = "Livraison non reçue";
                 } else if (!br.isConforme()) {
