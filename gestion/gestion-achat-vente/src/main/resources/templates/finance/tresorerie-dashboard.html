@@ -2,43 +2,147 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
 <body>
     <div th:fragment="content">
-        <div class="mb-8">
-            <h1 class="text-2xl font-bold text-slate-800">Flux de Trésorerie</h1>
-            <p class="text-slate-500">Suivi des encaissements réels et décaissements validés.</p>
+        <div class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Pilotage de Trésorerie</h1>
+                <p class="text-slate-500 text-sm">Vue combinée du Cash Réel et des Revenus Engagés (Factures Émises).</p>
+            </div>
+            <div class="text-right">
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Mise à jour</span>
+                <p class="text-sm font-bold text-slate-700" th:text="${#temporals.format(dateJour != null ? dateJour : T(java.time.LocalDate).now(), 'dd MMMM yyyy', #locale.FRENCH)}"></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-emerald-50 rounded-lg"><i data-lucide="wallet" class="w-5 h-5 text-emerald-600"></i></div>
+                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">DISPONIBLE</span>
+                </div>
+                <p class="text-slate-500 text-xs font-semibold uppercase">Cash Net (Réel)</p>
+                <h3 class="text-2xl font-black text-slate-800" th:text="${#numbers.formatCurrency(cashEstime)}">0 €</h3>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-amber-50 rounded-lg"><i data-lucide="clock" class="w-5 h-5 text-amber-600"></i></div>
+                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">ATTENTE</span>
+                </div>
+                <p class="text-slate-500 text-xs font-semibold uppercase">À Encaisser (Ventes)</p>
+                <h3 class="text-2xl font-black text-slate-800" th:text="${#numbers.formatCurrency(revenuPotentiel)}">0 €</h3>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-rose-50 rounded-lg"><i data-lucide="shopping-cart" class="w-5 h-5 text-rose-600"></i></div>
+                </div>
+                <p class="text-slate-500 text-xs font-semibold uppercase">Décaissements (Achat)</p>
+                <h3 class="text-2xl font-black text-slate-800" th:text="${#numbers.formatCurrency(decaissements)}">0 €</h3>
+            </div>
+
+            <div class="bg-indigo-600 p-5 rounded-xl shadow-lg shadow-indigo-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="p-2 bg-white/20 rounded-lg"><i data-lucide="trending-up" class="w-5 h-5 text-white"></i></div>
+                </div>
+                <p class="text-indigo-100 text-xs font-semibold uppercase">Trésorerie Projetée</p>
+                <h3 class="text-2xl font-black text-white" th:text="${#numbers.formatCurrency(tresorerieProjetee)}">0 €</h3>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-2xl text-white shadow-xl">
-                    <p class="text-blue-100 text-sm font-medium uppercase tracking-widest">Trésorerie Nette Estimée</p>
-                    <h2 class="text-5xl font-black mt-2" th:text="${#numbers.formatCurrency(cashEstime)}">0.00 €</h2>
-                    <div class="mt-8 flex space-x-4">
-                        <div class="bg-white/10 px-4 py-2 rounded-lg">
-                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Encaissements (+)</p>
-                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(encaissements)}">0</p>
-                        </div>
-                        <div class="bg-white/10 px-4 py-2 rounded-lg">
-                            <p class="text-[10px] opacity-60 uppercase font-bold text-white">Décaissements (-)</p>
-                            <p class="text-lg font-bold" th:text="${#numbers.formatCurrency(decaissements)}">0</p>
-                        </div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 class="font-bold text-slate-800">Dynamique de Facturation</h3>
+                        <p class="text-xs text-slate-400">Évolution du CA émis sur les 6 derniers mois</p>
                     </div>
+                </div>
+                <div class="h-80">
+                    <canvas id="forecastChart"></canvas>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl border border-slate-200">
-                <h3 class="font-bold text-slate-800 mb-4">Note Méthodologique</h3>
-                <ul class="space-y-4 text-sm text-slate-600">
-                    <li class="flex items-start">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
-                        Encaissements basés sur les paiements clients enregistrés.
-                    </li>
-                    <li class="flex items-start">
-                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500 mr-2 mt-0.5"></i>
-                        Décaissements basés sur les factures d'achat marquées "Payées".
-                    </li>
-                </ul>
+            <div class="space-y-6">
+                <div class="bg-slate-800 p-6 rounded-2xl text-white">
+                    <h3 class="font-bold mb-4 flex items-center text-indigo-400">
+                        <i data-lucide="shield-check" class="w-5 h-5 mr-2"></i> Note au DAF
+                    </h3>
+                    <div class="space-y-4 text-sm text-slate-300">
+                        <p>
+                            La <strong>Trésorerie Projetée</strong> est un indicateur de vigilance. Elle simule votre solde si 100% de vos factures clients "EMISES" étaient payées demain.
+                        </p>
+                        <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                            <p class="text-[11px] text-slate-400 uppercase font-bold mb-1 text-indigo-300">Règle de calcul</p>
+                            <p class="italic text-xs">Solde = (Somme Paiements reçus) - (Somme Factures Achat payées) + (Reste à percevoir des Factures Vente)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${revenuPotentiel > cashEstime}" class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500 mr-3 mt-0.5"></i>
+                    <div>
+                        <p class="text-amber-800 font-bold text-sm">Encours important</p>
+                        <p class="text-amber-700 text-xs">Vos factures en attente dépassent votre cash disponible. Pensez au recouvrement.</p>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script th:inline="javascript">
+            /*<![CDATA[*/
+            document.addEventListener('DOMContentLoaded', function() {
+                const ctx = document.getElementById('forecastChart').getContext('2d');
+                
+                // Récupération sécurisée des données Thymeleaf
+                const labels = /*[[${chartLabels}]]*/ [];
+                const caData = /*[[${chartDataCA}]]*/ [];
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'CA Facturé (€)',
+                            data: caData,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#6366f1',
+                            borderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                padding: 12,
+                                bodyFont: { size: 14 }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: '#f1f5f9' },
+                                ticks: {
+                                    callback: function(value) { return value.toLocaleString() + ' €'; }
+                                }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            });
+            /*]]>*/
+        </script>
     </div>
 </body>
 </html>

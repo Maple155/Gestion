@@ -35,13 +35,13 @@
                                     Livrer
                                 </button>
                             </form>
-                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT'}"
+                                        <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT') and c.statut.name() == 'LIVREE'}"
                                   th:action="@{/ventes/commandes/{id}/facturer(id=${c.id})}" method="post" class="inline">
                                 <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold">
                                     Facturer
                                 </button>
                             </form>
-                            <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() != 'ANNULEE'}"
+                                <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() != 'ANNULEE' and c.statut.name() != 'LIVREE' and c.statut.name() != 'FACTUREE'}"
                                     class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded text-xs font-bold"
                                     th:attr="data-action=@{/ventes/commandes/{id}/annuler(id=${c.id})}"
                                     data-title="Annulation"
@@ -49,7 +49,7 @@
                                     onclick="openMotifModal(this)">
                                 Annuler
                             </button>
-                            <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() == 'EN_ATTENTE'}"
+                                <button th:if="${(session.userRole == 'ADMIN' or session.userRole == 'RESPONSABLE_VENTES') and c.statut.name() == 'EN_ATTENTE'}"
                                     class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded text-xs font-bold"
                                     th:attr="data-action=@{/ventes/commandes/{id}/debloquer(id=${c.id})}"
                                     data-title="Déblocage"

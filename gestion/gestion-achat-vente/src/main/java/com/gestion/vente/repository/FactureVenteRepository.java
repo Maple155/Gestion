@@ -9,4 +9,5 @@ import com.gestion.vente.entity.FactureVente;
 
 public interface FactureVenteRepository extends JpaRepository<FactureVente, UUID> {
     List<FactureVente> findAllByOrderByDateFactureDesc();
+    boolean existsByCommandeId(UUID commandeId);
 }

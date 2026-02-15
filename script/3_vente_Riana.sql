@@ -118,6 +118,7 @@ CREATE TABLE backlog_stock_vente (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
 -- 4. Livraisons
 CREATE TABLE livraisons_clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

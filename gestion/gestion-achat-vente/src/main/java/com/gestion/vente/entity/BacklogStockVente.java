@@ -21,6 +21,9 @@ public class BacklogStockVente {
     @Column(name = "devis_id")
     private UUID devisId;
 
+    @Column(name = "demande_achat_id")
+    private UUID demandeAchatId;
+
     @Column(name = "article_id", nullable = false)
     private UUID articleId;
 

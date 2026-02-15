@@ -37,13 +37,27 @@ public class LivraisonService {
         ReservationStock reservation = reservationStockRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Réservation non trouvée: " + reservationId));
 
+                int quantiteALivrer = reservation.getQuantiteRestante();
+
+        log.info("Sortie stock depuis réservation {} - article: {} - depot: {} - reservee: {} - prelevee: {} - restante: {} - statut: {}",
+                reservation.getId(),
+                reservation.getArticle() != null ? reservation.getArticle().getId() : null,
+                reservation.getDepot() != null ? reservation.getDepot().getId() : null,
+                reservation.getQuantiteReservee(),
+                reservation.getQuantitePrelevee(),
+                reservation.getQuantiteRestante(),
+                reservation.getStatut());
+
         // Vérifier si la réservation est toujours active
         if (!ReservationStock.ReservationStatus.ACTIVE.equals(reservation.getStatut())) {
+                        log.warn("Réservation inactive: {} - statut: {}", reservation.getId(), reservation.getStatut());
             throw new RuntimeException("La réservation n'est pas active");
         }
 
         // Vérifier quantité restante
-        if (reservation.getQuantiteRestante() <= 0) {
+        if (quantiteALivrer <= 0) {
+                        log.warn("Réservation sans quantité restante: {} - restante: {}",
+                    reservation.getId(), quantiteALivrer);
             throw new RuntimeException("Aucune quantité à livrer");
         }
 
@@ -53,8 +67,14 @@ public class LivraisonService {
                 reservation.getDepot().getId())
                 .orElseThrow(() -> new RuntimeException("Stock non trouvé"));
 
-        if (stock.getQuantiteDisponible() < reservation.getQuantiteRestante()) {
-            throw new RuntimeException("Stock insuffisant. Disponible: " + stock.getQuantiteDisponible());
+        if (stock.getQuantiteTheorique() < quantiteALivrer) {
+            log.warn("Stock insuffisant pour réservation {} - article: {} - depot: {} - theorique: {} - a_livrer: {}",
+                    reservation.getId(),
+                    reservation.getArticle().getId(),
+                    reservation.getDepot().getId(),
+                    stock.getQuantiteTheorique(),
+                    quantiteALivrer);
+            throw new RuntimeException("Stock insuffisant. Théorique: " + stock.getQuantiteTheorique());
         }
 
         // Allocation du lot (FIFO/FEFO)
@@ -62,8 +82,7 @@ public class LivraisonService {
         if (reservation.getLot() != null) {
             lot = reservation.getLot();
         } else {
-            lot = allouerLotFEFO(reservation.getArticle(), reservation.getDepot(),
-                    reservation.getQuantiteRestante());
+            lot = allouerLotFEFO(reservation.getArticle(), reservation.getDepot(), quantiteALivrer);
         }
 
         // Créer le mouvement de sortie
@@ -77,7 +96,7 @@ public class LivraisonService {
                 .type(typeSortie)
                 .article(reservation.getArticle())
                 .depot(reservation.getDepot())
-                .quantite(reservation.getQuantiteRestante())
+                .quantite(quantiteALivrer)
                 .coutUnitaire(coutUnitaire)
                 .lot(lot)
                 .commandeClientId(reservation.getCommandeClientId())
@@ -95,9 +114,18 @@ public class LivraisonService {
         reservation.setStatut(ReservationStock.ReservationStatus.PRELEVEE);
         reservationStockRepository.save(reservation);
 
+        stockRepository.decrementerQuantiteTheorique(
+                reservation.getArticle().getId(),
+                reservation.getDepot().getId(),
+                quantiteALivrer);
+        stockRepository.decrementerQuantiteReservee(
+                reservation.getArticle().getId(),
+                reservation.getDepot().getId(),
+                quantiteALivrer);
+
         // Mettre à jour la quantité du lot
         if (lot != null) {
-            lot.setQuantiteActuelle(lot.getQuantiteActuelle() - reservation.getQuantiteRestante());
+                        lot.setQuantiteActuelle(lot.getQuantiteActuelle() - quantiteALivrer);
             if (lot.getQuantiteActuelle() == 0) {
                 lot.setStatut(Lot.LotStatus.EPUISE);
             }
@@ -107,7 +135,7 @@ public class LivraisonService {
         log.info("Sortie stock créée: {} - Article: {} - Quantité: {}",
                 mouvement.getReference(),
                 reservation.getArticle().getCodeArticle(),
-                reservation.getQuantiteRestante());
+                quantiteALivrer);
 
         return mouvementCree;
     }
