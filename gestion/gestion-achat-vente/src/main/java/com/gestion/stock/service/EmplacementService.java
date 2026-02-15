@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +18,7 @@ public class EmplacementService {
     private final EmplacementRepository emplacementRepository;
     private final ZoneStockageRepository zoneStockageRepository;
     private final DepotRepository depotRepository;
+    private final ArticleRepository articleRepository;
 
     /**
      * Trouver tous les emplacements actifs
@@ -143,4 +145,20 @@ public class EmplacementService {
         // En réalité, il faudrait vérifier qu'aucun lot n'est présent
         return emplacementRepository.findEmplacementsVides();
     }
+
+    // Dans EmplacementService.java
+public List<Emplacement> findEmplacementsDisponibles(UUID articleId, Integer quantity) {
+    // Récupérer l'article pour connaître ses caractéristiques
+    Article article = articleRepository.findById(articleId)
+            .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+    
+    // Trouver les emplacements actifs qui peuvent accueillir la quantité
+    List<Emplacement> emplacements = emplacementRepository.findByActifTrue();
+    
+    // Filtrer ceux qui ont la capacité suffisante
+    return emplacements.stream()
+            .filter(emp -> verifierCapacite(emp, article, quantity))
+            .collect(Collectors.toList());
+}
+
 }

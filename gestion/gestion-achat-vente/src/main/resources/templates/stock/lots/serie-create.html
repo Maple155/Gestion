@@ -41,11 +41,6 @@
                     Créer un nouveau numéro de série
                 </h1>
             </div>
-            <div>
-                <a th:href="@{/lots/series}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Annuler
-                </a>
-            </div>
         </div>
 
         <!-- Messages flash -->
@@ -194,15 +189,9 @@
                     
                     <!-- Boutons -->
                     <div class="d-flex justify-content-between">
-                        <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
-                            <i class="bi bi-x-circle"></i> Annuler
-                        </button>
                         <div class="btn-group">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-circle"></i> Créer la série
-                            </button>
-                            <button type="button" class="btn btn-primary" onclick="creerEtScanner()">
-                                <i class="bi bi-upc-scan"></i> Créer et scanner suivant
                             </button>
                         </div>
                     </div>

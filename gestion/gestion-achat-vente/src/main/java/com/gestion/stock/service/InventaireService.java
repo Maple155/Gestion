@@ -809,36 +809,165 @@ public class InventaireService {
 
     public Map<String, Object> getStatistiquesGlobales(Integer mois, Integer annee) {
         Map<String, Object> stats = new HashMap<>();
-
+        
         stats.put("mois", mois);
         stats.put("annee", annee);
-
+        
         if (mois != null && annee != null) {
             // Utiliser la nouvelle méthode du repository
             Long inventairesRealises = inventaireRepository.countByStatutAndDateCloture(
                     Inventaire.StatutInventaire.CLOTURE, mois, annee);
             stats.put("inventairesRealises", inventairesRealises != null ? inventairesRealises : 0);
-
+            
             // Calculer la précision moyenne
             BigDecimal precisionMoyenneMois = calculerPrecisionMoyenneParMois(mois, annee);
             stats.put("precisionMoyenneMois", precisionMoyenneMois);
+            
+            // Calculer le nombre d'articles comptés
+            Long articlesComptes = ligneInventaireRepository.countArticlesComptesByPeriode(mois, annee);
+            stats.put("articlesComptes", articlesComptes != null ? articlesComptes : 0);
+            
+            // Calculer la valeur totale des écarts
+            BigDecimal valeurEcartMois = ligneInventaireRepository.sumEcartValeurByPeriode(mois, annee);
+            stats.put("valeurEcartMois", valeurEcartMois != null ? valeurEcartMois : BigDecimal.ZERO);
+            
+            // Ajouter les répartitions par statut
+            stats.put("inventairesClotures", inventaireRepository.countByStatut(Inventaire.StatutInventaire.CLOTURE));
+            stats.put("inventairesEnCours", inventaireRepository.countByStatut(Inventaire.StatutInventaire.EN_COURS));
+            stats.put("inventairesPlanifies", inventaireRepository.countByStatut(Inventaire.StatutInventaire.PLANIFIE));
+            stats.put("inventairesTermines", inventaireRepository.countByStatut(Inventaire.StatutInventaire.TERMINE));
+            stats.put("inventairesAnnules", inventaireRepository.countByStatut(Inventaire.StatutInventaire.ANNULE));
         } else {
             stats.put("inventairesRealises", 0);
             stats.put("precisionMoyenneMois", BigDecimal.ZERO);
+            stats.put("articlesComptes", 0);
+            stats.put("valeurEcartMois", BigDecimal.ZERO);
+            stats.put("inventairesClotures", 0);
+            stats.put("inventairesEnCours", 0);
+            stats.put("inventairesPlanifies", 0);
+            stats.put("inventairesTermines", 0);
+            stats.put("inventairesAnnules", 0);
         }
-
+        
         return stats;
     }
 
-    public List<Map<String, Object>> getTopEcartsInventaire(Integer mois, Integer annee) {
-        // Implémenter la récupération des top écarts
-        return new ArrayList<>();
+/**
+ * Récupérer le top 5 des écarts d'inventaire pour une période donnée
+ */
+public List<Map<String, Object>> getTopEcartsInventaire(Integer mois, Integer annee) {
+    List<Map<String, Object>> topEcarts = new ArrayList<>();
+    
+    // Récupérer les lignes d'inventaire avec les plus grands écarts
+    List<Object[]> resultats = ligneInventaireRepository.findTopEcartsByPeriode(mois, annee);
+    
+    for (Object[] resultat : resultats) {
+        Map<String, Object> ecart = new HashMap<>();
+        
+        ecart.put("articleCode", resultat[0]); // code_article
+        ecart.put("articleLibelle", resultat[1]); // libelle
+        ecart.put("inventaireId", resultat[2]); // inventaire_id
+        ecart.put("inventaireReference", resultat[3]); // reference
+        ecart.put("ecart", resultat[4]); // ecart
+        ecart.put("valeurEcart", resultat[5]); // ecart_valeur
+        ecart.put("dateComptage", resultat[6]); // date_comptage
+        ecart.put("statut", resultat[7]); // statut
+        
+        topEcarts.add(ecart);
     }
+    
+    return topEcarts;
+}
 
-    public Map<String, Object> getEvolutionInventaires(Integer annee) {
-        // Implémenter l'évolution mensuelle
-        return new HashMap<>();
+    /**
+ * Récupérer l'évolution mensuelle des inventaires pour une année donnée
+ */
+public Map<String, Object> getEvolutionInventaires(Integer annee) {
+    Map<String, Object> evolution = new HashMap<>();
+    
+    if (annee == null) {
+        annee = LocalDate.now().getYear();
     }
+    
+    // Initialiser les tableaux pour les 12 mois
+    Integer[] inventairesParMois = new Integer[12];
+    BigDecimal[] precisionParMois = new BigDecimal[12];
+    
+    // Initialiser avec des valeurs par défaut (0)
+    for (int i = 0; i < 12; i++) {
+        inventairesParMois[i] = 0;
+        precisionParMois[i] = BigDecimal.ZERO;
+    }
+    
+    // Récupérer les données d'inventaires clôturés par mois
+    List<Object[]> resultatsInventaires = inventaireRepository.countInventairesCloturesParMois(annee);
+    for (Object[] resultat : resultatsInventaires) {
+        Integer mois = ((Number) resultat[0]).intValue() - 1; // -1 car tableau indexé à 0
+        Long nombre = (Long) resultat[1];
+        if (mois >= 0 && mois < 12) {
+            inventairesParMois[mois] = nombre.intValue();
+        }
+    }
+    
+    // Calculer la précision moyenne par mois
+    for (int mois = 0; mois < 12; mois++) {
+        int moisIndex = mois + 1;
+        BigDecimal precision = calculerPrecisionMoyenneParMois(moisIndex, annee);
+        precisionParMois[mois] = precision;
+    }
+    
+    // Préparer les labels des mois
+    String[] moisLabels = new String[12];
+    for (int i = 0; i < 12; i++) {
+        moisLabels[i] = LocalDate.of(annee, i + 1, 1).getMonth().toString().substring(0, 3);
+    }
+    
+    evolution.put("annee", annee);
+    evolution.put("moisLabels", moisLabels);
+    evolution.put("inventairesParMois", inventairesParMois);
+    evolution.put("precisionParMois", precisionParMois);
+    
+    // Calculer les totaux et moyennes
+    int totalInventaires = Arrays.stream(inventairesParMois).mapToInt(Integer::intValue).sum();
+    BigDecimal precisionAnnuelle = Arrays.stream(precisionParMois)
+            .filter(p -> p.compareTo(BigDecimal.ZERO) > 0)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    
+    long nbMoisAvecPrecision = Arrays.stream(precisionParMois)
+            .filter(p -> p.compareTo(BigDecimal.ZERO) > 0)
+            .count();
+    
+    if (nbMoisAvecPrecision > 0) {
+        precisionAnnuelle = precisionAnnuelle.divide(BigDecimal.valueOf(nbMoisAvecPrecision), 2, RoundingMode.HALF_UP);
+    }
+    
+    evolution.put("totalInventaires", totalInventaires);
+    evolution.put("precisionAnnuelle", precisionAnnuelle);
+    
+    // Trouver le meilleur et le pire mois
+    int maxInventaires = 0;
+    int maxInventairesMois = 0;
+    BigDecimal maxPrecision = BigDecimal.ZERO;
+    int maxPrecisionMois = 0;
+    
+    for (int i = 0; i < 12; i++) {
+        if (inventairesParMois[i] > maxInventaires) {
+            maxInventaires = inventairesParMois[i];
+            maxInventairesMois = i + 1;
+        }
+        if (precisionParMois[i].compareTo(maxPrecision) > 0) {
+            maxPrecision = precisionParMois[i];
+            maxPrecisionMois = i + 1;
+        }
+    }
+    
+    evolution.put("moisMaxInventaires", maxInventairesMois);
+    evolution.put("maxInventaires", maxInventaires);
+    evolution.put("moisMaxPrecision", maxPrecisionMois);
+    evolution.put("maxPrecision", maxPrecision);
+    
+    return evolution;
+}
 
     public List<Inventaire> getInventairesRecents() {
         return inventaireRepository.findTop5ByOrderByCreatedAtDesc();
@@ -946,4 +1075,38 @@ public class InventaireService {
         }
     }
 
+    /**
+ * Récupérer la répartition des inventaires par statut
+ */
+public Map<String, Object> getRepartitionParStatut() {
+    Map<String, Object> repartition = new HashMap<>();
+    
+    long clotures = inventaireRepository.countByStatut(Inventaire.StatutInventaire.CLOTURE);
+    long enCours = inventaireRepository.countByStatut(Inventaire.StatutInventaire.EN_COURS);
+    long planifies = inventaireRepository.countByStatut(Inventaire.StatutInventaire.PLANIFIE);
+    long annules = inventaireRepository.countByStatut(Inventaire.StatutInventaire.ANNULE);
+    
+    repartition.put("clotures", clotures);
+    repartition.put("enCours", enCours);
+    repartition.put("planifies", planifies);
+    repartition.put("annules", annules);
+    
+    // Calculer les pourcentages
+    long total = clotures + enCours + planifies + annules;
+    if (total > 0) {
+        repartition.put("pourcentageClotures", Math.round((clotures * 100.0) / total));
+        repartition.put("pourcentageEnCours", Math.round((enCours * 100.0) / total));
+        repartition.put("pourcentagePlanifies", Math.round((planifies * 100.0) / total));
+        repartition.put("pourcentageAnnules", Math.round((annules * 100.0) / total));
+    } else {
+        repartition.put("pourcentageClotures", 0);
+        repartition.put("pourcentageEnCours", 0);
+        repartition.put("pourcentagePlanifies", 0);
+        repartition.put("pourcentageAnnules", 0);
+    }
+    
+    repartition.put("total", total);
+    
+    return repartition;
+}
 }
