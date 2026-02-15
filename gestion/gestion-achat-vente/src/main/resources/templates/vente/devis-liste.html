@@ -35,6 +35,7 @@
                                   th:classappend="${d.statut.name() == 'BROUILLON' ? ' bg-slate-200 text-slate-700' :
                                                   d.statut.name() == 'A_VALIDER' ? ' bg-amber-100 text-amber-700' :
                                                   d.statut.name() == 'VALIDE' ? ' bg-emerald-100 text-emerald-700' :
+                                                  d.statut.name() == 'TRANSFORME' ? ' bg-blue-100 text-blue-700' :
                                                   d.statut.name() == 'EXPIRE' ? ' bg-slate-300 text-slate-700' :
                                                   d.statut.name() == 'ANNULE' ? ' bg-rose-100 text-rose-700' : ''}"
                                   th:text="${d.statut}">STATUT</span>

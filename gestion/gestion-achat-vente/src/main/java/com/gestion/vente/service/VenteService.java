@@ -273,6 +273,9 @@ public class VenteService {
             saved = commandeRepository.save(saved);
         }
 
+        devis.setStatut(StatutDevis.TRANSFORME);
+        devisRepository.save(devis);
+
         return saved;
     }
 
