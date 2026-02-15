@@ -111,71 +111,96 @@ public class StockService {
                 return mouvementSauvegarde;
         }
 
-private void mettreAJourStockTheorique(UUID articleId, UUID depotId, Integer quantite, boolean isEntree) {
-    // Utiliser une approche transactionnelle avec upsert (insert or update)
-    try {
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
+// private void mettreAJourStockTheorique(UUID articleId, UUID depotId, Integer quantite, boolean isEntree) {
+//     // Utiliser une approche transactionnelle avec upsert (insert or update)
+//     try {
+//         Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
         
-        if (stockOpt.isPresent()) {
-            Stock stock = stockOpt.get();
-            if (isEntree) {
-                stock.setQuantiteTheorique(stock.getQuantiteTheorique() + quantite);
-                stock.setQuantitePhysique(stock.getQuantitePhysique() + quantite);
-            } else {
-                // Vérifier qu'on ne fait pas de sortie supérieure au stock disponible
-                if (stock.getQuantiteTheorique() < quantite) {
-                    throw new RuntimeException("Stock insuffisant pour article " + articleId + 
-                            " dans dépôt " + depotId + 
-                            ". Disponible: " + stock.getQuantiteTheorique() + 
-                            ", Requis: " + quantite);
-                }
-                stock.setQuantiteTheorique(stock.getQuantiteTheorique() - quantite);
-                stock.setQuantitePhysique(stock.getQuantitePhysique() - quantite);
-            }
-            stock.setDateDernierMouvement(LocalDateTime.now());
-            stockRepository.save(stock);
-        } else {
-            // Si c'est une sortie sans stock existant, c'est une erreur
-            if (!isEntree) {
-                throw new RuntimeException("Impossible de faire une sortie: stock inexistant pour article " + 
-                        articleId + " dans dépôt " + depotId);
-            }
+//         if (stockOpt.isPresent()) {
+//             Stock stock = stockOpt.get();
+//             if (isEntree) {
+//                 stock.setQuantiteTheorique(stock.getQuantiteTheorique() + quantite);
+//                 stock.setQuantitePhysique(stock.getQuantitePhysique() + quantite);
+//             } else {
+//                 // Vérifier qu'on ne fait pas de sortie supérieure au stock disponible
+//                 if (stock.getQuantiteTheorique() < quantite) {
+//                     throw new RuntimeException("Stock insuffisant pour article " + articleId + 
+//                             " dans dépôt " + depotId + 
+//                             ". Disponible: " + stock.getQuantiteTheorique() + 
+//                             ", Requis: " + quantite);
+//                 }
+//                 stock.setQuantiteTheorique(stock.getQuantiteTheorique() - quantite);
+//                 stock.setQuantitePhysique(stock.getQuantitePhysique() - quantite);
+//             }
+//             stock.setDateDernierMouvement(LocalDateTime.now());
+//             stockRepository.save(stock);
+//         } else {
+//             // Si c'est une sortie sans stock existant, c'est une erreur
+//             if (!isEntree) {
+//                 throw new RuntimeException("Impossible de faire une sortie: stock inexistant pour article " + 
+//                         articleId + " dans dépôt " + depotId);
+//             }
             
-            // Créer un nouveau stock si inexistant (entrée)
-            Article article = articleRepository.findById(articleId)
-                    .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+//             // Créer un nouveau stock si inexistant (entrée)
+//             Article article = articleRepository.findById(articleId)
+//                     .orElseThrow(() -> new RuntimeException("Article non trouvé"));
             
-            Depot depot = depotRepository.findById(depotId)
-                    .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
+//             Depot depot = depotRepository.findById(depotId)
+//                     .orElseThrow(() -> new RuntimeException("Dépôt non trouvé"));
             
-            Stock stock = Stock.builder()
-                    .article(article)
-                    .depot(depot)
-                    .quantiteTheorique(quantite)
-                    .quantitePhysique(quantite)
-                    .quantiteReservee(0)
-                    .dateDernierMouvement(LocalDateTime.now())
-                    .build();
+//             Stock stock = Stock.builder()
+//                     .article(article)
+//                     .depot(depot)
+//                     .quantiteTheorique(quantite)
+//                     .quantitePhysique(quantite)
+//                     .quantiteReservee(0)
+//                     .dateDernierMouvement(LocalDateTime.now())
+//                     .build();
             
-            // Calculer la valeur initiale du stock
-            BigDecimal coutMoyen = article.getCoutStandard() != null ? article.getCoutStandard()
-                    : BigDecimal.ZERO;
-            stock.setValeurStockCump(coutMoyen.multiply(BigDecimal.valueOf(quantite)));
+//             // Calculer la valeur initiale du stock
+//             BigDecimal coutMoyen = article.getCoutStandard() != null ? article.getCoutStandard()
+//                     : BigDecimal.ZERO;
+//             stock.setValeurStockCump(coutMoyen.multiply(BigDecimal.valueOf(quantite)));
             
-            stockRepository.save(stock);
-        }
-    } catch (DataIntegrityViolationException e) {
-        // Gérer l'exception de contrainte unique
-        if (e.getMessage().contains("unique constraint") || e.getMessage().contains("duplicate key")) {
-            // Réessayer l'opération (retry)
-            log.warn("Conflit de contrainte unique détecté, nouvelle tentative...");
-            mettreAJourStockTheorique(articleId, depotId, quantite, isEntree);
-        } else {
-            throw e;
-        }
-    }
-}
+//             stockRepository.save(stock);
+//         }
+//     } catch (DataIntegrityViolationException e) {
+//         // Gérer l'exception de contrainte unique
+//         if (e.getMessage().contains("unique constraint") || e.getMessage().contains("duplicate key")) {
+//             // Réessayer l'opération (retry)
+//             log.warn("Conflit de contrainte unique détecté, nouvelle tentative...");
+//             mettreAJourStockTheorique(articleId, depotId, quantite, isEntree);
+//         } else {
+//             throw e;
+//         }
+//     }
+// }
+        private void mettreAJourStockTheorique(UUID articleId, UUID depotId, Integer quantite, boolean isEntree) {
+        log.info("Mise à jour stock : Article={}, Depot={}, Quantité={}, IsEntree={}", articleId, depotId, quantite, isEntree);
 
+        if (isEntree) {
+                // Récupérer le coût standard pour la valeur initiale si le stock n'existe pas encore
+                Article article = articleRepository.findById(articleId)
+                        .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+                
+                BigDecimal prixUnitaire = article.getCoutStandard() != null ? article.getCoutStandard() : BigDecimal.ZERO;
+                BigDecimal valeurInitiale = prixUnitaire.multiply(BigDecimal.valueOf(quantite));
+
+                // Appel de l'UPSERT atomique
+                stockRepository.upsertStockReception(articleId, depotId, quantite, valeurInitiale);
+                
+        } else {
+                // Pour les sorties, on garde la vérification de sécurité
+                Stock stock = stockRepository.findByArticleIdAndDepotId(articleId, depotId)
+                        .orElseThrow(() -> new RuntimeException("Stock inexistant pour cet article dans ce dépôt"));
+
+                if (stock.getQuantiteTheorique() < quantite) {
+                throw new RuntimeException("Stock insuffisant. Disponible: " + stock.getQuantiteTheorique());
+                }
+
+                stockRepository.decrementerQuantiteTheorique(articleId, depotId, quantite);
+        }
+        }
         private void recalculerCUMP(UUID articleId, UUID depotId, BigDecimal coutEntree, Integer quantiteEntree) {
                 Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
 
