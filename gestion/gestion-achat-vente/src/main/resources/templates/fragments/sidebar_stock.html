@@ -86,6 +86,13 @@
         margin-left: 0.25rem;
         border-left: 1px solid rgb(51, 65, 85);
       }
+      
+      /* Style pour le bouton de déconnexion en bas */
+      .logout-container {
+        margin-top: auto;
+        padding: 1rem 0.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.1);
+      }
     </style>
   </head>
 
@@ -319,6 +326,16 @@
             </div>
           </a>
         </nav>
+
+        <!-- Bouton de déconnexion repositionné en bas -->
+        <div class="logout-container">
+          <a th:href="@{/logout}" class="nav-link-main w-full text-red-400 hover:text-red-300 hover:bg-red-500/10">
+            <div class="flex items-center justify-start">
+              <i data-lucide="log-out" class="mr-3 w-5 h-5"></i>
+              <span class="font-medium text-sm">Déconnexion</span>
+            </div>
+          </a>
+        </div>
 
         <div class="p-4 border-t border-slate-800/50 bg-black/10">
           <div class="flex items-center p-2">

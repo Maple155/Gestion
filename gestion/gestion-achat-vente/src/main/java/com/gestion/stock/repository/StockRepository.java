@@ -145,33 +145,67 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
         List<Stock> findStocksObsoletes(@Param("dateLimite") LocalDateTime dateLimite);
 
         Page<Stock> findByDepotId(UUID depotId, Pageable pageable);
-    
+
         // Méthode pour compter les stocks par dépôt
         Long countByDepotId(UUID depotId);
+
         @Modifying
         @Transactional
         @Query(value = """
-        INSERT INTO stocks (
-                id, article_id, depot_id, 
-                quantite_theorique, quantite_physique, quantite_reservee, 
-                valeur_stock_cump, date_dernier_mouvement, updated_at
-        )
-        VALUES (
-                gen_random_uuid(), :articleId, :depotId, 
-                :quantite, :quantite, 0, 
-                :valeurInitiale, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-        )
-        ON CONFLICT (article_id, depot_id) 
-        DO UPDATE SET 
-                quantite_theorique = stocks.quantite_theorique + EXCLUDED.quantite_theorique,
-                quantite_physique = stocks.quantite_physique + EXCLUDED.quantite_physique,
-                date_dernier_mouvement = EXCLUDED.date_dernier_mouvement,
-                updated_at = EXCLUDED.updated_at
-        """, nativeQuery = true)
+                        INSERT INTO stocks (
+                                id, article_id, depot_id,
+                                quantite_theorique, quantite_physique, quantite_reservee,
+                                valeur_stock_cump, date_dernier_mouvement, updated_at
+                        )
+                        VALUES (
+                                gen_random_uuid(), :articleId, :depotId,
+                                :quantite, :quantite, 0,
+                                :valeurInitiale, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        )
+                        ON CONFLICT (article_id, depot_id)
+                        DO UPDATE SET
+                                quantite_theorique = stocks.quantite_theorique + EXCLUDED.quantite_theorique,
+                                quantite_physique = stocks.quantite_physique + EXCLUDED.quantite_physique,
+                                date_dernier_mouvement = EXCLUDED.date_dernier_mouvement,
+                                updated_at = EXCLUDED.updated_at
+                        """, nativeQuery = true)
         void upsertStockReception(
-        @Param("articleId") UUID articleId, 
-        @Param("depotId") UUID depotId, 
-        @Param("quantite") Integer quantite,
-        @Param("valeurInitiale") BigDecimal valeurInitiale
-        );
+                        @Param("articleId") UUID articleId,
+                        @Param("depotId") UUID depotId,
+                        @Param("quantite") Integer quantite,
+                        @Param("valeurInitiale") BigDecimal valeurInitiale);
+
+        // Récupérer les articles avec stock bas
+        // @Query("SELECT s FROM Stock s WHERE s.quantiteDisponible < s.article.stockMinimum AND s.article.actif = true")
+        // List<Stock> findArticlesStockBas();
+
+        // // Récupérer les articles en surstock
+        // @Query("SELECT s FROM Stock s WHERE s.quantiteDisponible > s.article.stockMaximum AND s.article.stockMaximum > 0")
+        // List<Stock> findArticlesSurStock();
+
+        // Récupérer la valeur totale du stock
+        // @Query("SELECT SUM(s.valeurStockCump) FROM Stock s")
+        // BigDecimal getValeurTotaleStock();
+
+        // // Récupérer la valeur du stock par dépôt
+        // @Query("SELECT s.depot.nom, SUM(s.valeurStockCump) FROM Stock s GROUP BY s.depot.nom")
+        // List<Object[]> getValeurStockParDepot();
+
+        // // Compter les articles avec stock non nul
+        // long countByQuantiteTheoriqueGreaterThan(int quantite);
+
+        // Récupérer le stock par article avec informations détaillées
+        // @Query("SELECT new map(" +
+        //                 "s.article.id as articleId, " +
+        //                 "s.depot.id as depotId, " +
+        //                 "s.depot.nom as depotNom, " +
+        //                 "s.quantiteTheorique as quantiteTheorique, " +
+        //                 "s.quantitePhysique as quantitePhysique, " +
+        //                 "s.quantiteReservee as quantiteReservee, " +
+        //                 "s.quantiteDisponible as quantiteDisponible, " +
+        //                 "s.coutUnitaireMoyen as coutUnitaireMoyen, " +
+        //                 "s.valeurStockCump as valeurStockCump, " +
+        //                 "s.dateDernierMouvement as dateDernierMouvement) " +
+        //                 "FROM Stock s WHERE s.article.id = :articleId")
+        // List<Object[]> getStockParDepotDetail(@Param("articleId") UUID articleId);
 }
