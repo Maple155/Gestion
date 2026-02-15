@@ -119,32 +119,32 @@ INSERT INTO series (id, numero_serie, article_id, lot_id, statut, date_reception
 ('d2333333-3333-3333-3333-333333333333', 'SN-DELLXPS-2401003', 'c3333333-3333-3333-3333-333333333333', 'd1555555-5555-5555-5555-555555555555', 'EN_STOCK', '2024-01-05 14:30:00', 'bbbbbbbb-bbbb-3333-3333-333333333333');
 
 -- 12. Quelques mouvements de stock (avec cast UUID)
-INSERT INTO mouvements_stock (id, reference, type_mouvement_id, article_id, depot_id, quantite, cout_unitaire, date_mouvement, utilisateur_id) 
-SELECT 
-    gen_random_uuid(),
-    'MVT-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-000001',
-    id,
-    'c1111111-1111-1111-1111-111111111111'::uuid,
-    'ffffffff-1111-1111-1111-111111111111'::uuid,
-    25,
-    250.00,
-    '2024-01-15 10:30:00'::timestamp,
-    '33333333-3333-3333-3333-333333333333'::uuid
-FROM types_mouvement WHERE code = 'RECEPTION_FOURNISSEUR'
-UNION ALL
-SELECT 
-    gen_random_uuid(),
-    'MVT-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-000002',
-    id,
-    'c4444444-4444-4444-4444-444444444444'::uuid,
-    'ffffffff-2222-2222-2222-222222222222'::uuid,
-    150,
-    0.85,
-    '2024-01-17 08:45:00'::timestamp,
-    '33333333-3333-3333-3333-333333333333'::uuid
-FROM types_mouvement WHERE code = 'RECEPTION_FOURNISSEUR';
+-- INSERT INTO mouvements_stock (id, reference, type_mouvement_id, article_id, depot_id, quantite, cout_unitaire, date_mouvement, utilisateur_id) 
+-- SELECT 
+--     gen_random_uuid(),
+--     'MVT-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-000001',
+--     id,
+--     'c1111111-1111-1111-1111-111111111111'::uuid,
+--     'ffffffff-1111-1111-1111-111111111111'::uuid,
+--     25,
+--     250.00,
+--     '2024-01-15 10:30:00'::timestamp,
+--     '33333333-3333-3333-3333-333333333333'::uuid
+-- FROM types_mouvement WHERE code = 'RECEPTION_FOURNISSEUR'
+-- UNION ALL
+-- SELECT 
+--     gen_random_uuid(),
+--     'MVT-' || EXTRACT(YEAR FROM CURRENT_DATE) || '-000002',
+--     id,
+--     'c4444444-4444-4444-4444-444444444444'::uuid,
+--     'ffffffff-2222-2222-2222-222222222222'::uuid,
+--     150,
+--     0.85,
+--     '2024-01-17 08:45:00'::timestamp,
+--     '33333333-3333-3333-3333-333333333333'::uuid
+-- FROM types_mouvement WHERE code = 'RECEPTION_FOURNISSEUR';
 
--- 13. Reservations de stock (commande_client_id doit etre UUID)
-INSERT INTO reservations_stock (id, reference, article_id, depot_id, quantite_reservee, commande_client_id, date_reservation, utilisateur_id, statut) VALUES
-('d3111111-1111-1111-1111-111111111111', 'RES-2024-0001', 'c1111111-1111-1111-1111-111111111111', 'ffffffff-1111-1111-1111-111111111111', 5, 'e0000001-0001-0001-0001-000000000001', '2024-01-18 09:00:00', '33333333-3333-3333-3333-333333333333', 'ACTIVE'),
-('d3222222-2222-2222-2222-222222222222', 'RES-2024-0002', 'c3333333-3333-3333-3333-333333333333', 'ffffffff-1111-1111-1111-111111111111', 2, 'e0000002-0002-0002-0002-000000000002', '2024-01-18 10:30:00', '33333333-3333-3333-3333-333333333333', 'ACTIVE');
+-- -- 13. Reservations de stock (commande_client_id doit etre UUID)
+-- INSERT INTO reservations_stock (id, reference, article_id, depot_id, quantite_reservee, commande_client_id, date_reservation, utilisateur_id, statut) VALUES
+-- ('d3111111-1111-1111-1111-111111111111', 'RES-2024-0001', 'c1111111-1111-1111-1111-111111111111', 'ffffffff-1111-1111-1111-111111111111', 5, 'e0000001-0001-0001-0001-000000000001', '2024-01-18 09:00:00', '33333333-3333-3333-3333-333333333333', 'ACTIVE'),
+-- ('d3222222-2222-2222-2222-222222222222', 'RES-2024-0002', 'c3333333-3333-3333-3333-333333333333', 'ffffffff-1111-1111-1111-111111111111', 2, 'e0000002-0002-0002-0002-000000000002', '2024-01-18 10:30:00', '33333333-3333-3333-3333-333333333333', 'ACTIVE');
