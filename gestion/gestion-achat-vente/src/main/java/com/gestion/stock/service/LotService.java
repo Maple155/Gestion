@@ -835,13 +835,20 @@ public class LotService {
     /**
      * Sortie de stock en méthode FIFO (multi-lots)
      * Retourne le détail des lots utilisés et le coût total de sortie
+     * ✅ Avec fallback si les lots n'ont pas d'emplacement assigné
      */
     @Transactional
     public Map<String, Object> sortirStockFIFO(UUID articleId, UUID depotId, Integer quantiteASortir, String motif) {
         log.info("Sortie FIFO - Article: {}, Dépôt: {}, Quantité: {}", articleId, depotId, quantiteASortir);
         
-        // Récupérer les lots disponibles triés par date de réception (FIFO)
+        // ✅ Récupérer les lots disponibles triés par date de réception (FIFO)
         List<Lot> lotsDisponibles = lotRepository.findByArticleIdAndDepotOrderByDateReceptionAsc(articleId, depotId);
+        
+        // ✅ FALLBACK: Si aucun lot trouvé (lots sans emplacement), utiliser la méthode par article seul
+        if (lotsDisponibles.isEmpty()) {
+            log.info("Sortie FIFO: Aucun lot avec emplacement, utilisation du fallback par article");
+            lotsDisponibles = lotRepository.findLotsForFIFOByArticle(articleId);
+        }
 
         if (lotsDisponibles.isEmpty()) {
             throw new RuntimeException("Aucun lot disponible pour cet article dans ce dépôt");

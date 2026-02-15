@@ -81,14 +81,14 @@
         </div>
         
         <!-- Alertes -->
-        <div th:if="${details.stockDisponible < article.stockMinimum}" class="alert alert-warning">
+        <div th:if="${details.stockDisponible != null and article.stockMinimum != null and details.stockDisponible < article.stockMinimum}" class="alert alert-warning">
             <i class="bi bi-exclamation-triangle"></i>
             <strong>Alerte stock!</strong> Stock disponible (
-            <span th:text="${details.stockDisponible}">150</span>) inférieur au stock minimum (
-            <span th:text="${article.stockMinimum}">200</span>)
+            <span th:text="${details.stockDisponible ?: 0}">150</span>) inférieur au stock minimum (
+            <span th:text="${article.stockMinimum ?: 0}">200</span>)
         </div>
         
-        <div th:if="${details.stockDisponible == 0}" class="alert alert-danger">
+        <div th:if="${details.stockDisponible != null and details.stockDisponible == 0}" class="alert alert-danger">
             <i class="bi bi-x-circle"></i>
             <strong>Rupture de stock!</strong> Aucun stock disponible
         </div>
@@ -97,17 +97,17 @@
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="stat-card">
-                    <div class="stat-value" th:text="${details.stockTotal} ?: 0">200</div>
+                    <div class="stat-value" th:text="${details.stockTotal ?: 0}">200</div>
                     <div class="stat-label">Stock total</div>
                     <small class="text-muted">
-                        Disponible: <span th:text="${details.stockDisponible}">150</span>
+                        Disponible: <span th:text="${details.stockDisponible ?: 0}">150</span>
                     </small>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="stat-value" 
-                         th:text="${details.valeurStock} ? ${#numbers.formatCurrency(details.valeurStock)} : 'N/A'">
+                         th:text="${details.valeurStock != null ? #numbers.formatCurrency(details.valeurStock) : 'N/A'}">
                         2.500 €
                     </div>
                     <div class="stat-label">Valeur stock</div>
@@ -116,11 +116,11 @@
             </div>
             <div class="col-md-3">
                 <div class="stat-card">
-                    <div class="stat-value" th:text="${details.rotation} ?: 0">4.2</div>
+                    <div class="stat-value" th:text="${details.rotation ?: 0}">4.2</div>
                     <div class="stat-label">Rotation (an)</div>
                     <small class="text-muted">
-                        Entrées: <span th:text="${details.entrees30j}">25</span> | 
-                        Sorties: <span th:text="${details.sorties30j}">45</span>
+                        Entrées: <span th:text="${details.entrees30j ?: 0}">25</span> | 
+                        Sorties: <span th:text="${details.sorties30j ?: 0}">45</span>
                     </small>
                 </div>
             </div>
@@ -219,19 +219,19 @@
                             <dl class="row">
                                 <dt class="col-sm-4">Méthode</dt>
                                 <dd class="col-sm-8">
-                                    <span th:class="'badge badge-methode-' + ${article.methodeValorisation?.toLowerCase()}"
-                                          th:text="${article.methodeValorisation}">FEFO</span>
+                                    <span th:class="'badge badge-methode-' + ${article.methodeValorisation?.toLowerCase() ?: 'default'}"
+                                          th:text="${article.methodeValorisation ?: 'N/A'}">FEFO</span>
                                 </dd>
                                 
                                 <dt class="col-sm-4">Coût standard</dt>
                                 <dd class="col-sm-8" 
-                                    th:text="${article.coutStandard} ? ${#numbers.formatCurrency(article.coutStandard)} : 'Non défini'">
+                                    th:text="${article.coutStandard != null ? #numbers.formatCurrency(article.coutStandard) : 'Non défini'}">
                                     1.20 €
                                 </dd>
                                 
                                 <dt class="col-sm-4">Prix vente HT</dt>
                                 <dd class="col-sm-8" 
-                                    th:text="${article.prixVenteHt} ? ${#numbers.formatCurrency(article.prixVenteHt)} : 'Non défini'">
+                                    th:text="${article.prixVenteHt != null ? #numbers.formatCurrency(article.prixVenteHt) : 'Non défini'}">
                                     1.80 €
                                 </dd>
                                 
@@ -271,28 +271,28 @@
                                 
                                 <dt class="col-sm-4">Durée de vie</dt>
                                 <dd class="col-sm-8" 
-                                    th:text="${article.dureeVieJours} ? article.dureeVieJours + ' jours' : 'Illimitée'">
+                                    th:text="${article.dureeVieJours != null ? article.dureeVieJours + ' jours' : 'Illimitée'}">
                                     30 jours
                                 </dd>
                                 
                                 <dt class="col-sm-4">Stock minimum</dt>
-                                <dd class="col-sm-8" th:text="${article.stockMinimum}">100</dd>
+                                <dd class="col-sm-8" th:text="${article.stockMinimum ?: 0}">100</dd>
                                 
                                 <dt class="col-sm-4">Stock sécurité</dt>
-                                <dd class="col-sm-8" th:text="${article.stockSecurite}">200</dd>
+                                <dd class="col-sm-8" th:text="${article.stockSecurite ?: 0}">200</dd>
                                 
                                 <dt class="col-sm-4">Stock maximum</dt>
-                                <dd class="col-sm-8" th:text="${article.stockMaximum} ?: 'Illimité'">500</dd>
+                                <dd class="col-sm-8" th:text="${article.stockMaximum ?: 'Illimité'}">500</dd>
                                 
                                 <dt class="col-sm-4">Poids</dt>
                                 <dd class="col-sm-8" 
-                                    th:text="${article.poidsKg} ? article.poidsKg + ' kg' : 'Non défini'">
+                                    th:text="${article.poidsKg != null ? article.poidsKg + ' kg' : 'Non défini'}">
                                     0.125 kg
                                 </dd>
                                 
                                 <dt class="col-sm-4">Volume</dt>
                                 <dd class="col-sm-8" 
-                                    th:text="${article.volumeM3} ? article.volumeM3 + ' m³' : 'Non défini'">
+                                    th:text="${article.volumeM3 != null ? article.volumeM3 + ' m³' : 'Non défini'}">
                                     0.001 m³
                                 </dd>
                             </dl>
@@ -366,26 +366,26 @@
                         </thead>
                         <tbody>
                             <tr th:each="stock : ${stockParDepot}"
-                                th:class="${(stock.quantiteDisponible == 0) ? 'table-danger' : 
-                                          (stock.quantiteDisponible < article.stockMinimum) ? 'table-warning' : ''}">
-                                <td th:text="${stock.depot.nom}">Entrepôt Central</td>
-                                <td th:text="${stock.quantiteTheorique}">200</td>
-                                <td th:text="${stock.quantitePhysique}">200</td>
-                                <td th:text="${stock.quantiteReservee}">50</td>
+                                th:class="${(stock.quantiteDisponible != null and stock.quantiteDisponible == 0) ? 'table-danger' : 
+                                          (stock.quantiteDisponible != null and article.stockMinimum != null and stock.quantiteDisponible < article.stockMinimum) ? 'table-warning' : ''}">
+                                <td th:text="${stock.depot?.nom ?: 'N/A'}">Entrepôt Central</td>
+                                <td th:text="${stock.quantiteTheorique ?: 0}">200</td>
+                                <td th:text="${stock.quantitePhysique ?: 0}">200</td>
+                                <td th:text="${stock.quantiteReservee ?: 0}">50</td>
                                 <td>
-                                    <span th:text="${stock.quantiteDisponible}">150</span>
+                                    <span th:text="${stock.quantiteDisponible ?: 0}">150</span>
                                     <div class="progress" style="height: 5px;">
                                         <div class="progress-bar" 
-                                             th:class="${(stock.quantiteDisponible < article.stockMinimum) ? 'bg-warning' : 
-                                                       (stock.quantiteDisponible == 0) ? 'bg-danger' : 'bg-success'}"
-                                             th:style="'width: ' + ${article.stockMaximum > 0 ? (stock.quantiteDisponible / article.stockMaximum * 100) : 0} + '%;'">
+                                             th:class="${(stock.quantiteDisponible != null and article.stockMinimum != null and stock.quantiteDisponible < article.stockMinimum) ? 'bg-warning' : 
+                                                       (stock.quantiteDisponible != null and stock.quantiteDisponible == 0) ? 'bg-danger' : 'bg-success'}"
+                                             th:style="'width: ' + ${(article.stockMaximum != null and article.stockMaximum > 0 and stock.quantiteDisponible != null) ? (stock.quantiteDisponible / article.stockMaximum * 100) : 0} + '%;'">
                                         </div>
                                     </div>
                                 </td>
-                                <td th:text="${#numbers.formatCurrency(stock.coutUnitaireMoyen)}">
+                                <td th:text="${stock.coutUnitaireMoyen != null ? #numbers.formatCurrency(stock.coutUnitaireMoyen) : 'N/A'}">
                                     1.15 €
                                 </td>
-                                <td th:text="${#numbers.formatCurrency(stock.valeurStockCump)}">
+                                <td th:text="${stock.valeurStockCump != null ? #numbers.formatCurrency(stock.valeurStockCump) : 'N/A'}">
                                     230.00 €
                                 </td>
                                 <td>
@@ -395,20 +395,21 @@
                                     </small>
                                 </td>
                                 <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <a th:href="@{'/stock/mouvements/entree?articleId=' + ${article.id} + '&depotId=' + ${stock.depotId}}"
+                                    <div class="btn-group btn-group-sm" th:if="${stock.depot != null}">
+                                        <a th:href="@{'/stock/mouvements/entree?articleId=' + ${article.id} + '&depotId=' + ${stock.depot.id}}"
                                            class="btn btn-outline-success" title="Entrée">
                                             <i class="bi bi-plus-circle"></i>
                                         </a>
-                                        <a th:href="@{'/stock/mouvements/sortie?articleId=' + ${article.id} + '&depotId=' + ${stock.depotId}}"
+                                        <a th:href="@{'/stock/mouvements/sortie?articleId=' + ${article.id} + '&depotId=' + ${stock.depot.id}}"
                                            class="btn btn-outline-danger" title="Sortie">
                                             <i class="bi bi-dash-circle"></i>
                                         </a>
-                                        <a th:href="@{'/stock/transferts/nouveau?articleId=' + ${article.id} + '&depotSourceId=' + ${stock.depotId}}"
+                                        <a th:href="@{'/stock/transferts/nouveau?articleId=' + ${article.id} + '&depotSourceId=' + ${stock.depot.id}}"
                                            class="btn btn-outline-info" title="Transfert">
                                             <i class="bi bi-arrow-left-right"></i>
                                         </a>
                                     </div>
+                                    <span th:if="${stock.depot == null}" class="text-muted">N/A</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -461,7 +462,7 @@
                         </thead>
                         <tbody>
                             <tr th:each="lot : ${lots}" 
-                                th:with="joursRestants=${lot.datePeremption != null ? #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() : null}"
+                                th:with="joursRestants=${lot.datePeremption != null ? T(java.time.temporal.ChronoUnit).DAYS.between(T(java.time.LocalDate).now(), lot.datePeremption) : null}"
                                 th:class="${(joursRestants != null and joursRestants < 0) ? 'table-danger' : 
                                           (joursRestants != null and joursRestants < 7) ? 'table-warning' : ''}">
                                 <td>
@@ -474,40 +475,33 @@
                                 </td>
                                 <td th:text="${lot.quantiteActuelle}">150</td>
                                 <td th:text="${lot.quantiteInitiale}">200</td>
-                                <td th:text="${#temporals.format(lot.dateReception, 'dd/MM/yyyy')}">
+                                <td th:text="${lot.dateReception != null ? #temporals.format(lot.dateReception, 'dd/MM/yyyy') : 'N/A'}">
                                     01/03/2024
                                 </td>
-                                <td th:text="${#temporals.format(lot.datePeremption, 'dd/MM/yyyy')}">
+                                <td th:text="${lot.datePeremption != null ? #temporals.format(lot.datePeremption, 'dd/MM/yyyy') : 'N/A'}">
                                     01/04/2024
                                 </td>
                                 <td>
                                     <span th:if="${lot.datePeremption != null}" 
-                                          th:with="joursRestants=${#temporals.createNow().toLocalDate().until(lot.datePeremption).getDays()}"
-                                          th:class="${(joursRestants < 0) ? 'text-danger' : 
-                                                    (joursRestants < 7) ? 'text-warning' : 'text-success'}"
-                                          th:text="${joursRestants}">
-                                        25
+                                          th:with="jours=${T(java.time.temporal.ChronoUnit).DAYS.between(T(java.time.LocalDate).now(), lot.datePeremption)}"
+                                          th:class="${(jours < 0) ? 'text-danger' : 
+                                                    (jours < 7) ? 'text-warning' : 'text-success'}">
+                                        <span th:text="${jours}">25</span>
+                                        <small th:if="${jours < 0}" class="text-danger">(Périmé)</small>
+                                        <small th:if="${jours >= 0 and jours < 7}" class="text-warning">(Proche)</small>
                                     </span>
                                     <span th:if="${lot.datePeremption == null}" class="text-muted">
                                         N/A
                                     </span>
-                                    <small th:if="${lot.datePeremption != null and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() < 0}" 
-                                           class="text-danger">
-                                        (Périmé)
-                                    </small>
-                                    <small th:if="${lot.datePeremption != null and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() >= 0 and #temporals.createNow().toLocalDate().until(lot.datePeremption).getDays() < 7}" 
-                                           class="text-warning">
-                                        (Proche)
-                                    </small>
                                 </td>
-                                <td th:text="${#numbers.formatCurrency(lot.coutUnitaire)}">
+                                <td th:text="${lot.coutUnitaire != null ? #numbers.formatCurrency(lot.coutUnitaire) : 'N/A'}">
                                     1.15 €
                                 </td>
                                 <td>
-                                    <span th:class="'badge lot-status-' + ${lot.statut}"
-                                          th:text="${lot.statut}">DISPONIBLE</span>
+                                    <span th:class="'badge lot-status-' + ${lot.statut ?: 'INCONNU'}"
+                                          th:text="${lot.statut ?: 'N/A'}">DISPONIBLE</span>
                                 </td>
-                                <td th:text="${lot.emplacement.zone.depot.nom}">Entrepôt Central</td>
+                                <td th:text="${lot.emplacement?.zone?.depot?.nom ?: 'N/A'}">Entrepôt Central</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a th:href="@{'/lots/' + ${lot.id}}"
@@ -541,8 +535,8 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-value">
-                                <!-- Correction ici -->
-                                <span th:text="${#lists.size(lots.?[datePeremption != null and #temporals.createNow().toLocalDate().until(datePeremption).getDays() >= 0 and #temporals.createNow().toLocalDate().until(datePeremption).getDays() < 7])}">
+                                <!-- Lots proches péremption: entre aujourd'hui et 7 jours -->
+                                <span th:text="${#lists.size(lots.?[datePeremption != null and datePeremption.isAfter(T(java.time.LocalDate).now()) and datePeremption.isBefore(T(java.time.LocalDate).now().plusDays(7))])}">
                                     3
                                 </span>
                             </div>
@@ -552,8 +546,8 @@
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="stat-value">
-                                <!-- Correction ici (ligne 565) -->
-                                <span th:text="${#lists.size(lots.?[datePeremption != null and #temporals.createNow().toLocalDate().until(datePeremption).getDays() < 0])}">
+                                <!-- Lots périmés: date péremption avant aujourd'hui -->
+                                <span th:text="${#lists.size(lots.?[datePeremption != null and datePeremption.isBefore(T(java.time.LocalDate).now())])}">
                                     1
                                 </span>
                             </div>
@@ -579,17 +573,17 @@
                     <div class="timeline">
                         <div th:each="mvt : ${historique}" class="timeline-item">
                             <div class="timeline-marker" 
-                                 th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}">
-                                <i th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bi bi-box-arrow-in-down' : 'bi bi-box-arrow-up'}"></i>
+                                 th:class="${(mvt.type?.sens?.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}">
+                                <i th:class="${(mvt.type?.sens?.name() == 'ENTREE') ? 'bi bi-box-arrow-in-down' : 'bi bi-box-arrow-up'}"></i>
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-header">
-                                    <span th:text="${mvt.reference}">MVT-2024-000123</span>
+                                    <span th:text="${mvt.reference ?: 'N/A'}">MVT-2024-000123</span>
                                     <span class="badge" 
-                                          th:class="${(mvt.type.sens.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}"
-                                          th:text="${mvt.type.sens.name()}">ENTREE</span>
+                                          th:class="${(mvt.type?.sens?.name() == 'ENTREE') ? 'bg-success' : 'bg-danger'}"
+                                          th:text="${mvt.type?.sens?.name() ?: 'N/A'}">ENTREE</span>
                                     <small class="text-muted" 
-                                           th:text="${#temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm')}">
+                                           th:text="${mvt.dateMouvement != null ? #temporals.format(mvt.dateMouvement, 'dd/MM/yyyy HH:mm') : 'N/A'}">
                                         15/03/2024 14:30
                                     </small>
                                 </div>
@@ -597,8 +591,8 @@
                                     <span th:text="${mvt.type?.libelle ?: 'N/A'}">Réception fournisseur</span>
                                     <br>
                                     <small class="text-muted">
-                                        Quantité: <span th:text="${mvt.quantite}">100</span> | 
-                                        Valeur: <span th:text="${#numbers.formatCurrency(mvt.valeurMouvement)}">115.00 €</span>
+                                        Quantité: <span th:text="${mvt.quantite ?: 0}">100</span> | 
+                                        Valeur: <span th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : 'N/A'}">115.00 €</span>
                                         <br>
                                         Dépôt: <span th:text="${mvt.depot?.nom ?: 'N/A'}">Entrepôt Central</span>
                                         <span th:if="${mvt.lot != null}" class="ms-2">

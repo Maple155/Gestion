@@ -4,6 +4,8 @@ import com.gestion.stock.entity.*;
 import com.gestion.stock.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,11 @@ public class ValorisationDetailService {
     private final LotRepository lotRepository;
     private final StockMovementRepository mouvementRepository;
     private final HistoriqueCoutRepository historiqueRepository;
+
+    // ✅ Injection de ValorisationService pour utiliser la même logique de calcul que le dashboard
+    @Autowired
+    @Lazy
+    private ValorisationService valorisationService;
 
     /**
      * Obtenir les données de valorisation avec filtres
@@ -118,75 +125,27 @@ public class ValorisationDetailService {
     }
 
     /**
-     * Calculer la valorisation selon la méthode de l'article
+     * ✅ Calculer la valorisation selon la méthode de l'article
+     * Utilise ValorisationService pour garantir la cohérence avec le dashboard
      */
     private BigDecimal calculerValorisation(Article article, Stock stock) {
-        switch (article.getMethodeValorisation()) {
+        String methode = article.getMethodeValorisation();
+        if (methode == null) {
+            methode = "CUMP";
+        }
+        
+        switch (methode) {
             case "FIFO":
-                return calculerValorisationFIFO(article.getId(), stock.getDepot().getId());
+                // ✅ Utilise ValorisationService.calculerValorisationFIFO qui fait la somme correcte
+                return valorisationService.calculerValorisationFIFO(article.getId(), stock.getDepot().getId());
             case "FEFO":
-                return calculerValorisationFEFO(article.getId(), stock.getDepot().getId());
+                // ✅ Utilise ValorisationService.calculerValorisationFEFO qui fait la somme correcte
+                return valorisationService.calculerValorisationFEFO(article.getId(), stock.getDepot().getId());
             case "CUMP":
             default:
                 return stock.getValeurStockCump() != null ? 
                         stock.getValeurStockCump() : BigDecimal.ZERO;
         }
-    }
-
-    /**
-     * Calcul valorisation FIFO
-     */
-    private BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
-        List<Lot> lots = lotRepository.findByArticleIdAndDepotOrderByDateReceptionAsc(articleId, depotId);
-        
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
-        if (!stockOpt.isPresent()) {
-            return BigDecimal.ZERO;
-        }
-
-        Stock stock = stockOpt.get();
-        Integer quantiteRestante = stock.getQuantiteTheorique();
-        BigDecimal valeurTotale = BigDecimal.ZERO;
-
-        for (Lot lot : lots) {
-            if (quantiteRestante <= 0) break;
-            
-            Integer quantiteLot = Math.min(lot.getQuantiteActuelle(), quantiteRestante);
-            valeurTotale = valeurTotale.add(
-                    lot.getCoutUnitaire().multiply(BigDecimal.valueOf(quantiteLot))
-            );
-            quantiteRestante -= quantiteLot;
-        }
-
-        return valeurTotale;
-    }
-
-    /**
-     * Calcul valorisation FEFO
-     */
-    private BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
-        List<Lot> lots = lotRepository.findByArticleIdAndDepotOrderByDatePeremptionAsc(articleId, depotId);
-        
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
-        if (!stockOpt.isPresent()) {
-            return BigDecimal.ZERO;
-        }
-
-        Stock stock = stockOpt.get();
-        Integer quantiteRestante = stock.getQuantiteTheorique();
-        BigDecimal valeurTotale = BigDecimal.ZERO;
-
-        for (Lot lot : lots) {
-            if (quantiteRestante <= 0) break;
-            
-            Integer quantiteLot = Math.min(lot.getQuantiteActuelle(), quantiteRestante);
-            valeurTotale = valeurTotale.add(
-                    lot.getCoutUnitaire().multiply(BigDecimal.valueOf(quantiteLot))
-            );
-            quantiteRestante -= quantiteLot;
-        }
-
-        return valeurTotale;
     }
 
     /**

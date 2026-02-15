@@ -35,6 +35,7 @@ public class StockService {
         private final DepotRepository depotRepository;
         private final MovementTypeRepository movementTypeRepository;
         private final BonReceptionRepository bonReceptionRepository;
+        private final EmplacementRepository emplacementRepository;
         private final SequenceGeneratorService sequenceService;
 
         @Transactional
@@ -257,10 +258,26 @@ public class StockService {
                         datePeremption = LocalDate.now().plusDays(article.getDureeVieJours());
                 }
 
+                // ⚠️ IMPORTANT : Assigner un emplacement par défaut dans le dépôt
+                // Sans emplacement, le lot ne sera pas trouvé par les requêtes FIFO/FEFO
+                Emplacement emplacement = emplacementRepository.findByZoneDepotId(depot.getId())
+                                .stream()
+                                .filter(Emplacement::isActif)
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException(
+                                        "Aucun emplacement actif trouvé dans le dépôt " + depot.getNom() + 
+                                        ". Veuillez créer au moins une zone avec un emplacement dans ce dépôt."));
+
+                log.info("Emplacement par défaut assigné au lot: {} (Zone: {}, Dépôt: {})", 
+                                emplacement.getCode(), 
+                                emplacement.getZone().getCode(),
+                                depot.getNom());
+
                 Lot lot = Lot.builder()
                                 .numeroLot(numeroLot)
                                 .article(article)
                                 .bonReception(bonReception)
+                                .emplacement(emplacement)  // ✅ Emplacement maintenant assigné !
                                 .quantiteInitiale(quantite)
                                 .quantiteActuelle(quantite)
                                 .dateFabrication(LocalDate.now().minusDays(2))
@@ -271,7 +288,8 @@ public class StockService {
                                 .build();
 
                 Lot lotSauvegarde = lotRepository.save(lot);
-                log.info("Lot créé: {} pour article: {}", numeroLot, article.getCodeArticle());
+                log.info("Lot créé: {} pour article: {} dans emplacement: {}", 
+                                numeroLot, article.getCodeArticle(), emplacement.getCode());
 
                 return lotSauvegarde;
         }
@@ -414,6 +432,13 @@ public class StockService {
                 infos.put("totalStock", stocks.stream().mapToInt(Stock::getQuantiteTheorique).sum());
 
                 return infos;
+        }
+
+        /**
+         * Get stocks par article (pour tous les dépôts)
+         */
+        public List<Stock> getStocksParArticle(UUID articleId) {
+                return stockRepository.findByArticleId(articleId);
         }
 
         /**

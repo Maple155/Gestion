@@ -25,6 +25,60 @@ public interface LotRepository extends JpaRepository<Lot, UUID>, JpaSpecificatio
 
        List<Lot> findByArticleIdAndStatutOrderByDateReceptionAsc(UUID articleId, Lot.LotStatus statut);
 
+       // ✅ FIFO: Lots d'un article dans un dépôt, triés par date de réception, avec quantité > 0
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.emplacement.zone.depot.id = :depotId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findLotsForFIFO(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId);
+
+       // ✅ FIFO FALLBACK: Pour les lots sans emplacement (cas de données incohérentes)
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findLotsForFIFOWithoutDepot(@Param("articleId") UUID articleId);
+
+       // ✅ FEFO: Lots d'un article dans un dépôt, triés par date de péremption, avec quantité > 0
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.emplacement.zone.depot.id = :depotId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.datePeremption ASC NULLS LAST")
+       List<Lot> findLotsForFEFO(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId);
+
+       // ✅ FEFO FALLBACK: Pour les lots sans emplacement (cas de données incohérentes)
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.datePeremption ASC NULLS LAST")
+       List<Lot> findLotsForFEFOWithoutDepot(@Param("articleId") UUID articleId);
+
+       // ✅ ALIAS: findLotsForFIFOByArticle (même que findLotsForFIFOWithoutDepot)
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findLotsForFIFOByArticle(@Param("articleId") UUID articleId);
+
+       // ✅ ALIAS: findLotsForFEFOByArticle (même que findLotsForFEFOWithoutDepot)
+       @Query("SELECT l FROM Lot l WHERE " +
+                     "l.article.id = :articleId AND " +
+                     "l.statut = 'DISPONIBLE' AND " +
+                     "l.quantiteActuelle > 0 " +
+                     "ORDER BY l.datePeremption ASC NULLS LAST")
+       List<Lot> findLotsForFEFOByArticle(@Param("articleId") UUID articleId);
+
        @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND l.statut = :statut " +
                      "ORDER BY l.datePeremption ASC")
        List<Lot> findByArticleIdAndStatutOrderByDatePeremptionAsc(
