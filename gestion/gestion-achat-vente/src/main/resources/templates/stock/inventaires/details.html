@@ -125,18 +125,6 @@
                 >
                   <i class="bi bi-x-circle me-1"></i>Annuler
                 </button>
-                <a
-                  th:href="@{/stock/inventaires/export-lignes/{inventaireId}(inventaireId=${inventaire.id}, format='CSV')}"
-                  class="btn btn-outline-secondary w-100 mb-2"
-                >
-                  <i class="bi bi-download me-1"></i>Exporter
-                </a>
-                <a
-                  th:href="@{/stock/inventaires/rapport/{id}(id=${inventaire.id})}"
-                  class="btn btn-info w-100 mb-2"
-                >
-                  <i class="bi bi-printer me-1"></i>Rapport
-                </a>
               </div>
             </div>
           </div>

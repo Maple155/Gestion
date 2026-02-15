@@ -57,7 +57,7 @@ public class Article {
     private Integer stockMinimum = 0;
     
     @Column(name = "stock_maximum")
-    private Integer stockMaximum;
+    private Integer stockMaximum = 0;
     
     @Column(name = "stock_securite")
     private Integer stockSecurite = 0;

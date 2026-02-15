@@ -32,7 +32,8 @@ public class ArticleService {
     private final LotRepository lotRepository;
     private final StockMovementRepository mouvementRepository;
     private final StockMovementRepository stockMovementRepository;
-
+    private final StockService stockService;
+    
     public List<Article> findByActifTrue() {
         return articleRepository.findByActifTrue();
     }
@@ -413,4 +414,6 @@ public class ArticleService {
     // return stockMovementRepository.findRecentMovementsByArticleId(articleId,
     // since);
     // }
+
+
 }

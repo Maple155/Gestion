@@ -68,21 +68,14 @@
             </div>
             <div class="col-auto">
                 <div class="btn-group">
-                    <a th:href="@{'/stock/articles/editer/' + ${article.id}}" 
-                       class="btn btn-outline-primary">
-                        <i class="bi bi-pencil"></i> Éditer
-                    </a>
-                    <form th:action="@{'/stock/articles/toggle-actif/' + ${article.id}}" 
+                    <!-- <form th:action="@{'/stock/articles/toggle-actif/' + ${article.id}}" 
                           method="post" class="d-inline">
                         <button type="submit" class="btn" 
                                 th:class="${article.actif} ? 'btn-outline-warning' : 'btn-outline-success'">
                             <i class="bi" th:class="${article.actif} ? 'bi-pause-circle' : 'bi-play-circle'"></i>
                             <span th:text="${article.actif} ? 'Désactiver' : 'Activer'">Activer</span>
                         </button>
-                    </form>
-                    <a href="/stock/articles/liste" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Retour
-                    </a>
+                    </form> -->
                 </div>
             </div>
         </div>
@@ -436,11 +429,11 @@
                         </p>
                     </div>
                     <div class="col-auto">
-                        <a th:href="@{'/stock/lots/nouveau?articleId=' + ${article.id}}" 
+                        <a th:href="@{'/lots/nouveau?articleId=' + ${article.id}}" 
                            class="btn btn-primary btn-sm" th:if="${article.gestionParLot}">
                             <i class="bi bi-plus-circle"></i> Nouveau lot
                         </a>
-                        <a href="/stock/lots/alertes" class="btn btn-warning btn-sm">
+                        <a href="/lots/alertes/peremption" class="btn btn-warning btn-sm">
                             <i class="bi bi-exclamation-triangle"></i> Alertes péremption
                         </a>
                     </div>
@@ -475,7 +468,7 @@
                                     <strong th:text="${lot.numeroLot}">LOT-2024-001</strong>
                                     <br>
                                     <small class="text-muted" 
-                                            th:text="${lot.bonReception?.reference ?: 'Sans BR'}">
+                                            th:text="${lot.bonReception?.observations ?: 'Sans BR'}">
                                         BR-2024-001
                                     </small>
                                 </td>
@@ -517,13 +510,9 @@
                                 <td th:text="${lot.emplacement.zone.depot.nom}">Entrepôt Central</td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a th:href="@{'/stock/lots/details/' + ${lot.id}}"
+                                        <a th:href="@{'/lots/' + ${lot.id}}"
                                            class="btn btn-outline-primary">
                                             <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a th:href="@{'/stock/mouvements/sortie?articleId=' + ${article.id} + '&lotId=' + ${lot.id}}"
-                                           class="btn btn-outline-danger">
-                                            <i class="bi bi-box-arrow-up"></i>
                                         </a>
                                     </div>
                                 </td>
@@ -579,12 +568,6 @@
                 <div class="row mb-3">
                     <div class="col">
                         <h5>Historique des mouvements (30 derniers jours)</h5>
-                    </div>
-                    <div class="col-auto">
-                        <a href="/stock/mouvements?articleId=[[${article.id}]]" 
-                           class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-clock-history"></i> Voir tout l'historique
-                        </a>
                     </div>
                 </div>
                 
