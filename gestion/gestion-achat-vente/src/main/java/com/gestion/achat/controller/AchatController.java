@@ -10,6 +10,8 @@ import jakarta.servlet.http.HttpSession;
 
 import com.gestion.achat.entity.*;
 import com.gestion.achat.enums.StatutDemande;
+import com.gestion.achat.repository.BonCommandeRepository;
+import com.gestion.achat.repository.BonReceptionRepository;
 import com.gestion.achat.repository.DemandeAchatRepository;
 import com.gestion.achat.repository.FactureAchatRepository;
 import com.gestion.achat.repository.ProformaRepository;
@@ -29,6 +31,8 @@ public class AchatController {
     private final StockService stockService;
     private final ProformaRepository proformaRepo;
     private final FactureAchatRepository factureRepo;
+    private final BonCommandeRepository bonCommandeRepository;
+    private final BonReceptionRepository bonReceptionRepo;
     // ... repositories ...
 
     private void checkAuth(HttpSession session, String... allowedRoles) {
@@ -156,5 +160,49 @@ public class AchatController {
         }
         
         return ResponseEntity.status(HttpStatus.CREATED).body(factureRepo.save(facture));
+    }
+        // À ajouter dans AchatController.java
+    @GetMapping("/bons-commande/{id}")
+    public ResponseEntity<BonCommande> getBonCommandeById(@PathVariable UUID id, HttpSession session) {
+        // Optionnel : vérifier si l'utilisateur est connecté
+        if (session.getAttribute("userId") == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        return bonCommandeRepository.findById(id) // Assure-toi que cette méthode existe dans ton Service
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @GetMapping("/receptions/{id}")
+    public ResponseEntity<?> getReceptionDetail(@PathVariable UUID id) {
+        return bonReceptionRepo.findById(id).map(br -> {
+            Map<String, Object> dto = new java.util.HashMap<>();
+            dto.put("id", br.getId());
+            dto.put("dateReception", br.getDateReception());
+            dto.put("observations", br.getObservations());
+            dto.put("conforme", br.isConforme());
+
+            // Navigation vers le Bon de Commande
+            Map<String, Object> bc = new java.util.HashMap<>();
+            bc.put("referenceBc", br.getBonCommande().getReferenceBc());
+            
+            // Navigation vers le Fournisseur
+            Map<String, Object> fournisseur = new java.util.HashMap<>();
+            fournisseur.put("nom", br.getBonCommande().getProforma().getFournisseur().getNom());
+            
+            // Navigation vers la Demande (pour le produit et la quantité)
+            Map<String, Object> da = new java.util.HashMap<>();
+            da.put("produitId", br.getBonCommande().getProforma().getDemandeAchat().getProduitId());
+            da.put("quantiteDemandee", br.getBonCommande().getProforma().getDemandeAchat().getQuantiteDemandee());
+
+            // Assemblage du DTO
+            Map<String, Object> proforma = new java.util.HashMap<>();
+            proforma.put("fournisseur", fournisseur);
+            proforma.put("demandeAchat", da);
+            bc.put("proforma", proforma);
+            dto.put("bonCommande", bc);
+
+            return ResponseEntity.ok(dto);
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

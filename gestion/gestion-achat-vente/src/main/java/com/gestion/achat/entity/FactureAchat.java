@@ -30,6 +30,6 @@ public class FactureAchat {
 
     private LocalDate dateFacture;
 
-    @Transient
-    private LocalDateTime dateEnregistrement;
+    // @Transient
+    // private LocalDateTime dateEnregistrement;
 }
