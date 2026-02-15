@@ -151,15 +151,25 @@ public class AchatController {
         return ResponseEntity.ok(dto);
     }
     @PostMapping("/factures")
-    public ResponseEntity<?> creerFacture(@RequestBody FactureAchat facture, HttpSession session) {
-        checkAuth(session, "ADMIN", "COMPTABLE", "DAF", "ACHETEUR");
+    public ResponseEntity<FactureAchat> creerFacture(@RequestBody FactureAchat facture, HttpSession session) {
+        // 1. Vérification des droits (Comptable ou DAF)
+        checkAuth(session, "ADMIN", "COMPTABLE", "DAF");
         
-        // On peut ajouter une vérification ici pour s'assurer qu'un BC n'a pas déjà de facture
-        if (factureRepo.existsByBonCommandeId(facture.getBonCommande().getId())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ce Bon de Commande est déjà facturé."));
-        }
+        // 2. Sécurité : Une facture neuve n'est JAMAIS payée à la création dans ce flux
+        facture.setEstPayee(false);
         
-        return ResponseEntity.status(HttpStatus.CREATED).body(factureRepo.save(facture));
+        // 3. Optionnel : Recalculer le montant TTC depuis le BC pour éviter toute fraude via l'API
+        BonCommande bc = bonCommandeRepository.findById(facture.getBonCommande().getId())
+                .orElseThrow(() -> new RuntimeException("Bon de commande introuvable"));
+        facture.setMontantTotalTtc(bc.getMontantTotalTtc());
+        
+        // 4. Sauvegarde
+        FactureAchat nouvelleFacture = factureRepo.save(facture);
+        
+        log.info("Facture {} créée pour le BC {} - Statut: À RÉGLER", 
+                facture.getNumeroFactureFournisseur(), bc.getReferenceBc());
+                
+        return ResponseEntity.status(HttpStatus.CREATED).body(nouvelleFacture);
     }
         // À ajouter dans AchatController.java
     @GetMapping("/bons-commande/{id}")

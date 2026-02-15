@@ -4,60 +4,108 @@
     <div th:fragment="content">
         <div class="flex justify-between items-end mb-8">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">Direction Financière</h1>
-                <p class="text-slate-500" th:text="${'Analyse du ' + #temporals.format(dateJour, 'dd MMMM yyyy')}"></p>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">Cockpit DAF</h1>
+                <p class="text-slate-500 font-medium">Analyse consolidée des flux • <span th:text="${#temporals.format(dateJour, 'dd MMMM yyyy')}"></span></p>
             </div>
-            <div th:if="${mismatchCount > 0}" class="bg-rose-100 text-rose-700 px-4 py-2 rounded-full text-xs font-bold animate-pulse">
-                ⚠ <span th:text="${mismatchCount}">0</span> ANOMALIES DÉTECTÉES
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-slate-900 p-5 rounded-xl text-white">
-                <p class="text-[10px] uppercase text-slate-400 font-bold">Chiffre d'Affaires</p>
-                <h4 class="text-2xl font-black mt-1" th:text="${#numbers.formatCurrency(caTotal)}">0</h4>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200">
-                <p class="text-[10px] uppercase text-slate-400 font-bold">Marge Brute (<span th:text="${tauxMarge}">0</span>%)</p>
-                <h4 class="text-2xl font-black text-emerald-600 mt-1" th:text="${#numbers.formatCurrency(margeTotale)}">0</h4>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200">
-                <p class="text-[10px] uppercase text-slate-400 font-bold">Écart Valeur Stock</p>
-                <h4 class="text-2xl font-black mt-1" th:classappend="${ecartStock != 0 ? 'text-rose-500' : 'text-slate-800'}" 
-                    th:text="${#numbers.formatCurrency(ecartStock)}">0</h4>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200">
-                <p class="text-[10px] uppercase text-slate-400 font-bold">Val. Opérationnelle</p>
-                <h4 class="text-2xl font-black text-blue-600 mt-1" th:text="${#numbers.formatCurrency(valeurOperationnelle)}">0</h4>
+            <div class="flex gap-3">
+                <div class="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-center">
+                    <p class="text-[10px] font-black text-slate-400 uppercase">Santé Trésorerie</p>
+                    <p class="text-sm font-bold text-emerald-600">Optimale</p>
+                </div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 bg-rose-50 border-b border-rose-100">
-                <h2 class="font-bold text-rose-800 flex items-center">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i> Anomalies de Facturation (Audit)
-                </h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
+                <p class="text-[10px] uppercase text-slate-400 font-black mb-1">C.A. Net (HT)</p>
+                <h3 class="text-2xl font-black" th:text="${#numbers.formatCurrency(caTotal)}">0</h3>
             </div>
-            <table class="w-full text-left border-collapse">
-                <thead class="bg-slate-50 text-[10px] uppercase text-slate-500">
-                    <tr>
-                        <th class="px-6 py-3 font-bold">Facture</th>
-                        <th class="px-6 py-3 font-bold">BC Source</th>
-                        <th class="px-6 py-3 font-bold text-rose-600">Motif du litige</th>
-                        <th class="px-6 py-3 font-bold">Montant TTC</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm">
-                    <tr th:each="m : ${mismatches}" class="hover:bg-rose-50/30">
-                        <td class="px-6 py-3 font-medium" th:text="${m.numeroFacture}">FA-000</td>
-                        <td class="px-6 py-3 text-slate-500" th:text="${m.referenceBc}">BC-000</td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-bold" th:text="${m.motif}">Erreur</span>
-                        </td>
-                        <td class="px-6 py-3 font-bold" th:text="${#numbers.formatCurrency(m.montant)}">0</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] uppercase text-slate-400 font-black mb-1">Marge Brute (<span th:text="${tauxMarge}"></span>%)</p>
+                <h3 class="text-2xl font-black text-emerald-600" th:text="${#numbers.formatCurrency(margeTotale)}">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] uppercase text-slate-400 font-black mb-1">Créances Clients (TTC)</p>
+                <h3 class="text-2xl font-black text-rose-600" th:text="${#numbers.formatCurrency(totalResteARecouvrer)}">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] uppercase text-slate-400 font-black mb-1">Valeur Stocks</p>
+                <h3 class="text-2xl font-black text-blue-600" th:text="${#numbers.formatCurrency(valeurOperationnelle)}">0</h3>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex justify-between items-center">
+                <div>
+                    <p class="text-[10px] font-black text-rose-400 uppercase tracking-widest">Risque Retards Fournisseurs</p>
+                    <h4 class="text-2xl font-black text-rose-700" th:text="${#numbers.formatCurrency(valeurRetards)}"></h4>
+                    <p class="text-xs text-rose-500 font-bold" th:text="${nbRetards + ' commandes en attente'}"></p>
+                </div>
+                <i data-lucide="clock-alert" class="w-10 h-10 text-rose-200"></i>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 p-6 rounded-3xl flex justify-between items-center">
+                <div>
+                    <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Litiges Qualité (Non-conforme)</p>
+                    <h4 class="text-2xl font-black text-amber-700" th:text="${#numbers.formatCurrency(valeurQualite)}"></h4>
+                    <p class="text-xs text-amber-600 font-bold" th:text="${nbQualite + ' réceptions bloquées'}"></p>
+                </div>
+                <i data-lucide="shield-x" class="w-10 h-10 text-amber-200"></i>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Audit Facturation (Mismatches)</h3>
+                        <span class="text-[10px] font-bold text-slate-400" th:text="${mismatchCount + ' anomalies'}"></span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] uppercase text-slate-500 font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Facture</th>
+                                    <th class="px-6 py-4">Anomalie détectée</th>
+                                    <th class="px-6 py-4 text-right">Montant TTC</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <tr th:each="m : ${mismatches}" class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-6 py-4 font-bold text-slate-700" th:text="${m.numeroFacture}"></td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-1 bg-rose-100 text-rose-700 rounded text-[10px] font-black uppercase" th:text="${m.motif}"></span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-black text-slate-900" th:text="${#numbers.formatCurrency(m.montant)}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(mismatches)}">
+                                    <td colspan="3" class="px-6 py-8 text-center text-slate-400 italic">Aucune anomalie comptable.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Top 5 Clients Débiteurs</h3>
+                    <div class="space-y-6">
+                        <div th:each="entry : ${topDebiteurs}">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-slate-700 text-ellipsis overflow-hidden whitespace-nowrap" th:text="${entry.key}"></span>
+                                <span class="text-sm font-black text-rose-600" th:text="${#numbers.formatCurrency(entry.value)}"></span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-1 rounded-full">
+                                <div class="bg-rose-500 h-1 rounded-full" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Action suggérée</p>
+                        <p class="text-[11px] text-slate-600 italic">Lancer une campagne de relance sur les créances TTC pour sécuriser la trésorerie du mois prochain.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </body>

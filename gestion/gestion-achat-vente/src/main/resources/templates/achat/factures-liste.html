@@ -1,73 +1,75 @@
-<div th:replace="~{layout/main :: layout(~{::content})}">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<body>
     <div th:fragment="content">
         <div class="mb-8 flex justify-between items-end">
             <div>
-                <h1 class="text-2xl font-bold text-slate-800">Facturation Fournisseurs</h1>
-                <p class="text-sm text-slate-500">Gestion des règlements et suivi des échéances</p>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Facturation Fournisseurs</h1>
+                <p class="text-sm text-slate-500 font-medium text-italic">Validation des créances et suivi des décaissements</p>
             </div>
             <div class="flex gap-3">
-                <button onclick="ouvrirModaleInsertion()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center shadow-lg shadow-blue-200 transition-all active:scale-95">
-                    <i data-lucide="plus-circle" class="mr-2 w-5 h-5"></i> Nouvelle Facture
+                <button onclick="ouvrirModaleInsertion()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black flex items-center shadow-lg shadow-blue-200 transition-all active:scale-95">
+                    <i data-lucide="plus-circle" class="mr-2 w-5 h-5"></i> Enregistrer une Facture
                 </button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl flex items-center shadow-sm">
-                <div class="bg-emerald-500 p-3 rounded-xl text-white mr-4 shadow-lg shadow-emerald-200">
+            <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex items-center shadow-sm">
+                <div class="bg-emerald-500 p-3 rounded-2xl text-white mr-4 shadow-lg shadow-emerald-200">
                     <i data-lucide="check-circle" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <p class="text-emerald-600 text-[10px] font-black uppercase tracking-wider">Total Payé (Filtré)</p>
+                    <p class="text-emerald-600 text-[10px] font-black uppercase tracking-widest">Total Payé</p>
                     <p class="text-2xl font-black text-emerald-900" id="stat-paye" 
-                       th:text="${#numbers.formatDecimal(montantPaye ?: 0, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</p>
+                       th:text="${#numbers.formatCurrency(montantPaye ?: 0)}">0 €</p>
                 </div>
             </div>
-            <div class="bg-rose-50 border border-rose-100 p-6 rounded-2xl flex items-center shadow-sm">
-                <div class="bg-rose-500 p-3 rounded-xl text-white mr-4 shadow-lg shadow-rose-200">
+            <div class="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center shadow-sm">
+                <div class="bg-rose-500 p-3 rounded-2xl text-white mr-4 shadow-lg shadow-rose-200">
                     <i data-lucide="alert-circle" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <p class="text-rose-600 text-[10px] font-black uppercase tracking-wider">Reste à régler (Filtré)</p>
+                    <p class="text-rose-600 text-[10px] font-black uppercase tracking-widest">Reste à régler</p>
                     <p class="text-2xl font-black text-rose-900" id="stat-reste" 
-                       th:text="${#numbers.formatDecimal(montantRestant ?: 0, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</p>
+                       th:text="${#numbers.formatCurrency(montantRestant ?: 0)}">0 €</p>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 mb-6 flex flex-wrap gap-4 items-end shadow-sm">
-            <div class="flex-1 min-w-[250px]">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Recherche</label>
+        <div class="bg-white p-5 rounded-3xl border border-slate-200 mb-6 flex flex-wrap gap-4 items-end shadow-sm">
+            <div class="flex-1 min-w-[300px]">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Recherche Rapide</label>
                 <div class="relative">
-                    <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                    <i data-lucide="search" class="absolute left-4 top-3.5 w-4 h-4 text-slate-400"></i>
                     <input type="text" id="search-input" onkeyup="appliquerFiltresFacture()" 
-                           placeholder="N° Facture ou Fournisseur..." 
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                           placeholder="Numéro de facture ou nom du fournisseur..." 
+                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium">
                 </div>
             </div>
-            <div class="w-48">
-                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">État</label>
+            <div class="w-56">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">État de Paiement</label>
                 <select id="filter-paye" onchange="appliquerFiltresFacture()" 
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Tous les états</option>
                     <option value="true">Payées</option>
-                    <option value="false">À régler</option>
+                    <option value="false">À régler (Dues)</option>
                 </select>
             </div>
-            <button onclick="resetFiltresFacture()" class="bg-slate-100 text-slate-500 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors">
-                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <button onclick="resetFiltresFacture()" class="bg-slate-100 text-slate-500 p-3.5 rounded-2xl hover:bg-slate-200 transition-colors">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
             </button>
         </div>
 
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50/80 border-b border-slate-200">
-                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">N° Facture</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase">Fournisseur</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase text-right">Montant TTC</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase text-center">Paiement</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-slate-500 uppercase text-right">Actions</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">N° Facture Fsr</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Fournisseur</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Montant TTC</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Statut</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="facture-tbody" class="divide-y divide-slate-100">
@@ -75,18 +77,17 @@
                         th:data-search="${f.numeroFactureFournisseur.toLowerCase() + ' ' + f.bonCommande.proforma.fournisseur.nom.toLowerCase()}"
                         th:data-paye="${f.estPayee}"
                         th:data-montant="${f.montantTotalTtc}">
-                        <td class="px-6 py-4 font-mono font-bold text-blue-600 text-xs" th:text="${f.numeroFactureFournisseur}"></td>
-                        <td class="px-6 py-4 text-sm font-semibold text-slate-700" th:text="${f.bonCommande.proforma.fournisseur.nom}"></td>
-                        <td class="px-6 py-4 text-right font-mono font-bold text-slate-900" 
-                            th:text="${#numbers.formatDecimal(f.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}"></td>
-                        <td class="px-6 py-4 text-center">
+                        <td class="px-6 py-5 font-mono font-black text-blue-600 text-xs" th:text="${f.numeroFactureFournisseur}"></td>
+                        <td class="px-6 py-5 text-sm font-bold text-slate-700" th:text="${f.bonCommande.proforma.fournisseur.nom}"></td>
+                        <td class="px-6 py-5 text-right font-black text-slate-900" th:text="${#numbers.formatCurrency(f.montantTotalTtc)}"></td>
+                        <td class="px-6 py-5 text-center">
                             <span th:classappend="${f.estPayee ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}"
-                                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider" 
+                                  class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest" 
                                   th:text="${f.estPayee ? 'Payée' : 'À régler'}"></span>
                         </td>
-                        <td class="px-6 py-4 text-right">
+                        <td class="px-6 py-5 text-right">
                             <button type="button" th:onclick="ouvrirDetailsFacture([[${f.id}]])" 
-                                    class="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+                                    class="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm">
                                 <i data-lucide="eye" class="w-5 h-5"></i>
                             </button>
                         </td>
@@ -98,22 +99,24 @@
         <div id="modal-insertion-facture" class="fixed inset-0 z-[110] hidden overflow-y-auto">
             <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="fermerModaleInsertion()"></div>
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all">
-                    <div class="bg-blue-700 px-8 py-6 text-white flex justify-between items-center">
+                <div class="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all border border-slate-200">
+                    <div class="bg-blue-700 px-8 py-8 text-white flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold">Nouvelle Facture</h2>
-                            <p class="text-blue-200 text-xs mt-1 uppercase tracking-widest font-medium">Lier un Bon de Commande</p>
+                            <h2 class="text-2xl font-black">Nouvelle Facture</h2>
+                            <p class="text-blue-200 text-xs mt-1 uppercase tracking-widest font-bold">Rapprochement comptable (BC)</p>
                         </div>
-                        <button onclick="fermerModaleInsertion()" class="hover:bg-white/10 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>
+                        <button onclick="fermerModaleInsertion()" class="hover:bg-white/10 p-2 rounded-full transition-colors">
+                            <i data-lucide="x" class="w-7 h-7"></i>
+                        </button>
                     </div>
 
                     <form id="form-facture" class="p-8 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="md:col-span-2">
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Bon de Commande</label>
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Bon de Commande Source</label>
                                 <select name="bonCommandeId" onchange="autoRemplirMontant(this)" required 
-                                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <option value="">-- Sélectionner le BC --</option>
+                                        class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">-- Sélectionner le BC validé --</option>
                                     <option th:each="bc : ${bcsDisponibles}" 
                                             th:value="${bc.id}" 
                                             th:data-montant="${bc.montantTotalTtc}"
@@ -122,25 +125,36 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">N° Facture Fournisseur</label>
-                                <input type="text" name="numeroFactureFournisseur" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">N° Facture Fournisseur</label>
+                                <input type="text" name="numeroFactureFournisseur" required 
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                                       placeholder="Ex: F-2024-99">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date Facture</label>
-                                <input type="date" name="dateFacture" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Date Facture</label>
+                                <input type="date" name="dateFacture" required 
+                                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Montant TTC</label>
-                                <input type="number" step="0.01" id="ins-montant" name="montantTotalTtc" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none">
-                            </div>
-                            <div class="flex items-center space-x-3 pt-6">
-                                <input type="checkbox" id="ins-payee" name="estPayee" class="w-5 h-5 text-blue-600 rounded">
-                                <label for="ins-payee" class="text-sm font-bold text-slate-700">Déjà payée</label>
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Montant TTC (PlaceHolder Intouchable)</label>
+                                <div class="relative">
+                                    <input type="number" step="0.01" id="ins-montant" name="montantTotalTtc" readonly 
+                                           class="w-full bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 text-lg font-black text-slate-500 cursor-not-allowed outline-none"
+                                           placeholder="0.00">
+                                    <span class="absolute right-5 top-4 font-black text-slate-400">€</span>
+                                </div>
+                                <p class="mt-2 text-[10px] text-slate-400 italic">Le montant est verrouillé sur la base du Bon de Commande sélectionné.</p>
                             </div>
                         </div>
-                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                            <button type="button" onclick="fermerModaleInsertion()" class="text-slate-500 font-bold px-4">Annuler</button>
-                            <button type="submit" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg transition-all">Enregistrer</button>
+
+                        <div class="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center">
+                            <i data-lucide="info" class="w-4 h-4 text-rose-500 mr-2"></i>
+                            <span class="text-[10px] font-black text-rose-600 uppercase">La facture sera créée avec le statut "À régler"</span>
+                        </div>
+
+                        <div class="pt-6 border-t border-slate-100 flex justify-end gap-4">
+                            <button type="button" onclick="fermerModaleInsertion()" class="text-slate-500 font-black px-6 hover:text-slate-800 transition-colors uppercase text-xs">Annuler</button>
+                            <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-95 text-xs uppercase">Enregistrer la créance</button>
                         </div>
                     </form>
                 </div>
@@ -150,28 +164,34 @@
         <div id="modal-facture" class="fixed inset-0 z-[100] hidden overflow-y-auto">
             <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="fermerModalFacture()"></div>
             <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all">
-                    <div class="bg-slate-800 px-8 py-6 text-white flex justify-between items-center">
+                <div class="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden transform transition-all border border-slate-200">
+                    <div class="bg-slate-900 px-8 py-8 text-white flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold" id="f-modal-num">Facture</h2>
-                            <p class="text-slate-400 text-[10px] uppercase font-bold tracking-widest" id="f-modal-date"></p>
+                            <h2 class="text-xl font-black" id="f-modal-num">Facture</h2>
+                            <p class="text-slate-400 text-[10px] uppercase font-black tracking-widest mt-1" id="f-modal-date"></p>
                         </div>
                         <button onclick="fermerModalFacture()" class="hover:bg-white/10 p-2 rounded-full"><i data-lucide="x" class="w-6 h-6"></i></button>
                     </div>
-                    <div class="p-8 space-y-6">
-                        <div class="flex justify-between items-start border-b border-slate-100 pb-6">
+                    <div class="p-8 space-y-8">
+                        <div class="flex justify-between items-start">
                             <div>
-                                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Fournisseur</p>
-                                <p class="text-lg font-bold text-slate-800" id="f-modal-fournisseur"></p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fournisseur</p>
+                                <p class="text-xl font-black text-slate-800" id="f-modal-fournisseur"></p>
                             </div>
                             <div class="text-right">
-                                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Réf. BC</p>
-                                <p class="font-mono font-bold text-blue-600" id="f-modal-bc"></p>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Réf. Interne BC</p>
+                                <p class="font-mono font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg" id="f-modal-bc"></p>
                             </div>
                         </div>
-                        <div class="bg-slate-50 p-6 rounded-2xl flex justify-between items-center">
-                            <span id="f-modal-statut" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"></span>
-                            <p class="text-3xl font-black text-slate-900" id="f-modal-total"></p>
+                        <div class="bg-slate-50 p-8 rounded-[2rem] border border-slate-100 flex justify-between items-center shadow-inner">
+                            <div>
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">État du paiement</p>
+                                <span id="f-modal-statut" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest"></span>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Montant Total TTC</p>
+                                <p class="text-4xl font-black text-slate-900" id="f-modal-total"></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -179,12 +199,12 @@
         </div>
 
         <script th:inline="javascript">
-            // Filtres et Stats
+            // FILTRAGE DYNAMIQUE
             function appliquerFiltresFacture() {
                 const search = document.getElementById('search-input').value.toLowerCase();
                 const filterPaye = document.getElementById('filter-paye').value;
                 const rows = document.querySelectorAll('.facture-row');
-                let totalPaye = 0, totalReste = 0, count = 0;
+                let totalPaye = 0, totalReste = 0;
 
                 rows.forEach(row => {
                     const matchSearch = !search || row.dataset.search.includes(search);
@@ -193,14 +213,13 @@
 
                     if (matchSearch && matchPaye) {
                         row.style.display = "";
-                        count++;
                         if (row.dataset.paye === "true") totalPaye += montant;
                         else totalReste += montant;
                     } else row.style.display = "none";
                 });
 
-                document.getElementById('stat-paye').innerText = totalPaye.toLocaleString('fr-FR', {minimumFractionDigits:2}) + " €";
-                document.getElementById('stat-reste').innerText = totalReste.toLocaleString('fr-FR', {minimumFractionDigits:2}) + " €";
+                document.getElementById('stat-paye').innerText = totalPaye.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
+                document.getElementById('stat-reste').innerText = totalReste.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
             }
 
             function resetFiltresFacture() {
@@ -209,12 +228,16 @@
                 appliquerFiltresFacture();
             }
 
-            // Gestion Modale Insertion
+            // GESTION INSERTION
             function ouvrirModaleInsertion() { document.getElementById('modal-insertion-facture').classList.remove('hidden'); }
             function fermerModaleInsertion() { document.getElementById('modal-insertion-facture').classList.add('hidden'); }
+            
             function autoRemplirMontant(select) {
-                const montant = select.options[select.selectedIndex].getAttribute('data-montant');
-                if(montant) document.getElementById('ins-montant').value = montant;
+                const selectedOption = select.options[select.selectedIndex];
+                const montant = selectedOption.getAttribute('data-montant');
+                const input = document.getElementById('ins-montant');
+                if(montant) input.value = parseFloat(montant).toFixed(2);
+                else input.value = "";
             }
 
             document.getElementById('form-facture').onsubmit = async function(e) {
@@ -225,7 +248,7 @@
                     numeroFactureFournisseur: formData.get('numeroFactureFournisseur'),
                     montantTotalTtc: parseFloat(formData.get('montantTotalTtc')),
                     dateFacture: formData.get('dateFacture'),
-                    estPayee: formData.get('estPayee') === 'on'
+                    estPayee: false // Sécurité : Forcé à false
                 };
 
                 try {
@@ -235,24 +258,24 @@
                         body: JSON.stringify(data)
                     });
                     if(res.ok) location.reload();
-                    else alert("Erreur lors de l'enregistrement");
+                    else alert("Erreur lors de l'enregistrement. Vérifiez que le BC n'est pas déjà facturé.");
                 } catch(err) { alert("Erreur réseau"); }
             };
 
-            // Gestion Modale Détails
+            // DÉTAILS
             async function ouvrirDetailsFacture(fId) {
                 try {
                     const res = await fetch('/api/achats/factures/' + fId);
                     const dto = await res.json();
                     document.getElementById('f-modal-num').innerText = "Facture " + dto.numeroFacture;
-                    document.getElementById('f-modal-date').innerText = "Date: " + dto.dateFacture;
+                    document.getElementById('f-modal-date').innerText = "Reçue le: " + dto.dateFacture;
                     document.getElementById('f-modal-fournisseur').innerText = dto.fournisseurNom;
                     document.getElementById('f-modal-bc').innerText = dto.referenceBc;
-                    document.getElementById('f-modal-total').innerText = Number(dto.montantTotal).toFixed(2) + " €";
+                    document.getElementById('f-modal-total').innerText = dto.montantTotal.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
                     
                     const badge = document.getElementById('f-modal-statut');
-                    badge.innerText = dto.estPayee ? "Payée" : "À régler";
-                    badge.className = `px-3 py-1 rounded-full text-[10px] font-black uppercase ${dto.estPayee ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`;
+                    badge.innerText = dto.estPayee ? "Facture Payée" : "En attente de règlement";
+                    badge.className = `px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${dto.estPayee ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`;
                     
                     document.getElementById('modal-facture').classList.remove('hidden');
                     if(window.lucide) lucide.createIcons();
@@ -261,7 +284,6 @@
 
             function fermerModalFacture() { document.getElementById('modal-facture').classList.add('hidden'); }
 
-            // Initialisation
             document.addEventListener('DOMContentLoaded', () => {
                 appliquerFiltresFacture();
                 if(window.lucide) lucide.createIcons();
@@ -269,3 +291,5 @@
         </script>
     </div>
 </div>
+</body>
+</html>
