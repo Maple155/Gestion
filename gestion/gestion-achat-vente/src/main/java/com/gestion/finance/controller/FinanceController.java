@@ -25,8 +25,13 @@ import com.gestion.achat.repository.FactureAchatRepository;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.repository.StockRepository;
 import com.gestion.stock.service.ValorisationService;
-import com.gestion.vente.entity.LigneCommandeClient;
+import com.gestion.vente.entity.AvoirClient;
+import com.gestion.vente.entity.FactureVente;
+import com.gestion.vente.entity.LigneFactureVente;
+import com.gestion.vente.enums.StatutAvoir;
+import com.gestion.vente.repository.AvoirClientRepository;
 import com.gestion.vente.repository.FactureVenteRepository;
+import com.gestion.vente.repository.LigneFactureVenteRepository;
 import com.gestion.vente.repository.LigneCommandeClientRepository;
 import com.gestion.vente.repository.PaiementClientRepository;
 
@@ -45,6 +50,8 @@ public class FinanceController {
     private final StockRepository stockRepository;
     private final ArticleRepository articleRepository;
     private final LigneCommandeClientRepository ligneCommandeClientRepository;
+    private final LigneFactureVenteRepository ligneFactureVenteRepository;
+    private final AvoirClientRepository avoirClientRepository;
     private final ValorisationService valorisationService;
     private final PaiementClientRepository paiementClientRepository;
 
@@ -73,7 +80,8 @@ public class FinanceController {
         model.addAttribute("valeurOperationnelle", operationnelle);
         model.addAttribute("ecartStock", operationnelle.subtract(comptable));
 
-        MarginKpi margin = computeMarge();
+        AvoirTotals avoirs = computeAvoirsTotals();
+        MarginKpi margin = computeMargeFacture(avoirs.avoirHt);
         model.addAttribute("margeTotale", margin.margeTotale);
         model.addAttribute("caTotal", margin.chiffreAffaires);
         model.addAttribute("tauxMarge", margin.tauxMarge);
@@ -174,13 +182,16 @@ public class FinanceController {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
         
         // 1. Calcul de la Marge et du CA HT
-        MarginKpi margin = computeMarge();
+        MarginKpi margin = computeMargeFacture(computeAvoirsTotals().avoirHt);
         
         // 2. Calcul du CA TTC RÉEL (Indispensable pour comparer aux paiements)
         // On va chercher la somme des factures de vente en base
         BigDecimal totalTtcFacture = factureVenteRepository.findAll().stream()
-                .map(f -> f.getTotalTtc() != null ? f.getTotalTtc() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            .map(f -> f.getTotalTtc() != null ? f.getTotalTtc() : BigDecimal.ZERO)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        AvoirTotals avoirs = computeAvoirsTotals();
+        BigDecimal totalTtcNet = totalTtcFacture.subtract(avoirs.avoirTtc);
+        if (totalTtcNet.compareTo(BigDecimal.ZERO) < 0) totalTtcNet = BigDecimal.ZERO;
 
         // 3. Récupération des encaissements (Table paiements_clients)
         BigDecimal totalEncaisse = paiementClientRepository.findAll().stream()
@@ -188,13 +199,13 @@ public class FinanceController {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // 4. Calcul du reste à percevoir (ne peut pas être inférieur à zéro logiquement)
-        BigDecimal resteARecouvrer = totalTtcFacture.subtract(totalEncaisse);
+        BigDecimal resteARecouvrer = totalTtcNet.subtract(totalEncaisse);
         if (resteARecouvrer.compareTo(BigDecimal.ZERO) < 0) resteARecouvrer = BigDecimal.ZERO;
 
         // 5. Calcul du taux de recouvrement
         double tauxRecouvrement = 0;
-        if (totalTtcFacture.compareTo(BigDecimal.ZERO) > 0) {
-            tauxRecouvrement = totalEncaisse.divide(totalTtcFacture, 4, RoundingMode.HALF_UP)
+        if (totalTtcNet.compareTo(BigDecimal.ZERO) > 0) {
+            tauxRecouvrement = totalEncaisse.divide(totalTtcNet, 4, RoundingMode.HALF_UP)
                                         .multiply(BigDecimal.valueOf(100)).doubleValue();
         }
 
@@ -282,31 +293,61 @@ public class FinanceController {
             .setScale(2, RoundingMode.HALF_UP);
     }
 
-    private MarginKpi computeMarge() {
+    private MarginKpi computeMargeFacture(BigDecimal avoirsHt) {
         BigDecimal ca = BigDecimal.ZERO;
         BigDecimal marge = BigDecimal.ZERO;
-        List<LigneCommandeClient> lignes = ligneCommandeClientRepository.findAll();
+        List<LigneFactureVente> lignes = ligneFactureVenteRepository.findAll();
 
-        for (LigneCommandeClient ligne : lignes) {
+        for (LigneFactureVente ligne : lignes) {
             BigDecimal prixVente = ligne.getPrixUnitaireHt() != null ? ligne.getPrixUnitaireHt() : BigDecimal.ZERO;
             BigDecimal cout = articleRepository.findById(ligne.getArticleId())
                 .map(a -> a.getCoutStandard() != null ? a.getCoutStandard() : BigDecimal.ZERO)
                 .orElse(BigDecimal.ZERO);
-            
+
             BigDecimal qte = BigDecimal.valueOf(ligne.getQuantite() != null ? ligne.getQuantite() : 0);
             ca = ca.add(prixVente.multiply(qte));
             marge = marge.add(prixVente.subtract(cout).multiply(qte));
         }
 
-        BigDecimal taux = (ca.compareTo(BigDecimal.ZERO) > 0) 
-            ? marge.divide(ca, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)) 
+        if (avoirsHt != null && avoirsHt.compareTo(BigDecimal.ZERO) > 0 && ca.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal tauxMargeBrut = marge.divide(ca, 6, RoundingMode.HALF_UP);
+            ca = ca.subtract(avoirsHt).max(BigDecimal.ZERO);
+            marge = marge.subtract(avoirsHt.multiply(tauxMargeBrut)).max(BigDecimal.ZERO);
+        }
+
+        BigDecimal taux = (ca.compareTo(BigDecimal.ZERO) > 0)
+            ? marge.divide(ca, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
             : BigDecimal.ZERO;
 
         return new MarginKpi(ca, marge, taux.setScale(2, RoundingMode.HALF_UP));
     }
 
+    private AvoirTotals computeAvoirsTotals() {
+        BigDecimal totalAvoirTtc = BigDecimal.ZERO;
+        BigDecimal totalAvoirHt = BigDecimal.ZERO;
+        List<AvoirClient> avoirs = avoirClientRepository.findAll().stream()
+            .filter(a -> a.getStatut() == StatutAvoir.EMIS)
+            .toList();
+
+        for (AvoirClient avoir : avoirs) {
+            BigDecimal montant = avoir.getMontant() != null ? avoir.getMontant() : BigDecimal.ZERO;
+            totalAvoirTtc = totalAvoirTtc.add(montant);
+
+            FactureVente facture = avoir.getFacture();
+            BigDecimal totalTtc = facture != null && facture.getTotalTtc() != null ? facture.getTotalTtc() : BigDecimal.ZERO;
+            BigDecimal totalHt = facture != null && facture.getTotalHt() != null ? facture.getTotalHt() : BigDecimal.ZERO;
+            if (totalTtc.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal ratioHt = totalHt.divide(totalTtc, 6, RoundingMode.HALF_UP);
+                totalAvoirHt = totalAvoirHt.add(montant.multiply(ratioHt));
+            }
+        }
+
+        return new AvoirTotals(totalAvoirHt, totalAvoirTtc);
+    }
+
     // --- CLASSES INTERNES (DTOs) ---
     private static record MarginKpi(BigDecimal chiffreAffaires, BigDecimal margeTotale, BigDecimal tauxMarge) {}
+    private static record AvoirTotals(BigDecimal avoirHt, BigDecimal avoirTtc) {}
 
     public static record MismatchItem(String numeroFacture, String referenceBc, String motif, BigDecimal montant) {}
 }
