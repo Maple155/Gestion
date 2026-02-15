@@ -832,6 +832,186 @@ public class LotService {
         throw new IllegalArgumentException("Stock insuffisant pour l'allocation");
     }
 
+    /**
+     * Sortie de stock en méthode FIFO (multi-lots)
+     * Retourne le détail des lots utilisés et le coût total de sortie
+     */
+    @Transactional
+    public Map<String, Object> sortirStockFIFO(UUID articleId, UUID depotId, Integer quantiteASortir, String motif) {
+        log.info("Sortie FIFO - Article: {}, Dépôt: {}, Quantité: {}", articleId, depotId, quantiteASortir);
+        
+        // Récupérer les lots disponibles triés par date de réception (FIFO)
+        List<Lot> lotsDisponibles = lotRepository.findByArticleIdAndDepotOrderByDateReceptionAsc(articleId, depotId);
+
+        if (lotsDisponibles.isEmpty()) {
+            throw new RuntimeException("Aucun lot disponible pour cet article dans ce dépôt");
+        }
+
+        // Vérifier stock total disponible
+        int stockTotal = lotsDisponibles.stream()
+            .mapToInt(l -> l.getQuantiteActuelle() != null ? l.getQuantiteActuelle() : 0)
+            .sum();
+
+        if (stockTotal < quantiteASortir) {
+            throw new RuntimeException("Stock insuffisant. Disponible: " + stockTotal + ", Demandé: " + quantiteASortir);
+        }
+
+        BigDecimal coutTotalSortie = BigDecimal.ZERO;
+        int quantiteRestante = quantiteASortir;
+        List<Map<String, Object>> detailsSortie = new ArrayList<>();
+
+        for (Lot lot : lotsDisponibles) {
+            if (quantiteRestante <= 0) break;
+
+            int qteDisponible = lot.getQuantiteActuelle() != null ? lot.getQuantiteActuelle() : 0;
+            if (qteDisponible <= 0) continue;
+            
+            int quantiteDuLot = Math.min(qteDisponible, quantiteRestante);
+
+            // Calculer le coût de cette portion
+            BigDecimal coutUnitaire = lot.getCoutUnitaire() != null ? lot.getCoutUnitaire() : BigDecimal.ZERO;
+            BigDecimal coutPortion = coutUnitaire.multiply(BigDecimal.valueOf(quantiteDuLot));
+            coutTotalSortie = coutTotalSortie.add(coutPortion);
+
+            // Décrémenter le lot
+            lot.setQuantiteActuelle(qteDisponible - quantiteDuLot);
+            
+            // Marquer comme épuisé si nécessaire
+            if (lot.getQuantiteActuelle() == 0) {
+                lot.setStatut(Lot.LotStatus.EPUISE);
+            }
+            
+            lotRepository.save(lot);
+
+            // Enregistrer le détail
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("lotId", lot.getId());
+            detail.put("numeroLot", lot.getNumeroLot());
+            detail.put("quantiteSortie", quantiteDuLot);
+            detail.put("coutUnitaire", coutUnitaire);
+            detail.put("coutTotal", coutPortion);
+            detail.put("dateReception", lot.getDateReception());
+            detailsSortie.add(detail);
+
+            quantiteRestante -= quantiteDuLot;
+
+            log.info("FIFO - Sortie de {} unités du lot {} (réception: {}), coût: {}",
+                quantiteDuLot, lot.getNumeroLot(), lot.getDateReception(), coutPortion);
+        }
+
+        Map<String, Object> resultat = new HashMap<>();
+        resultat.put("quantiteTotale", quantiteASortir);
+        resultat.put("coutTotalSortie", coutTotalSortie);
+        resultat.put("coutUnitaireMoyen", coutTotalSortie.divide(BigDecimal.valueOf(quantiteASortir), 4, RoundingMode.HALF_UP));
+        resultat.put("details", detailsSortie);
+        resultat.put("motif", motif);
+        resultat.put("nombreLotsUtilises", detailsSortie.size());
+
+        log.info("Sortie FIFO terminée - {} lots utilisés, coût total: {}", detailsSortie.size(), coutTotalSortie);
+        
+        return resultat;
+    }
+
+    /**
+     * Sortie de stock en méthode FEFO (multi-lots par date de péremption)
+     * Retourne le détail des lots utilisés et le coût total de sortie
+     */
+    @Transactional
+    public Map<String, Object> sortirStockFEFO(UUID articleId, UUID depotId, Integer quantiteASortir, String motif) {
+        log.info("Sortie FEFO - Article: {}, Dépôt: {}, Quantité: {}", articleId, depotId, quantiteASortir);
+        
+        // Récupérer les lots disponibles triés par date de péremption (FEFO)
+        List<Lot> lotsDisponibles = lotRepository.findByArticleIdAndDepotOrderByDatePeremptionAsc(articleId, depotId);
+
+        if (lotsDisponibles.isEmpty()) {
+            throw new RuntimeException("Aucun lot disponible pour cet article dans ce dépôt");
+        }
+
+        // Vérifier stock total disponible
+        int stockTotal = lotsDisponibles.stream()
+            .mapToInt(l -> l.getQuantiteActuelle() != null ? l.getQuantiteActuelle() : 0)
+            .sum();
+
+        if (stockTotal < quantiteASortir) {
+            throw new RuntimeException("Stock insuffisant. Disponible: " + stockTotal + ", Demandé: " + quantiteASortir);
+        }
+
+        BigDecimal coutTotalSortie = BigDecimal.ZERO;
+        int quantiteRestante = quantiteASortir;
+        List<Map<String, Object>> detailsSortie = new ArrayList<>();
+
+        for (Lot lot : lotsDisponibles) {
+            if (quantiteRestante <= 0) break;
+
+            int qteDisponible = lot.getQuantiteActuelle() != null ? lot.getQuantiteActuelle() : 0;
+            if (qteDisponible <= 0) continue;
+            
+            int quantiteDuLot = Math.min(qteDisponible, quantiteRestante);
+
+            // Calculer le coût de cette portion
+            BigDecimal coutUnitaire = lot.getCoutUnitaire() != null ? lot.getCoutUnitaire() : BigDecimal.ZERO;
+            BigDecimal coutPortion = coutUnitaire.multiply(BigDecimal.valueOf(quantiteDuLot));
+            coutTotalSortie = coutTotalSortie.add(coutPortion);
+
+            // Décrémenter le lot
+            lot.setQuantiteActuelle(qteDisponible - quantiteDuLot);
+            
+            // Marquer comme épuisé si nécessaire
+            if (lot.getQuantiteActuelle() == 0) {
+                lot.setStatut(Lot.LotStatus.EPUISE);
+            }
+            
+            lotRepository.save(lot);
+
+            // Enregistrer le détail
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("lotId", lot.getId());
+            detail.put("numeroLot", lot.getNumeroLot());
+            detail.put("quantiteSortie", quantiteDuLot);
+            detail.put("coutUnitaire", coutUnitaire);
+            detail.put("coutTotal", coutPortion);
+            detail.put("datePeremption", lot.getDatePeremption());
+            detailsSortie.add(detail);
+
+            quantiteRestante -= quantiteDuLot;
+
+            log.info("FEFO - Sortie de {} unités du lot {} (péremption: {}), coût: {}",
+                quantiteDuLot, lot.getNumeroLot(), lot.getDatePeremption(), coutPortion);
+        }
+
+        Map<String, Object> resultat = new HashMap<>();
+        resultat.put("quantiteTotale", quantiteASortir);
+        resultat.put("coutTotalSortie", coutTotalSortie);
+        resultat.put("coutUnitaireMoyen", coutTotalSortie.divide(BigDecimal.valueOf(quantiteASortir), 4, RoundingMode.HALF_UP));
+        resultat.put("details", detailsSortie);
+        resultat.put("motif", motif);
+        resultat.put("nombreLotsUtilises", detailsSortie.size());
+
+        log.info("Sortie FEFO terminée - {} lots utilisés, coût total: {}", detailsSortie.size(), coutTotalSortie);
+        
+        return resultat;
+    }
+
+    /**
+     * Sortie de stock automatique selon la méthode de valorisation de l'article
+     */
+    @Transactional
+    public Map<String, Object> sortirStockAuto(UUID articleId, UUID depotId, Integer quantite, String motif) {
+        Article article = articleRepository.findById(articleId)
+            .orElseThrow(() -> new RuntimeException("Article non trouvé: " + articleId));
+        
+        String methode = article.getMethodeValorisation();
+        
+        if ("FIFO".equalsIgnoreCase(methode)) {
+            return sortirStockFIFO(articleId, depotId, quantite, motif);
+        } else if ("FEFO".equalsIgnoreCase(methode)) {
+            return sortirStockFEFO(articleId, depotId, quantite, motif);
+        } else {
+            // CUMP par défaut - utiliser FIFO pour la sortie physique
+            return sortirStockFIFO(articleId, depotId, quantite, motif);
+        }
+    }
+
     // Changer le statut d'un lot
     public Lot changerStatutLot(UUID lotId, Lot.LotStatus nouveauStatut, String motif) {
         Lot lot = lotRepository.findById(lotId)

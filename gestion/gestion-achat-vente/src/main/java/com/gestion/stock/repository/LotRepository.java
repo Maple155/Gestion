@@ -267,14 +267,14 @@ public interface LotRepository extends JpaRepository<Lot, UUID>, JpaSpecificatio
                      Pageable pageable);
 
     @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
-           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' " +
+           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
            "ORDER BY l.dateReception ASC")
     List<Lot> findByArticleIdAndDepotOrderByDateReceptionAsc(
             @Param("articleId") UUID articleId, 
             @Param("depotId") UUID depotId);
     
     @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
-           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' " +
+           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
            "ORDER BY l.datePeremption ASC NULLS LAST")
     List<Lot> findByArticleIdAndDepotOrderByDatePeremptionAsc(
             @Param("articleId") UUID articleId, 
