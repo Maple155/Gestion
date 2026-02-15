@@ -405,6 +405,10 @@ public class VenteService {
             throw new RuntimeException("Impossible de facturer une commande annulée");
         }
 
+        if (livraisonId == null && commande.getStatut() != StatutCommandeClient.LIVREE) {
+            throw new RuntimeException("Impossible de facturer une commande non livrée");
+        }
+
         LivraisonClient livraison = null;
         if (livraisonId != null) {
             livraison = livraisonRepository.findById(livraisonId)
