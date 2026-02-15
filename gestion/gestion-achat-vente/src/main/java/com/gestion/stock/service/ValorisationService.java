@@ -977,4 +977,166 @@ public class ValorisationService {
         return valeurTotale;
     }
 
+    /**
+     * Met à jour le CUMP après une entrée en stock
+     * Formule: Nouveau CUMP = (Ancienne valeur + Nouvelle valeur) / (Ancienne qté + Nouvelle qté)
+     */
+    @Transactional
+    public void mettreAJourCUMPApresEntree(UUID articleId, UUID depotId, Integer quantiteEntree, BigDecimal coutUnitaire) {
+        if (quantiteEntree == null || quantiteEntree <= 0 || coutUnitaire == null) {
+            log.warn("Paramètres invalides pour mise à jour CUMP entrée");
+            return;
+        }
+
+        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
+        
+        Stock stock;
+        BigDecimal ancienneValeur;
+        int ancienneQuantite;
+
+        if (stockOpt.isPresent()) {
+            stock = stockOpt.get();
+            ancienneValeur = stock.getValeurStockCump() != null ? stock.getValeurStockCump() : BigDecimal.ZERO;
+            ancienneQuantite = stock.getQuantiteTheorique() != null ? stock.getQuantiteTheorique() : 0;
+        } else {
+            // Créer un nouveau stock si inexistant
+            Article article = articleRepository.findById(articleId)
+                .orElseThrow(() -> new RuntimeException("Article non trouvé: " + articleId));
+            Depot depot = depotRepository.findById(depotId)
+                .orElseThrow(() -> new RuntimeException("Dépôt non trouvé: " + depotId));
+                
+            stock = Stock.builder()
+                .article(article)
+                .depot(depot)
+                .quantiteTheorique(0)
+                .quantitePhysique(0)
+                .quantiteReservee(0)
+                .valeurStockCump(BigDecimal.ZERO)
+                .build();
+            ancienneValeur = BigDecimal.ZERO;
+            ancienneQuantite = 0;
+        }
+
+        // Calcul CUMP : (Ancienne valeur + Nouvelle valeur) / (Ancienne qté + Nouvelle qté)
+        BigDecimal nouvelleValeurEntree = coutUnitaire.multiply(BigDecimal.valueOf(quantiteEntree));
+        BigDecimal valeurTotale = ancienneValeur.add(nouvelleValeurEntree);
+        int nouvelleQuantite = ancienneQuantite + quantiteEntree;
+
+        stock.setQuantiteTheorique(nouvelleQuantite);
+        stock.setQuantitePhysique(nouvelleQuantite);
+        stock.setValeurStockCump(valeurTotale);
+        stock.setDateDernierMouvement(LocalDateTime.now());
+        stock.setUpdatedAt(LocalDateTime.now());
+
+        stockRepository.save(stock);
+
+        BigDecimal nouveauCUMP = nouvelleQuantite > 0 
+            ? valeurTotale.divide(BigDecimal.valueOf(nouvelleQuantite), 4, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+            
+        log.info("CUMP mis à jour après ENTRÉE - Article: {}, Qté: {} -> {}, Valeur: {} -> {}, CUMP: {}",
+            articleId, ancienneQuantite, nouvelleQuantite, ancienneValeur, valeurTotale, nouveauCUMP);
+    }
+
+    /**
+     * Met à jour le CUMP après une sortie de stock
+     * Le CUMP reste constant, seule la valeur totale diminue proportionnellement
+     */
+    @Transactional
+    public void mettreAJourCUMPApresSortie(UUID articleId, UUID depotId, Integer quantiteSortie) {
+        if (quantiteSortie == null || quantiteSortie <= 0) {
+            return;
+        }
+
+        Stock stock = stockRepository.findByArticleIdAndDepotId(articleId, depotId)
+            .orElseThrow(() -> new RuntimeException("Stock non trouvé pour article: " + articleId + ", dépôt: " + depotId));
+
+        int ancienneQuantite = stock.getQuantiteTheorique() != null ? stock.getQuantiteTheorique() : 0;
+        BigDecimal ancienneValeur = stock.getValeurStockCump() != null ? stock.getValeurStockCump() : BigDecimal.ZERO;
+
+        if (ancienneQuantite < quantiteSortie) {
+            throw new RuntimeException("Stock insuffisant. Disponible: " + ancienneQuantite + ", Demandé: " + quantiteSortie);
+        }
+
+        // CUMP reste constant à la sortie, la valeur diminue proportionnellement
+        BigDecimal cumpActuel = ancienneQuantite > 0 
+            ? ancienneValeur.divide(BigDecimal.valueOf(ancienneQuantite), 4, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+        
+        BigDecimal valeurSortie = cumpActuel.multiply(BigDecimal.valueOf(quantiteSortie));
+        int nouvelleQuantite = ancienneQuantite - quantiteSortie;
+        BigDecimal nouvelleValeur = nouvelleQuantite > 0 ? ancienneValeur.subtract(valeurSortie) : BigDecimal.ZERO;
+
+        stock.setQuantiteTheorique(nouvelleQuantite);
+        stock.setQuantitePhysique(nouvelleQuantite);
+        stock.setValeurStockCump(nouvelleValeur);
+        stock.setDateDernierMouvement(LocalDateTime.now());
+        stock.setUpdatedAt(LocalDateTime.now());
+
+        stockRepository.save(stock);
+
+        log.info("CUMP mis à jour après SORTIE - Article: {}, Qté: {} -> {}, Valeur: {} -> {}, CUMP constant: {}",
+            articleId, ancienneQuantite, nouvelleQuantite, ancienneValeur, nouvelleValeur, cumpActuel);
+    }
+
+    /**
+     * Recalcule complètement la valorisation d'un article à partir des lots
+     * Utile pour corriger les incohérences
+     */
+    @Transactional
+    public void recalculerValorisationComplete(UUID articleId, UUID depotId) {
+        List<Lot> lots = lotRepository.findByArticleIdAndDepotIdAndStatut(articleId, depotId, Lot.LotStatus.DISPONIBLE);
+
+        BigDecimal valeurTotale = BigDecimal.ZERO;
+        int quantiteTotale = 0;
+
+        for (Lot lot : lots) {
+            int qte = lot.getQuantiteActuelle() != null ? lot.getQuantiteActuelle() : 0;
+            BigDecimal prix = lot.getCoutUnitaire() != null ? lot.getCoutUnitaire() : BigDecimal.ZERO;
+            
+            valeurTotale = valeurTotale.add(prix.multiply(BigDecimal.valueOf(qte)));
+            quantiteTotale += qte;
+        }
+
+        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
+        if (stockOpt.isPresent()) {
+            Stock stock = stockOpt.get();
+            stock.setValeurStockCump(valeurTotale);
+            stock.setQuantiteTheorique(quantiteTotale);
+            stock.setQuantitePhysique(quantiteTotale);
+            stock.setUpdatedAt(LocalDateTime.now());
+            stockRepository.save(stock);
+            
+            log.info("Valorisation recalculée - Article: {}, Dépôt: {}, Qté: {}, Valeur: {}", 
+                articleId, depotId, quantiteTotale, valeurTotale);
+        }
+    }
+
+    /**
+     * Obtient un résumé de valorisation pour un article
+     */
+    public Map<String, Object> getResumeValorisation(UUID articleId, UUID depotId) {
+        Map<String, Object> resume = new HashMap<>();
+        
+        Article article = articleRepository.findById(articleId).orElse(null);
+        if (article == null) {
+            return resume;
+        }
+
+        resume.put("articleId", articleId);
+        resume.put("articleCode", article.getCodeArticle());
+        resume.put("articleNom", article.getLibelle());
+        resume.put("methode", article.getMethodeValorisation());
+        resume.put("valorisationCUMP", calculerValorisationCUMP(articleId, depotId));
+        resume.put("valorisationFIFO", calculerValorisationFIFO(articleId, depotId));
+        resume.put("valorisationFEFO", calculerValorisationFEFO(articleId, depotId));
+        
+        stockRepository.findByArticleIdAndDepotId(articleId, depotId).ifPresent(stock -> {
+            resume.put("quantiteStock", stock.getQuantiteTheorique());
+            resume.put("coutUnitaireMoyen", stock.getCoutUnitaireMoyen());
+        });
+
+        return resume;
+    }
+
 }
