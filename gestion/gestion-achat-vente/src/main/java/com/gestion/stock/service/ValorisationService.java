@@ -27,11 +27,22 @@ public class ValorisationService {
     private final DepotRepository depotRepository; 
 
     /**
-     * Calcul du CUMP (Coût Unitaire Moyen Pondéré) complet
+     * Calcul du CUMP (Coût Unitaire Moyen Pondéré) depuis l'historique complet des mouvements.
+     * 
+     * ⚠️ ATTENTION: Cette méthode recalcule le CUMP depuis TOUTES les entrées historiques.
+     * Pour la valorisation courante, utilisez stock.getCoutUnitaireMoyen() ou stock.getValeurStockCump()
+     * qui sont mis à jour en temps réel lors de chaque mouvement.
+     * 
+     * Cas d'utilisation de cette méthode:
+     * - Audit et vérification des données
+     * - Recalcul complet après correction de données
+     * - Clôture mensuelle / historique
+     * 
+     * @return Le CUMP unitaire (coût par unité)
      */
     @Transactional
     public BigDecimal calculerCUMP(UUID articleId, UUID depotId) {
-        log.info("Calcul CUMP pour article: {}, dépôt: {}", articleId, depotId);
+        log.info("Calcul CUMP depuis historique pour article: {}, dépôt: {}", articleId, depotId);
 
         // Récupérer toutes les entrées pour l'article/dépôt
         List<StockMovement> entrees = mouvementRepository.findByArticleIdAndDepotIdOrderByDateMouvementDesc(
@@ -184,8 +195,26 @@ public class ValorisationService {
 
     /**
      * Valorisation CUMP standard
+     * ✅ CORRIGÉ: Utilise directement stock.valeurStockCump qui est mis à jour en temps réel
+     * lors de chaque mouvement, au lieu de recalculer depuis l'historique
      */
     private BigDecimal calculerValorisationCUMP(UUID articleId, UUID depotId) {
+        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
+
+        if (stockOpt.isPresent()) {
+            Stock stock = stockOpt.get();
+            // ✅ Utiliser directement la valeur stockée (mise à jour à chaque mouvement)
+            return stock.getValeurStockCump() != null ? stock.getValeurStockCump() : BigDecimal.ZERO;
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * Recalculer le CUMP depuis l'historique complet des mouvements
+     * ⚠️ À utiliser uniquement pour audit/vérification ou recalcul complet
+     */
+    public BigDecimal recalculerCUMPDepuisHistorique(UUID articleId, UUID depotId) {
         BigDecimal cump = calculerCUMP(articleId, depotId);
         Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
 
