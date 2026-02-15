@@ -572,8 +572,13 @@ public class VenteViewController {
     @PostMapping("/commandes/{id}/facturer")
     public String facturerCommande(@PathVariable UUID id, HttpSession session) {
         requireRole(session, "ADMIN", "COMPTABLE_CLIENT");
-        venteService.genererFacture(id, null);
-        return "redirect:/ventes/factures/liste";
+        try {
+            venteService.genererFacture(id, null);
+            return "redirect:/ventes/factures/liste";
+        } catch (RuntimeException ex) {
+            session.setAttribute("flashError", ex.getMessage());
+            return "redirect:/ventes/commandes/liste";
+        }
     }
 
     @PostMapping("/commandes/{id}/annuler")

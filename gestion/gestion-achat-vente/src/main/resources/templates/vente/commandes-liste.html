@@ -35,7 +35,7 @@
                                     Livrer
                                 </button>
                             </form>
-                            <form th:if="${session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT'}"
+                                    <form th:if="${(session.userRole == 'ADMIN' or session.userRole == 'COMPTABLE_CLIENT') and c.statut.name() != 'FACTUREE' and c.statut.name() != 'ANNULEE'}"
                                   th:action="@{/ventes/commandes/{id}/facturer(id=${c.id})}" method="post" class="inline">
                                 <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-bold">
                                     Facturer

@@ -395,8 +395,15 @@ public class VenteService {
     }
 
     public FactureVente genererFacture(UUID commandeId, UUID livraisonId) {
+        if (factureRepository.existsByCommandeId(commandeId)) {
+            throw new RuntimeException("Cette commande est déjà facturée");
+        }
         CommandeClient commande = commandeRepository.findById(commandeId)
             .orElseThrow(() -> new RuntimeException("Commande introuvable"));
+
+        if (commande.getStatut() == StatutCommandeClient.ANNULEE) {
+            throw new RuntimeException("Impossible de facturer une commande annulée");
+        }
 
         LivraisonClient livraison = null;
         if (livraisonId != null) {
