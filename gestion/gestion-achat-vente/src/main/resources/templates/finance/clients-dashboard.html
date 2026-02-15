@@ -7,10 +7,21 @@
                 <h1 class="text-2xl font-bold text-slate-800">Analyse des Ventes & Performance</h1>
                 <p class="text-slate-500 text-sm">Données consolidées en temps réel.</p>
             </div>
-            <div class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl flex items-center gap-3">
-                <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-widest" 
-                      th:text="${#temporals.format(#temporals.createNow(), 'MMMM yyyy')}">Février 2026</span>
+            <div class="flex items-center gap-3">
+                <form method="get" class="bg-white shadow-sm border border-slate-200 px-3 py-2 rounded-xl flex items-center gap-2">
+                    <label for="months" class="text-[10px] font-bold text-slate-500 uppercase">Période</label>
+                    <select id="months" name="months" class="text-xs font-bold text-slate-700" onchange="this.form.submit()">
+                        <option value="3" th:selected="${monthsBack == 3}">3 mois</option>
+                        <option value="6" th:selected="${monthsBack == 6}">6 mois</option>
+                        <option value="12" th:selected="${monthsBack == 12}">12 mois</option>
+                        <option value="24" th:selected="${monthsBack == 24}">24 mois</option>
+                    </select>
+                </form>
+                <div class="bg-white shadow-sm border border-slate-200 px-4 py-2 rounded-xl flex items-center gap-3">
+                    <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-widest" 
+                          th:text="${#temporals.format(#temporals.createNow(), 'MMMM yyyy')}">Février 2026</span>
+                </div>
             </div>
         </div>
 
@@ -18,7 +29,7 @@
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chiffre d'Affaires HT</p>
                 <h3 class="text-2xl font-black text-slate-800 mt-1" th:text="${#numbers.formatCurrency(caTotal)}">0 €</h3>
-                <p class="text-[10px] text-slate-400 mt-2 italic">Basé sur les lignes de commande</p>
+                <p class="text-[10px] text-slate-400 mt-2 italic">Basé sur les lignes de facture</p>
             </div>
 
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -29,10 +40,10 @@
 
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Encaissé TTC</p>
-                <h3 class="text-2xl font-black text-blue-600 mt-1" th:text="${#numbers.formatCurrency(totalEncaisse)}">0 €</h3>
+                <h3 class="text-2xl font-black text-blue-600 mt-1" th:text="${#numbers.formatCurrency(totalEncaisse != null ? totalEncaisse : 0)}">0 €</h3>
                 <div class="w-full bg-slate-100 h-1.5 rounded-full mt-3">
                     <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" 
-                         th:style="'width:' + ${tauxRecouvrement} + '%'"></div>
+                         th:style="'width:' + ${tauxRecouvrement > 100 ? 100 : (tauxRecouvrement < 0 ? 0 : tauxRecouvrement)} + '%'" ></div>
                 </div>
             </div>
 
@@ -89,8 +100,8 @@
             const labels = /*[[${chartLabels}]]*/ ['Jan', 'Fév'];
             const dataCA = /*[[${chartDataCA}]]*/ [0, 0];
             const dataMarge = /*[[${chartDataMarge}]]*/ [0, 0];
-            const totalEncaisse = /*[[${totalEncaisse}]]*/ 0;
-            const resteARecouvrer = /*[[${resteARecouvrer}]]*/ 0;
+            const totalEncaisse = /*[[${totalEncaisse != null ? totalEncaisse : 0}]]*/ 0;
+            const resteARecouvrer = /*[[${resteARecouvrer != null ? resteARecouvrer : 0}]]*/ 0;
 
             // Configuration Graphique Barres
             new Chart(document.getElementById('salesChart'), {

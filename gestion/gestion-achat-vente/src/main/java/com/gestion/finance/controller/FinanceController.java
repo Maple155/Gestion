@@ -3,8 +3,13 @@ package com.gestion.finance.controller;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -14,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.gestion.achat.entity.BonCommande;
 import com.gestion.achat.entity.BonReception;
@@ -178,7 +184,7 @@ public class FinanceController {
 
     // --- AUTRES MODULES (STOCKS & VENTES) ---
     @GetMapping("/clients")
-    public String dashboardClients(Model model, HttpSession session) {
+    public String dashboardClients(@RequestParam(defaultValue = "6") Integer months, Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
         
         // 1. Calcul de la Marge et du CA HT
@@ -217,9 +223,12 @@ public class FinanceController {
         model.addAttribute("tauxRecouvrement", (int)tauxRecouvrement);
         
         // Données Graphes
-        model.addAttribute("chartLabels", List.of("Janvier", "Février"));
-        model.addAttribute("chartDataCA", List.of(8000, margin.chiffreAffaires));
-        model.addAttribute("chartDataMarge", List.of(3000, margin.margeTotale));
+        int monthsBack = months != null ? Math.max(3, Math.min(24, months)) : 6;
+        MonthlySeries series = buildMonthlySeries(monthsBack);
+        model.addAttribute("monthsBack", monthsBack);
+        model.addAttribute("chartLabels", series.labels);
+        model.addAttribute("chartDataCA", series.ca);
+        model.addAttribute("chartDataMarge", series.marge);
 
         return "finance/clients-dashboard";
     }
@@ -345,9 +354,91 @@ public class FinanceController {
         return new AvoirTotals(totalAvoirHt, totalAvoirTtc);
     }
 
+    private MonthlySeries buildMonthlySeries(int monthsBack) {
+        YearMonth current = YearMonth.now();
+        Map<YearMonth, BigDecimal> caByMonth = new LinkedHashMap<>();
+        Map<YearMonth, BigDecimal> margeByMonth = new LinkedHashMap<>();
+        Map<YearMonth, BigDecimal> avoirHtByMonth = new LinkedHashMap<>();
+
+        for (int i = monthsBack - 1; i >= 0; i--) {
+            YearMonth ym = current.minusMonths(i);
+            caByMonth.put(ym, BigDecimal.ZERO);
+            margeByMonth.put(ym, BigDecimal.ZERO);
+            avoirHtByMonth.put(ym, BigDecimal.ZERO);
+        }
+
+        List<LigneFactureVente> lignes = ligneFactureVenteRepository.findAll();
+        for (LigneFactureVente ligne : lignes) {
+            FactureVente facture = ligne.getFacture();
+            if (facture == null || facture.getDateFacture() == null) {
+                continue;
+            }
+            YearMonth ym = YearMonth.from(facture.getDateFacture());
+            if (!caByMonth.containsKey(ym)) {
+                continue;
+            }
+
+            BigDecimal prixVente = ligne.getPrixUnitaireHt() != null ? ligne.getPrixUnitaireHt() : BigDecimal.ZERO;
+            BigDecimal cout = articleRepository.findById(ligne.getArticleId())
+                .map(a -> a.getCoutStandard() != null ? a.getCoutStandard() : BigDecimal.ZERO)
+                .orElse(BigDecimal.ZERO);
+            BigDecimal qte = BigDecimal.valueOf(ligne.getQuantite() != null ? ligne.getQuantite() : 0);
+
+            BigDecimal ca = prixVente.multiply(qte);
+            BigDecimal marge = prixVente.subtract(cout).multiply(qte);
+
+            caByMonth.put(ym, caByMonth.get(ym).add(ca));
+            margeByMonth.put(ym, margeByMonth.get(ym).add(marge));
+        }
+
+        List<AvoirClient> avoirs = avoirClientRepository.findAll().stream()
+            .filter(a -> a.getStatut() == StatutAvoir.EMIS)
+            .toList();
+
+        for (AvoirClient avoir : avoirs) {
+            if (avoir.getDateAvoir() == null) {
+                continue;
+            }
+            YearMonth ym = YearMonth.from(avoir.getDateAvoir());
+            if (!avoirHtByMonth.containsKey(ym)) {
+                continue;
+            }
+
+            BigDecimal montant = avoir.getMontant() != null ? avoir.getMontant() : BigDecimal.ZERO;
+            FactureVente facture = avoir.getFacture();
+            BigDecimal totalTtc = facture != null && facture.getTotalTtc() != null ? facture.getTotalTtc() : BigDecimal.ZERO;
+            BigDecimal totalHt = facture != null && facture.getTotalHt() != null ? facture.getTotalHt() : BigDecimal.ZERO;
+            if (totalTtc.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal ratioHt = totalHt.divide(totalTtc, 6, RoundingMode.HALF_UP);
+                BigDecimal avoirHt = montant.multiply(ratioHt);
+                avoirHtByMonth.put(ym, avoirHtByMonth.get(ym).add(avoirHt));
+            }
+        }
+
+        List<String> labels = new ArrayList<>();
+        List<BigDecimal> caData = new ArrayList<>();
+        List<BigDecimal> margeData = new ArrayList<>();
+
+        for (YearMonth ym : caByMonth.keySet()) {
+            labels.add(ym.getMonth().getDisplayName(TextStyle.FULL, Locale.FRENCH));
+            BigDecimal ca = caByMonth.get(ym).subtract(avoirHtByMonth.get(ym)).max(BigDecimal.ZERO);
+            BigDecimal marge = margeByMonth.get(ym);
+            if (caByMonth.get(ym).compareTo(BigDecimal.ZERO) > 0 && avoirHtByMonth.get(ym).compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal tauxMargeBrut = margeByMonth.get(ym)
+                    .divide(caByMonth.get(ym), 6, RoundingMode.HALF_UP);
+                marge = marge.subtract(avoirHtByMonth.get(ym).multiply(tauxMargeBrut)).max(BigDecimal.ZERO);
+            }
+            caData.add(ca.setScale(2, RoundingMode.HALF_UP));
+            margeData.add(marge.setScale(2, RoundingMode.HALF_UP));
+        }
+
+        return new MonthlySeries(labels, caData, margeData);
+    }
+
     // --- CLASSES INTERNES (DTOs) ---
     private static record MarginKpi(BigDecimal chiffreAffaires, BigDecimal margeTotale, BigDecimal tauxMarge) {}
     private static record AvoirTotals(BigDecimal avoirHt, BigDecimal avoirTtc) {}
+    private static record MonthlySeries(List<String> labels, List<BigDecimal> ca, List<BigDecimal> marge) {}
 
     public static record MismatchItem(String numeroFacture, String referenceBc, String motif, BigDecimal montant) {}
 }
