@@ -44,7 +44,7 @@ public class AchatService {
         BonCommande bc = new BonCommande();
         bc.setProforma(p);
         bc.setReferenceBc("BC-" + System.currentTimeMillis()); // Exemple simple de ref
-        bc.setMontantTotalTtc(p.getPrixUnitaireHt().multiply(BigDecimal.valueOf(1.2)));
+        bc.setMontantTotalTtc(p.getPrixUnitaireHt().multiply(BigDecimal.valueOf(1.2)).multiply(BigDecimal.valueOf(p.getDemandeAchat().getQuantiteDemandee())));
         bc.setStatutFinance(StatutFinance.EN_ATTENTE_VALIDATION);
         
         return bcRepo.save(bc);
