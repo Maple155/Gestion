@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Votre CSS existant */
         .dashboard-header {
             background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: white;
@@ -68,14 +69,11 @@
 
       <!-- Main Content -->
       <div class="flex-1 overflow-auto"> 
-   
 
     <div class="container-fluid mt-4">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- Sidebar avec filtres -->
             <div class="col-lg-2 col-md-6">
-                
-                
                 <!-- Filtres période -->
                 <div class="card mt-4">
                     <div class="card-header">
@@ -86,17 +84,24 @@
                             <div class="mb-3">
                                 <label class="form-label">Mois</label>
                                 <select class="form-select" name="mois">
-                                    <option th:each="m : ${#numbers.sequence(1, 12)}" 
-                                            th:value="${m}" 
-                                            th:text="${#temporals.create(m, 1, 1).month}"
-                                            th:selected="${m == mois}">
-                                    </option>
+                                    <option value="1" th:selected="${1 == mois}">Janvier</option>
+                                    <option value="2" th:selected="${2 == mois}">Février</option>
+                                    <option value="3" th:selected="${3 == mois}">Mars</option>
+                                    <option value="4" th:selected="${4 == mois}">Avril</option>
+                                    <option value="5" th:selected="${5 == mois}">Mai</option>
+                                    <option value="6" th:selected="${6 == mois}">Juin</option>
+                                    <option value="7" th:selected="${7 == mois}">Juillet</option>
+                                    <option value="8" th:selected="${8 == mois}">Août</option>
+                                    <option value="9" th:selected="${9 == mois}">Septembre</option>
+                                    <option value="10" th:selected="${10 == mois}">Octobre</option>
+                                    <option value="11" th:selected="${11 == mois}">Novembre</option>
+                                    <option value="12" th:selected="${12 == mois}">Décembre</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Année</label>
                                 <select class="form-select" name="annee">
-                                    <option th:each="a : ${#numbers.sequence(anneeCourante - 5, anneeCourante)}" 
+                                    <option th:each="a : ${#numbers.sequence(anneeCourante - 2, anneeCourante + 1)}" 
                                             th:value="${a}" 
                                             th:text="${a}"
                                             th:selected="${a == annee}">
@@ -126,7 +131,20 @@
                             <p class="mb-0 opacity-75">
                                 Vue d'ensemble et statistiques des inventaires
                                 <span th:if="${mois != moisCourant or annee != anneeCourante}">
-                                    - [[${#temporals.create(mois, 1, 1).month}]] [[${annee}]]
+                                    - <span th:switch="${mois}">
+                                        <span th:case="1">Janvier</span>
+                                        <span th:case="2">Février</span>
+                                        <span th:case="3">Mars</span>
+                                        <span th:case="4">Avril</span>
+                                        <span th:case="5">Mai</span>
+                                        <span th:case="6">Juin</span>
+                                        <span th:case="7">Juillet</span>
+                                        <span th:case="8">Août</span>
+                                        <span th:case="9">Septembre</span>
+                                        <span th:case="10">Octobre</span>
+                                        <span th:case="11">Novembre</span>
+                                        <span th:case="12">Décembre</span>
+                                    </span> [[${annee}]]
                                 </span>
                             </p>
                         </div>
@@ -138,14 +156,27 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-primary bg-opacity-10">
                             <div class="kpi-value text-primary" 
-                                 th:text="${statsGlobales['inventairesRealises'] != null ? statsGlobales['inventairesRealises'] : '0'}">
+                                 th:text="${statsGlobales != null && statsGlobales['inventairesRealises'] != null ? statsGlobales['inventairesRealises'] : '0'}">
                                 0
                             </div>
                             <div class="kpi-label">Inventaires réalisés</div>
                             <div class="mt-2">
                                 <small class="text-muted">
                                     <i class="bi bi-calendar-week me-1"></i>
-                                    [[${#temporals.create(mois, 1, 1).month}]] [[${annee}]]
+                                    <span th:switch="${mois}">
+                                        <span th:case="1">Janvier</span>
+                                        <span th:case="2">Février</span>
+                                        <span th:case="3">Mars</span>
+                                        <span th:case="4">Avril</span>
+                                        <span th:case="5">Mai</span>
+                                        <span th:case="6">Juin</span>
+                                        <span th:case="7">Juillet</span>
+                                        <span th:case="8">Août</span>
+                                        <span th:case="9">Septembre</span>
+                                        <span th:case="10">Octobre</span>
+                                        <span th:case="11">Novembre</span>
+                                        <span th:case="12">Décembre</span>
+                                    </span> [[${annee}]]
                                 </small>
                             </div>
                         </div>
@@ -153,7 +184,8 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-success bg-opacity-10">
                             <div class="kpi-value text-success" 
-                                 th:text="${statsGlobales['precisionMoyenneMois'] != null ? statsGlobales['precisionMoyenneMois'] + '%' : 'N/A'}">
+                                 th:text="${statsGlobales != null && statsGlobales['precisionMoyenneMois'] != null ? 
+                                   (statsGlobales['precisionMoyenneMois'] + '%') : 'N/A'}">
                                 N/A
                             </div>
                             <div class="kpi-label">Précision moyenne</div>
@@ -168,7 +200,7 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-info bg-opacity-10">
                             <div class="kpi-value text-info" 
-                                 th:text="${statsGlobales['articlesComptes'] != null ? statsGlobales['articlesComptes'] : '0'}">
+                                 th:text="${statsGlobales != null && statsGlobales['articlesComptes'] != null ? statsGlobales['articlesComptes'] : '0'}">
                                 0
                             </div>
                             <div class="kpi-label">Articles comptés</div>
@@ -183,7 +215,8 @@
                     <div class="col-xl-3 col-md-6">
                         <div class="kpi-card bg-warning bg-opacity-10">
                             <div class="kpi-value text-warning" 
-                                 th:text="${statsGlobales['valeurEcartMois'] != null ? statsGlobales['valeurEcartMois'] + ' €' : '0 €'}">
+                                 th:text="${statsGlobales != null && statsGlobales['valeurEcartMois'] != null ? 
+                                   (statsGlobales['valeurEcartMois'] + ' €') : '0 €'}">
                                 0 €
                             </div>
                             <div class="kpi-label">Écart total</div>
@@ -231,12 +264,12 @@
                         <div class="card">
                             <div class="card-header">
                                 <i class="bi bi-exclamation-triangle me-2"></i>Top 5 des écarts
-                                <span th:if="${not #lists.isEmpty(topEcarts)}" class="badge bg-danger ms-2">
+                                <span th:if="${topEcarts != null and not #lists.isEmpty(topEcarts)}" class="badge bg-danger ms-2">
                                     [[${topEcarts.size()}]] alertes
                                 </span>
                             </div>
                             <div class="card-body">
-                                <div th:if="${not #lists.isEmpty(topEcarts)}">
+                                <div th:if="${topEcarts != null and not #lists.isEmpty(topEcarts)}">
                                     <div class="table-responsive">
                                         <table class="table table-hover">
                                             <thead>
@@ -262,23 +295,26 @@
                                                         </a>
                                                     </td>
                                                     <td class="text-end">
-                                                        <span th:class="${ecart['ecart'] > 0} ? 'text-success' : 'text-danger'"
-                                                              th:text="${ecart['ecart'] > 0 ? '+' + ecart['ecart'] : ecart['ecart']}">
+                                                        <span th:class="${ecart['ecart'] != null and ecart['ecart'] > 0} ? 'text-success' : 'text-danger'"
+                                                              th:text="${ecart['ecart'] != null ? 
+                                                                (ecart['ecart'] > 0 ? '+' + ecart['ecart'] : ecart['ecart']) : '0'}">
                                                         </span>
                                                     </td>
                                                     <td class="text-end">
-                                                        <span th:class="${ecart['valeurEcart'] > 0} ? 'text-success' : 'text-danger'"
-                                                              th:text="${#numbers.formatDecimal(ecart['valeurEcart'], 1, 2) + ' €'}">
+                                                        <span th:class="${ecart['valeurEcart'] != null and ecart['valeurEcart'] > 0} ? 'text-success' : 'text-danger'"
+                                                              th:text="${ecart['valeurEcart'] != null ? 
+                                                                #numbers.formatDecimal(ecart['valeurEcart'], 1, 2) + ' €' : '0,00 €'}">
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <small>[[${ecart.dateComptage}]]</small>
+                                                        <small th:text="${ecart['dateComptage']}"></small>
                                                     </td>
                                                     <td>
-                                                        <span th:switch="${ecart.statut}" class="badge badge-small">
+                                                        <span th:switch="${ecart['statut']}" class="badge badge-small">
                                                             <span th:case="'VALIDE'" class="badge bg-success">Validé</span>
                                                             <span th:case="'AJUSTE'" class="badge bg-primary">Ajusté</span>
                                                             <span th:case="'COMPTE'" class="badge bg-warning">À valider</span>
+                                                            <span th:case="*" class="badge bg-secondary">[[${ecart['statut']}]]</span>
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -286,7 +322,7 @@
                                         </table>
                                     </div>
                                 </div>
-                                <div th:if="${#lists.isEmpty(topEcarts)}" class="text-center py-4">
+                                <div th:if="${topEcarts == null or #lists.isEmpty(topEcarts)}" class="text-center py-4">
                                     <i class="bi bi-check2-circle display-4 text-success mb-3"></i>
                                     <h5 class="text-muted">Aucun écart significatif</h5>
                                     <p class="text-muted">Tous les inventaires sont dans les normes.</p>
@@ -302,7 +338,7 @@
                                 <i class="bi bi-clock-history me-2"></i>Inventaires récents
                             </div>
                             <div class="card-body p-0">
-                                <div th:if="${not #lists.isEmpty(inventairesRecents)}">
+                                <div th:if="${inventairesRecents != null and not #lists.isEmpty(inventairesRecents)}">
                                     <div class="list-group list-group-flush">
                                         <a th:each="inv : ${inventairesRecents}" 
                                            th:href="@{/stock/inventaires/details/{id}(id=${inv.id})}" 
@@ -312,7 +348,7 @@
                                                     <strong class="d-block">[[${inv.reference}]]</strong>
                                                     <small class="text-muted">
                                                         [[${inv.depot?.nom ?: 'Tous dépôts'}]]
-                                                        <span th:if="${inv.zone}"> / [[${inv.zone.libelle}]]</span>
+                                                        <span th:if="${inv.zone != null}"> / [[${inv.zone.libelle}]]</span>
                                                     </small>
                                                 </div>
                                                 <div class="text-end">
@@ -320,6 +356,8 @@
                                                         <span th:case="'EN_COURS'" class="badge bg-warning">En cours</span>
                                                         <span th:case="'CLOTURE'" class="badge bg-success">Clôturé</span>
                                                         <span th:case="'PLANIFIE'" class="badge bg-info">Planifié</span>
+                                                        <span th:case="'TERMINE'" class="badge bg-primary">Terminé</span>
+                                                        <span th:case="*" class="badge bg-secondary">[[${inv.statut}]]</span>
                                                     </span>
                                                     <div class="mt-1">
                                                         <small class="text-muted">
@@ -341,7 +379,7 @@
                                         </a>
                                     </div>
                                 </div>
-                                <div th:if="${#lists.isEmpty(inventairesRecents)}" class="text-center py-4">
+                                <div th:if="${inventairesRecents == null or #lists.isEmpty(inventairesRecents)}" class="text-center py-4">
                                     <i class="bi bi-inbox display-4 text-muted mb-3"></i>
                                     <p class="text-muted mb-0">Aucun inventaire récent</p>
                                 </div>
@@ -354,190 +392,139 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Statistiques détaillées -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <i class="bi bi-bar-chart-line me-2"></i>Indicateurs de performance
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <div class="display-4 fw-bold text-primary">
-                                                98.5<span class="fs-6">%</span>
-                                            </div>
-                                            <div class="text-muted">Taux de précision</div>
-                                            <div class="mt-2">
-                                                <small class="text-success">
-                                                    <i class="bi bi-arrow-up me-1"></i>+1.2% vs mois dernier
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <div class="display-4 fw-bold text-success">
-                                                4.2<span class="fs-6">x</span>
-                                            </div>
-                                            <div class="text-muted">Rotation stock</div>
-                                            <div class="mt-2">
-                                                <small class="text-warning">
-                                                    <i class="bi bi-dash me-1"></i>Stable
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <div class="display-4 fw-bold text-info">
-                                                3.2<span class="fs-6">j</span>
-                                            </div>
-                                            <div class="text-muted">Traitement moyen</div>
-                                            <div class="mt-2">
-                                                <small class="text-success">
-                                                    <i class="bi bi-arrow-down me-1"></i>-0.5j
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center">
-                                            <div class="display-4 fw-bold text-warning">
-                                                0.8<span class="fs-6">%</span>
-                                            </div>
-                                            <div class="text-muted">Taux d'écart</div>
-                                            <div class="mt-2">
-                                                <small class="text-danger">
-                                                    <i class="bi bi-arrow-up me-1"></i>+0.1%
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
 </div>
-    <script>
-        // Données pour les graphiques (exemple)
-        const evolutionData = {
-            labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
-            datasets: [{
-                label: 'Inventaires réalisés',
-                data: [12, 19, 15, 25, 22, 30, 28, 26, 24, 30, 28, 32],
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                tension: 0.4,
-                fill: true
-            }, {
-                label: 'Précision (%)',
-                data: [97.5, 98.2, 97.8, 98.5, 98.1, 98.7, 98.9, 99.1, 98.8, 99.2, 98.9, 99.0],
-                borderColor: '#198754',
-                backgroundColor: 'transparent',
-                tension: 0.4,
-                yAxisID: 'y1'
-            }]
-        };
 
-        const statutData = {
-            labels: ['Clôturés', 'En cours', 'Planifiés', 'Annulés'],
-            datasets: [{
-                data: [65, 15, 10, 10],
-                backgroundColor: [
-                    '#198754',
-                    '#ffc107',
-                    '#0dcaf0',
-                    '#dc3545'
-                ],
-                borderWidth: 2,
-                borderColor: '#ffffff'
-            }]
-        };
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    
+    // Données pour les graphiques avec valeurs par défaut
+    var evolutionData = {
+        labels: /*[[${evolution != null && evolution.moisLabels != null ? evolution.moisLabels : {'Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'}}]]*/,
+        datasets: [{
+            label: 'Inventaires réalisés',
+            data: /*[[${evolution != null && evolution.inventairesParMois != null ? 
+                evolution.inventairesParMois : {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}]]*/,
+            borderColor: '#0d6efd',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.4,
+            fill: true,
+            yAxisID: 'y'
+        }, {
+            label: 'Précision (%)',
+            data: /*[[${evolution != null && evolution.precisionParMois != null ? 
+                evolution.precisionParMois : {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}]]*/,
+            borderColor: '#198754',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            yAxisID: 'y1',
+            borderDash: [5, 5]
+        }]
+    };
 
-        // Initialiser les graphiques
-        document.addEventListener('DOMContentLoaded', function() {
-            // Graphique d'évolution
-            const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
-            const evolutionChart = new Chart(evolutionCtx, {
-                type: 'line',
-                data: evolutionData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
+    // Données de répartition par statut
+    var repartitionData = {
+        labels: ['Clôturés', 'En cours', 'Planifiés', 'Terminés', 'Annulés'],
+        datasets: [{
+            data: [
+                /*[[${statsGlobales != null && statsGlobales['inventairesClotures'] != null ? 
+                    statsGlobales['inventairesClotures'] : 0}]]*/,
+                /*[[${statsGlobales != null && statsGlobales['inventairesEnCours'] != null ? 
+                    statsGlobales['inventairesEnCours'] : 0}]]*/,
+                /*[[${statsGlobales != null && statsGlobales['inventairesPlanifies'] != null ? 
+                    statsGlobales['inventairesPlanifies'] : 0}]]*/,
+                /*[[${statsGlobales != null && statsGlobales['inventairesTermines'] != null ? 
+                    statsGlobales['inventairesTermines'] : 0}]]*/,
+                /*[[${statsGlobales != null && statsGlobales['inventairesAnnules'] != null ? 
+                    statsGlobales['inventairesAnnules'] : 0}]]*/
+            ],
+            backgroundColor: [
+                '#198754',
+                '#ffc107',
+                '#0dcaf0',
+                '#6f42c1',
+                '#dc3545'
+            ],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+        }]
+    };
+
+    // Initialiser les graphiques
+    document.addEventListener('DOMContentLoaded', function() {
+        // Graphique d'évolution
+        var evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
+        var evolutionChart = new Chart(evolutionCtx, {
+            type: 'line',
+            data: evolutionData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: "Nombre d'inventaires"
+                        },
+                        beginAtZero: true
                     },
-                    scales: {
-                        y: {
-                            type: 'linear',
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        min: 0,
+                        max: 100,
+                        title: {
                             display: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'Nombre d\'inventaires'
-                            }
+                            text: 'Précision (%)'
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            min: 95,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Précision (%)'
-                            },
-                            grid: {
-                                drawOnChartArea: false
-                            }
+                        grid: {
+                            drawOnChartArea: false
                         }
                     }
                 }
-            });
-
-            // Graphique des statuts
-            const statutCtx = document.getElementById('statutChart').getContext('2d');
-            const statutChart = new Chart(statutCtx, {
-                type: 'doughnut',
-                data: statutData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = Math.round((value / total) * 100);
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            }
         });
 
-        // Mettre à jour les graphiques avec les vraies données
-        function updateCharts() {
-            // Cette fonction serait appelée avec les données réelles du serveur
-            console.log('Mise à jour des graphiques...');
-        }
-    </script>
+        // Graphique des statuts
+        var statutCtx = document.getElementById('statutChart').getContext('2d');
+        var statutChart = new Chart(statutCtx, {
+            type: 'doughnut',
+            data: repartitionData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.label || '';
+                                var value = context.raw;
+                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return label + ': ' + value + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+    /*]]>*/
+</script>
 </body>
 </html>

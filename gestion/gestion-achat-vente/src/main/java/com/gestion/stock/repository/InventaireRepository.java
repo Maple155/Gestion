@@ -102,4 +102,20 @@ public interface InventaireRepository extends JpaRepository<Inventaire, UUID> {
             // Ajouter aussi cette méthode
             List<Inventaire> findTop1ByStatutOrderByDateFinDesc(Inventaire.StatutInventaire statut);
 
+// Ajoutez cette méthode dans InventaireRepository.java
+@Query("SELECT EXTRACT(MONTH FROM i.dateCloture) as mois, COUNT(i) as nombre " +
+       "FROM Inventaire i " +
+       "WHERE i.statut = 'CLOTURE' " +
+       "AND EXTRACT(YEAR FROM i.dateCloture) = :annee " +
+       "GROUP BY EXTRACT(MONTH FROM i.dateCloture) " +
+       "ORDER BY mois")
+List<Object[]> countInventairesCloturesParMois(@Param("annee") Integer annee);
+
+@Query("SELECT EXTRACT(MONTH FROM i.dateCloture) as mois, AVG(:precisionCalcul) as precision " +
+       "FROM Inventaire i " +
+       "WHERE i.statut = 'CLOTURE' " +
+       "AND EXTRACT(YEAR FROM i.dateCloture) = :annee " +
+       "GROUP BY EXTRACT(MONTH FROM i.dateCloture) " +
+       "ORDER BY mois")
+List<Object[]> getPrecisionMoyenneParMois(@Param("annee") Integer annee);
 }

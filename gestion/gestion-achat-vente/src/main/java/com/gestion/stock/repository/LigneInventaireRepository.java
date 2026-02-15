@@ -72,5 +72,40 @@ public interface LigneInventaireRepository extends JpaRepository<LigneInventaire
                      "ORDER BY ABS(li.ecartValeur) DESC")
        List<LigneInventaire> findTop10ByEcart(@Param("inventaireId") UUID inventaireId);
 
+       @Query(value = "SELECT " +
+       "a.code_article, " +
+       "a.libelle, " +
+       "i.id, " +
+       "i.reference, " +
+       "li.ecart, " +
+       "li.ecart_valeur, " +
+       "COALESCE(li.date_comptage_2, li.date_comptage_1) as date_comptage, " +
+       "li.statut " +
+       "FROM lignes_inventaire li " +
+       "JOIN inventaires i ON li.inventaire_id = i.id " +
+       "JOIN articles a ON li.article_id = a.id " +
+       "WHERE i.statut = 'CLOTURE' " +
+       "AND li.ecart != 0 " +
+       "AND (:mois IS NULL OR EXTRACT(MONTH FROM i.date_cloture) = :mois) " +
+       "AND (:annee IS NULL OR EXTRACT(YEAR FROM i.date_cloture) = :annee) " +
+       "ORDER BY ABS(li.ecart_valeur) DESC " +
+       "LIMIT 5", nativeQuery = true)
+List<Object[]> findTopEcartsByPeriode(@Param("mois") Integer mois, 
+                                       @Param("annee") Integer annee);
 
+                                       @Query("SELECT COUNT(li) FROM LigneInventaire li " +
+       "JOIN li.inventaire i " +
+       "WHERE i.statut = 'CLOTURE' " +
+       "AND EXTRACT(MONTH FROM i.dateCloture) = :mois " +
+       "AND EXTRACT(YEAR FROM i.dateCloture) = :annee")
+Long countArticlesComptesByPeriode(@Param("mois") Integer mois, 
+                                   @Param("annee") Integer annee);
+
+@Query("SELECT COALESCE(SUM(li.ecartValeur), 0) FROM LigneInventaire li " +
+       "JOIN li.inventaire i " +
+       "WHERE i.statut = 'CLOTURE' " +
+       "AND EXTRACT(MONTH FROM i.dateCloture) = :mois " +
+       "AND EXTRACT(YEAR FROM i.dateCloture) = :annee")
+BigDecimal sumEcartValeurByPeriode(@Param("mois") Integer mois, 
+                                   @Param("annee") Integer annee);
 }

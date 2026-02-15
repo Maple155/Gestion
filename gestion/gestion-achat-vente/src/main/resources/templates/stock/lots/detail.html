@@ -88,14 +88,6 @@
             Lot: <span th:text="${lot.numeroLot}"></span>
           </h1>
         </div>
-        <div class="btn-group">
-          <a
-            th:href="@{/lots/{id}/modifier(id=${lot.id})}"
-            class="btn btn-outline-primary"
-          >
-            <i class="bi bi-pencil"></i> Modifier
-          </a>
-        </div>
       </div>
 
       <!-- Messages flash -->
@@ -359,41 +351,6 @@
             </div>
             <div class="card-body">
               <div class="d-grid gap-2">
-                <!-- Changer statut -->
-                <div class="dropdown">
-                  <button
-                    class="btn btn-outline-secondary w-100 dropdown-toggle"
-                    type="button"
-                    data-bs-toggle="dropdown"
-                  >
-                    <i class="bi bi-arrow-repeat"></i> Changer le statut
-                  </button>
-                  <ul class="dropdown-menu w-100">
-                    <li
-                      th:each="statut : ${T(com.gestion.stock.entity.Lot$LotStatus).values()}"
-                    >
-                      <form
-                        th:action="@{/lots/{id}/changer-statut(id=${lot.id})}"
-                        method="post"
-                        class="dropdown-item p-0"
-                      >
-                        <input
-                          type="hidden"
-                          name="nouveauStatut"
-                          th:value="${statut}"
-                        />
-                        <button
-                          type="submit"
-                          class="btn btn-link text-decoration-none w-100 text-start px-3 py-2"
-                          th:classappend="${lot.statut.name() == statut.name()} ? 'disabled text-muted' : ''"
-                        >
-                          <span th:text="${statut}"></span>
-                        </button>
-                      </form>
-                    </li>
-                  </ul>
-                </div>
-
                 <!-- Transférer -->
                 <a
                   th:href="@{/lots/{id}/transferer(id=${lot.id})}"
@@ -420,13 +377,6 @@
                   <i class="bi bi-upc-scan"></i> Gérer les numéros de série
                 </a>
 
-                <!-- Historique -->
-                <button
-                  class="btn btn-outline-dark"
-                  onclick="document.getElementById('historiqueSection').scrollIntoView()"
-                >
-                  <i class="bi bi-clock-history"></i> Voir l'historique
-                </button>
               </div>
 
               <hr />

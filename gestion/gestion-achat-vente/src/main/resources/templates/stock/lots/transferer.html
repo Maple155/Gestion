@@ -151,11 +151,6 @@
                 </h1>
                 <p class="text-muted mb-0">Déplacer le lot vers un nouvel emplacement</p>
             </div>
-            <div>
-                <a th:href="@{/lots/{id}(id=${lot.id})}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Retour
-                </a>
-            </div>
         </div>
 
         <!-- Messages flash -->
@@ -607,83 +602,135 @@
             setupEventListeners();
         });
         
-        // Charger les emplacements
-        function loadEmplacements() {
-            const articleId = "[[${lot.article.id}]]";
-            const quantity = "[[${lot.quantiteActuelle}]]";
-            
-            // Charger les emplacements via AJAX
-            fetch(`/api/emplacements/disponibles?articleId=${articleId}&quantity=${quantity}`)
-                .then(response => response.json())
-                .then(data => {
-                    emplacementsData = data;
-                    renderEmplacements(data);
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    document.getElementById('emplacementsList').innerHTML = `
-                        <div class="col-12 text-center py-5">
-                            <div class="text-danger">
-                                <i class="bi bi-exclamation-triangle fa-2x mb-2"></i>
-                                <p>Erreur lors du chargement des emplacements</p>
+        // Remplacer la fonction loadEmplacements par celle-ci :
+
+function loadEmplacements() {
+    const articleId = "[[${lot.article.id}]]";
+    const quantity = "[[${lot.quantiteActuelle}]]";
+    
+    // Afficher un indicateur de chargement
+    document.getElementById('emplacementsList').innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="text-muted mt-2">Chargement des emplacements...</p>
+        </div>
+    `;
+    
+    // Charger les emplacements via AJAX
+    fetch(`/api/emplacements/disponibles?articleId=${articleId}&quantity=${quantity}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // S'assurer que data est un tableau
+            if (Array.isArray(data)) {
+                emplacementsData = data;
+                renderEmplacements(data);
+            } else {
+                console.error('Les données reçues ne sont pas un tableau:', data);
+                emplacementsData = [];
+                renderEmplacements([]);
+                showErrorMessage('Format de données incorrect');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            emplacementsData = [];
+            renderEmplacements([]);
+            showErrorMessage('Erreur lors du chargement des emplacements: ' + error.message);
+        });
+}
+
+function showErrorMessage(message) {
+    document.getElementById('emplacementsList').innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="text-danger">
+                <i class="bi bi-exclamation-triangle fa-2x mb-2"></i>
+                <p>${message}</p>
+                <button class="btn btn-outline-danger mt-2" onclick="loadEmplacements()">
+                    <i class="bi bi-arrow-repeat"></i> Réessayer
+                </button>
+            </div>
+        </div>
+    `;
+    document.getElementById('noEmplacementsMessage').classList.add('d-none');
+}
+
+// Améliorer renderEmplacements pour gérer les cas où emplacements n'est pas un tableau
+function renderEmplacements(emplacements) {
+    const container = document.getElementById('emplacementsList');
+    
+    // S'assurer que emplacements est un tableau
+    if (!emplacements || !Array.isArray(emplacements)) {
+        console.error('renderEmplacements: emplacements n\'est pas un tableau', emplacements);
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="text-danger">
+                    <i class="bi bi-exclamation-triangle fa-2x mb-2"></i>
+                    <p>Erreur: données d'emplacements invalides</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    if (emplacements.length === 0) {
+        container.innerHTML = '';
+        document.getElementById('noEmplacementsMessage').classList.remove('d-none');
+        return;
+    }
+    
+    document.getElementById('noEmplacementsMessage').classList.add('d-none');
+    
+    let html = '';
+    emplacements.forEach(emp => {
+        // Vérifier que emp a les propriétés nécessaires
+        const capaciteDisponible = emp.capaciteDisponible || 0;
+        const capacite = emp.capacite || 0;
+        const utilise = emp.utilise || 0;
+        const capacityPercent = capacite > 0 ? Math.min(100, Math.round((utilise / capacite) * 100)) : 0;
+        
+        html += `
+            <div class="col-xl-4 col-md-6 mb-3">
+                <div class="emplacement-card" onclick="selectEmplacement('${emp.id}')" 
+                     id="emp-${emp.id}" data-emplacement='${JSON.stringify(emp)}'>
+                    <div class="emplacement-info">
+                        <div>
+                            <strong>${emp.code || 'N/A'}</strong>
+                            <div class="text-muted small">
+                                ${emp.zoneCode || ''} ${emp.zoneCode && emp.depotNom ? '-' : ''} ${emp.depotNom || ''}
                             </div>
                         </div>
-                    `;
-                });
-        }
-        
-        // Afficher les emplacements
-        function renderEmplacements(emplacements) {
-            const container = document.getElementById('emplacementsList');
-            
-            if (emplacements.length === 0) {
-                container.innerHTML = '';
-                document.getElementById('noEmplacementsMessage').classList.remove('d-none');
-                return;
-            }
-            
-            document.getElementById('noEmplacementsMessage').classList.add('d-none');
-            
-            let html = '';
-            emplacements.forEach(emp => {
-                const capacityPercent = Math.min(100, Math.round((emp.utilise || 0) / emp.capacite * 100));
-                
-                html += `
-                    <div class="col-xl-4 col-md-6 mb-3">
-                        <div class="emplacement-card" onclick="selectEmplacement('${emp.id}')" 
-                             id="emp-${emp.id}" data-emplacement='${JSON.stringify(emp)}'>
-                            <div class="emplacement-info">
-                                <div>
-                                    <strong>${emp.code}</strong>
-                                    <div class="text-muted small">
-                                        ${emp.zoneCode} - ${emp.depotNom}
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <div class="badge bg-success">${emp.capaciteDisponible} dispo</div>
-                                </div>
-                            </div>
-                            
-                            <div class="capacity-indicator">
-                                <div class="capacity-fill" style="width: ${capacityPercent}%"></div>
-                            </div>
-                            
-                            <div class="small text-muted mt-2">
-                                <i class="bi bi-box"></i> ${emp.utilise || 0}/${emp.capacite} 
-                                ${emp.uniteMesure || 'unités'}
-                            </div>
-                            
-                            <div class="small mt-1">
-                                <span class="badge bg-info">${emp.type || 'Stockage'}</span>
-                                ${emp.temperature ? `<span class="badge bg-secondary">${emp.temperature}°C</span>` : ''}
-                            </div>
+                        <div class="text-end">
+                            <div class="badge bg-success">${capaciteDisponible} dispo</div>
                         </div>
                     </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
+                    
+                    <div class="capacity-indicator">
+                        <div class="capacity-fill" style="width: ${capacityPercent}%"></div>
+                    </div>
+                    
+                    <div class="small text-muted mt-2">
+                        <i class="bi bi-box"></i> ${utilise}/${capacite} 
+                        ${emp.uniteMesure || 'unités'}
+                    </div>
+                    
+                    <div class="small mt-1">
+                        <span class="badge bg-info">${emp.type || 'Stockage'}</span>
+                        ${emp.temperature ? `<span class="badge bg-secondary">${emp.temperature}°C</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
         
         // Sélectionner un emplacement
         function selectEmplacement(emplacementId) {
