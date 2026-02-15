@@ -10,6 +10,8 @@ import com.gestion.stock.entity.UniteMesure;
 import com.gestion.stock.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,11 @@ public class ArticleService {
     private final LotRepository lotRepository;
     private final StockMovementRepository mouvementRepository;
     private final StockMovementRepository stockMovementRepository;
+
+    // Injection avec @Lazy pour éviter la dépendance circulaire
+    @Autowired
+    @Lazy
+    private ValorisationService valorisationService;
 
     public List<Article> findByActifTrue() {
         return articleRepository.findByActifTrue();
@@ -87,8 +94,12 @@ public class ArticleService {
             Object[] stats = statsStock.get(0);
             details.put("stockTotal", stats[0]);
             details.put("stockDisponible", stats[1]);
-            details.put("valeurStock", stats[2]);
+            // IMPORTANT: stats[2] est la valeurStockCump simple, on la remplace par la vraie valorisation
         }
+
+        // ✅ Calcul correct de la valeur du stock selon la méthode de l'article (FIFO/FEFO/CUMP)
+        BigDecimal valeurStock = calculerValeurStockCorrect(article);
+        details.put("valeurStock", valeurStock);
 
         // Statistiques mouvements (30 derniers jours)
         Long entree30j = mouvementRepository.countEntrees30Jours(articleId);
@@ -105,6 +116,50 @@ public class ArticleService {
         details.put("dernierMouvement", dernierMouvement);
 
         return details;
+    }
+
+    /**
+     * ✅ Calcul correct de la valeur du stock selon la méthode de valorisation de l'article
+     * Utilise la même logique que le dashboard valorisation
+     */
+    private BigDecimal calculerValeurStockCorrect(Article article) {
+        if (article == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        BigDecimal valeurTotale = BigDecimal.ZERO;
+        String methode = article.getMethodeValorisation();
+        
+        // Récupérer tous les stocks pour cet article
+        List<Stock> stocks = stockRepository.findByArticleId(article.getId());
+        
+        for (Stock stock : stocks) {
+            BigDecimal valorisation = BigDecimal.ZERO;
+            
+            switch (methode != null ? methode : "CUMP") {
+                case "FIFO":
+                    valorisation = valorisationService.calculerValorisationFIFO(
+                            article.getId(), stock.getDepot().getId());
+                    break;
+                case "FEFO":
+                    valorisation = valorisationService.calculerValorisationFEFO(
+                            article.getId(), stock.getDepot().getId());
+                    break;
+                case "CUMP":
+                default:
+                    // Pour CUMP, utiliser la valeur stock existante
+                    valorisation = stock.getValeurStockCump() != null ? 
+                            stock.getValeurStockCump() : BigDecimal.ZERO;
+                    break;
+            }
+            
+            valeurTotale = valeurTotale.add(valorisation);
+        }
+        
+        log.debug("Valeur stock calculée pour article {}: {} (méthode: {})", 
+                article.getCodeArticle(), valeurTotale, methode);
+        
+        return valeurTotale;
     }
 
     @Transactional

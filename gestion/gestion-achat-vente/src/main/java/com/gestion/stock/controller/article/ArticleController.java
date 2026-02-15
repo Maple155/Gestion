@@ -4,6 +4,7 @@ package com.gestion.stock.controller.article;
 import com.gestion.stock.entity.Article;
 import com.gestion.stock.entity.CategorieArticle;
 import com.gestion.stock.entity.Lot;
+import com.gestion.stock.entity.Stock;
 import com.gestion.stock.entity.StockMovement;
 import com.gestion.stock.entity.UniteMesure;
 import com.gestion.stock.service.ArticleService;
@@ -126,8 +127,8 @@ public class ArticleController {
         Article article = articleService.getArticleById(UUID.fromString(id));
         Map<String, Object> details = articleService.getDetailsArticle(UUID.fromString(id));
     
-        // Stock par dépôt
-        List<Map<String, Object>> stockParDepot = stockService.getStockParDepot(UUID.fromString(id));
+        // Stock par dépôt - utiliser la bonne méthode qui retourne des objets Stock
+        List<Stock> stockParDepot = stockService.getStocksParArticle(UUID.fromString(id));
     
         // Lots associés
         List<Lot> lots = articleService.getLotsArticle(UUID.fromString(id));

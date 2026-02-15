@@ -177,7 +177,7 @@
                 <tr><td>Coût unitaire</td><td th:text="${mvt.coutUnitaire}"></td></tr>
                 <tr><td>Valeur</td><td th:text="${mvt.valeurMouvement}"></td></tr>
                 <tr><td>Lot</td><td th:text="${mvt.lot?.numero}"></td></tr>
-                <tr><td>Bon réception</td><td th:text="${mvt.bonReception?.reference}"></td></tr>
+                <tr><td>Bon réception</td><td th:text="${mvt.bonReception?.bonCommande?.referenceBc ?: 'N/A'}"></td></tr>
                 <tr><td>Bon commande</td><td th:text="${mvt.bonCommande?.reference}"></td></tr>
                 <tr><td>Commande client</td><td th:text="${mvt.commandeClientId}"></td></tr>
                 <tr><td>Date mouvement</td>

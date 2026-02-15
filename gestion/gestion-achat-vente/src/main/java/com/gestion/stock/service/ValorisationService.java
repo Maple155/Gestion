@@ -103,91 +103,82 @@ public class ValorisationService {
 
     /**
      * Valorisation FIFO (First In, First Out)
+     * ⚠️ IMPORTANT: La valorisation FIFO se base sur la quantiteActuelle des lots,
+     * pas sur la quantité initiale. Seuls les lots avec quantité > 0 sont considérés.
      */
     public BigDecimal calculerValorisationFIFO(UUID articleId, UUID depotId) {
-        log.info("Calcul valorisation FIFO pour article: {}", articleId);
+        log.info("Calcul valorisation FIFO pour article: {}, depot: {}", articleId, depotId);
 
-        // Récupérer les lots disponibles triés par date réception (FIFO)
-        List<Lot> lots = lotRepository.findByArticleIdAndStatutOrderByDateReceptionAsc(
-                articleId, Lot.LotStatus.DISPONIBLE);
+        // ✅ Essayer d'abord avec filtrage par dépôt
+        List<Lot> lots = lotRepository.findLotsForFIFO(articleId, depotId);
 
-        // Récupérer le stock actuel
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
-        if (!stockOpt.isPresent()) {
+        // ✅ FALLBACK: Si aucun lot trouvé, essayer sans filtrage par dépôt
+        // (cas où les lots n'ont pas d'emplacement assigné)
+        if (lots.isEmpty()) {
+            log.warn("Aucun lot trouvé avec dépôt, tentative sans filtrage dépôt - Article: {}", articleId);
+            lots = lotRepository.findLotsForFIFOWithoutDepot(articleId);
+        }
+
+        if (lots.isEmpty()) {
+            log.warn("Aucun lot disponible pour FIFO - Article: {}, Dépôt: {}", articleId, depotId);
             return BigDecimal.ZERO;
         }
 
-        Stock stock = stockOpt.get();
-        Integer quantiteRestante = stock.getQuantiteTheorique();
         BigDecimal valeurTotale = BigDecimal.ZERO;
 
-        // Parcourir les lots du plus ancien au plus récent
+        // ✅ Calcul basé uniquement sur la quantiteActuelle des lots
         for (Lot lot : lots) {
-            if (quantiteRestante <= 0)
-                break;
-
-            Integer quantiteLot = Math.min(lot.getQuantiteActuelle(), quantiteRestante);
+            // Utiliser quantiteActuelle, pas quantiteInitiale
             BigDecimal valeurLot = lot.getCoutUnitaire()
-                    .multiply(BigDecimal.valueOf(quantiteLot));
-
+                    .multiply(BigDecimal.valueOf(lot.getQuantiteActuelle()));
             valeurTotale = valeurTotale.add(valeurLot);
-            quantiteRestante -= quantiteLot;
+            
+            log.debug("Lot {} - Qté actuelle: {}, Coût: {}, Valeur: {}", 
+                    lot.getNumeroLot(), lot.getQuantiteActuelle(), lot.getCoutUnitaire(), valeurLot);
         }
 
-        // Si il reste de la quantité non valorisée (cas où pas assez de lots)
-        if (quantiteRestante > 0) {
-            // Utiliser le coût standard de l'article
-            Article article = stock.getArticle();
-            BigDecimal coutStandard = article.getCoutStandard() != null ? article.getCoutStandard() : BigDecimal.ZERO;
-
-            valeurTotale = valeurTotale.add(
-                    coutStandard.multiply(BigDecimal.valueOf(quantiteRestante)));
-        }
-
+        log.info("Valorisation FIFO calculée: {} pour {} lots", valeurTotale, lots.size());
         return valeurTotale;
     }
 
     /**
      * Valorisation FEFO (First Expired, First Out) pour produits périssables
+     * ⚠️ IMPORTANT: La valorisation FEFO se base sur la quantiteActuelle des lots,
+     * pas sur la quantité initiale. Seuls les lots avec quantité > 0 sont considérés.
      */
     public BigDecimal calculerValorisationFEFO(UUID articleId, UUID depotId) {
-        log.info("Calcul valorisation FEFO pour article: {}", articleId);
+        log.info("Calcul valorisation FEFO pour article: {}, depot: {}", articleId, depotId);
 
-        // Récupérer les lots triés par date de péremption (FEFO)
-        List<Lot> lots = lotRepository.findByArticleIdAndStatutOrderByDatePeremptionAsc(
-                articleId, Lot.LotStatus.DISPONIBLE);
+        // ✅ Essayer d'abord avec filtrage par dépôt
+        List<Lot> lots = lotRepository.findLotsForFEFO(articleId, depotId);
 
-        Optional<Stock> stockOpt = stockRepository.findByArticleIdAndDepotId(articleId, depotId);
-        if (!stockOpt.isPresent()) {
+        // ✅ FALLBACK: Si aucun lot trouvé, essayer sans filtrage par dépôt
+        // (cas où les lots n'ont pas d'emplacement assigné)
+        if (lots.isEmpty()) {
+            log.warn("Aucun lot trouvé avec dépôt pour FEFO, tentative sans filtrage dépôt - Article: {}", articleId);
+            lots = lotRepository.findLotsForFEFOWithoutDepot(articleId);
+        }
+
+        if (lots.isEmpty()) {
+            log.warn("Aucun lot disponible pour FEFO - Article: {}, Dépôt: {}", articleId, depotId);
             return BigDecimal.ZERO;
         }
 
-        Stock stock = stockOpt.get();
-        Integer quantiteRestante = stock.getQuantiteTheorique();
         BigDecimal valeurTotale = BigDecimal.ZERO;
 
-        // Parcourir les lots par date de péremption croissante
+        // ✅ Calcul basé uniquement sur la quantiteActuelle des lots
         for (Lot lot : lots) {
-            if (quantiteRestante <= 0)
-                break;
-
-            Integer quantiteLot = Math.min(lot.getQuantiteActuelle(), quantiteRestante);
+            // Utiliser quantiteActuelle, pas quantiteInitiale
             BigDecimal valeurLot = lot.getCoutUnitaire()
-                    .multiply(BigDecimal.valueOf(quantiteLot));
-
+                    .multiply(BigDecimal.valueOf(lot.getQuantiteActuelle()));
             valeurTotale = valeurTotale.add(valeurLot);
-            quantiteRestante -= quantiteLot;
+            
+            log.debug("Lot {} - Qté actuelle: {}, Péremption: {}, Coût: {}, Valeur: {}", 
+                    lot.getNumeroLot(), lot.getQuantiteActuelle(), lot.getDatePeremption(), 
+                    lot.getCoutUnitaire(), valeurLot);
         }
 
-        // Complément avec coût standard si nécessaire
-        if (quantiteRestante > 0) {
-            Article article = stock.getArticle();
-            BigDecimal coutStandard = article.getCoutStandard() != null ? article.getCoutStandard() : BigDecimal.ZERO;
-
-            valeurTotale = valeurTotale.add(
-                    coutStandard.multiply(BigDecimal.valueOf(quantiteRestante)));
-        }
-
+        log.info("Valorisation FEFO calculée: {} pour {} lots", valeurTotale, lots.size());
         return valeurTotale;
     }
 
@@ -854,17 +845,19 @@ public class ValorisationService {
         List<Article> articles = articleRepository.findAll();
     
         for (Article article : articles) {
-            Map<String, Object> detail = new HashMap<>();
-    
             // Récupérer tous les stocks pour cet article
             List<Stock> stocks = stockRepository.findByArticleId(article.getId());
     
             if (!stocks.isEmpty()) {
+                Map<String, Object> detail = new HashMap<>();
+                
                 // Calculer les valorisations pour TOUTES les méthodes
                 BigDecimal valorisationFifo = BigDecimal.ZERO;
                 BigDecimal valorisationFefo = BigDecimal.ZERO;
                 BigDecimal valorisationCump = BigDecimal.ZERO;
-                Integer quantiteTotale = 0;
+                Integer quantiteRestante = 0;
+                BigDecimal coutUnitaireMoyen = BigDecimal.ZERO;
+                LocalDateTime dernierMouvement = null;
     
                 for (Stock stock : stocks) {
                     // Calculer TOUJOURS les 3 valorisations pour pouvoir comparer
@@ -876,58 +869,70 @@ public class ValorisationService {
                     valorisationFefo = valorisationFefo.add(fefoStock);
                     valorisationCump = valorisationCump.add(cumpStock);
                     
-                    quantiteTotale += stock.getQuantiteTheorique();
+                    // ✅ Utiliser quantiteTheorique (stock actuel)
+                    quantiteRestante += stock.getQuantiteTheorique() != null ? stock.getQuantiteTheorique() : 0;
+                    
+                    // Récupérer le coût unitaire moyen
+                    if (stock.getCoutUnitaireMoyen() != null) {
+                        coutUnitaireMoyen = stock.getCoutUnitaireMoyen();
+                    }
+                    
+                    // Récupérer la date du dernier mouvement
+                    if (stock.getDateDernierMouvement() != null) {
+                        if (dernierMouvement == null || stock.getDateDernierMouvement().isAfter(dernierMouvement)) {
+                            dernierMouvement = stock.getDateDernierMouvement();
+                        }
+                    }
                 }
     
-                // Calculer la différence en pourcentage basée sur la méthode de l'article
-                String difference = "N/A";
-                String methode = article.getMethodeValorisation();
+                // Calculer les quantités entrées et sorties depuis les mouvements
+                Integer quantiteEntree = 0;
+                Integer quantiteSortie = 0;
+                LocalDate dateEntree = null;
                 
-                if ("FIFO".equals(methode)) {
-                    // Pour FIFO: comparer FIFO vs CUMP
-                    if (valorisationCump.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal diffPourcentage = valorisationFifo
-                            .subtract(valorisationCump)
-                            .divide(valorisationCump, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                        difference = String.format("%.2f%%", diffPourcentage);
-                    } else if (valorisationFifo.compareTo(BigDecimal.ZERO) > 0) {
-                        // Si CUMP est 0 mais FIFO a une valeur, afficher +100%
-                        difference = "+100.00%";
-                    }
-                } else if ("FEFO".equals(methode)) {
-                    // Pour FEFO: comparer FEFO vs CUMP
-                    if (valorisationCump.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal diffPourcentage = valorisationFefo
-                            .subtract(valorisationCump)
-                            .divide(valorisationCump, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                        difference = String.format("%.2f%%", diffPourcentage);
-                    } else if (valorisationFefo.compareTo(BigDecimal.ZERO) > 0) {
-                        // Si CUMP est 0 mais FEFO a une valeur, afficher +100%
-                        difference = "+100.00%";
-                    }
-                } else if ("CUMP".equals(methode)) {
-                    // Pour CUMP: comparer CUMP vs FIFO
-                    if (valorisationFifo.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal diffPourcentage = valorisationCump
-                            .subtract(valorisationFifo)
-                            .divide(valorisationFifo, 4, RoundingMode.HALF_UP)
-                            .multiply(BigDecimal.valueOf(100));
-                        difference = String.format("%.2f%%", diffPourcentage);
-                    } else {
-                        difference = "0.00%";
+                List<StockMovement> mouvements = mouvementRepository.findByArticleIdOrderByDateMouvementDesc(article.getId());
+                for (StockMovement mvt : mouvements) {
+                    if (mvt.getStatut() == StockMovement.MovementStatus.VALIDE) {
+                        if (mvt.getType().getSens() == MovementType.SensMouvement.ENTREE) {
+                            quantiteEntree += mvt.getQuantite() != null ? mvt.getQuantite() : 0;
+                            // Récupérer la date de la première entrée
+                            if (dateEntree == null) {
+                                dateEntree = mvt.getDateComptable();
+                            }
+                        } else {
+                            quantiteSortie += mvt.getQuantite() != null ? mvt.getQuantite() : 0;
+                        }
                     }
                 }
     
+                // Sélectionner la valorisation selon la méthode de l'article
+                String methode = article.getMethodeValorisation() != null ? article.getMethodeValorisation() : "CUMP";
+                BigDecimal valorisation;
+                switch (methode) {
+                    case "FIFO":
+                        valorisation = valorisationFifo;
+                        break;
+                    case "FEFO":
+                        valorisation = valorisationFefo;
+                        break;
+                    default:
+                        valorisation = valorisationCump;
+                }
+    
+                // Construire l'objet de retour avec TOUS les champs attendus par le template
                 detail.put("codeArticle", article.getCodeArticle());
                 detail.put("libelle", article.getLibelle());
                 detail.put("methode", methode);
-                detail.put("quantite", quantiteTotale);
+                detail.put("prixUnitaire", coutUnitaireMoyen);
+                detail.put("quantiteEntree", quantiteEntree);
+                detail.put("dateEntree", dateEntree);
+                detail.put("quantiteSortie", quantiteSortie);
+                detail.put("quantiteRestante", quantiteRestante);
+                detail.put("valorisation", valorisation);  // ✅ La valorisation selon la méthode
                 detail.put("valorisationFifo", valorisationFifo);
                 detail.put("valorisationFefo", valorisationFefo);
                 detail.put("valorisationCump", valorisationCump);
-                detail.put("difference", difference);
+                detail.put("dateDernierMouvement", dernierMouvement);
     
                 details.add(detail);
             }
