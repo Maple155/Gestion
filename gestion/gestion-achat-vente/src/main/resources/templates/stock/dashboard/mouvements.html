@@ -211,10 +211,10 @@
                                         <span th:text="${mvt.type != null ? mvt.type.libelle : ''}" 
                                               class="font-medium">Réception</span>
                                         <div class="text-xs text-slate-500 mt-1">
-                                            <span th:if="${mvt.bonReception != null}" 
-                                                  th:text="${mvt.bonReception.reference}">BR-2024-001</span>
-                                            <span th:if="${mvt.bonCommande != null}" 
-                                                  th:text="${mvt.bonCommande.reference}">BC-2024-001</span>
+                                              <span th:if="${mvt.bonReception != null}" 
+                                                  th:text="${mvt.bonReception.bonCommande != null ? mvt.bonReception.bonCommande.referenceBc : ''}">BC-2024-001</span>
+                                              <span th:if="${mvt.bonCommande != null}" 
+                                                  th:text="${mvt.bonCommande.referenceBc}">BC-2024-001</span>
                                             <span th:if="${mvt.transfert != null}" 
                                                   th:text="${mvt.transfert.reference}">TRF-2024-001</span>
                                             <span th:if="${mvt.inventaire != null}" 
