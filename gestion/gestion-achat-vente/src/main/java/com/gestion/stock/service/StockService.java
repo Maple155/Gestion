@@ -14,9 +14,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -546,4 +548,113 @@ public class StockService {
                                 })
                                 .collect(Collectors.toList());
         }
+
+        // 
+
+    /**
+     * Calcule le stock disponible pour un article
+     */
+    public int getStockDisponible(UUID articleId) {
+        try {
+            List<Stock> stocks = stockRepository.findByArticleId(articleId);
+            return stocks.stream()
+                    .mapToInt(Stock::getQuantiteDisponible)
+                    .sum();
+        } catch (Exception e) {
+            log.error("Erreur lors du calcul du stock disponible", e);
+            return 0;
+        }
+    }
+
+    /**
+     * Calcule la valeur totale du stock pour un article
+     */
+    public BigDecimal getValeurStock(UUID articleId) {
+        try {
+            List<Stock> stocks = stockRepository.findByArticleId(articleId);
+            return stocks.stream()
+                    .map(Stock::getValeurStockCump)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (Exception e) {
+            log.error("Erreur lors du calcul de la valeur du stock", e);
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * Récupère la date du dernier mouvement pour un article
+     */
+    public LocalDateTime getDernierMouvement(UUID articleId) {
+        try {
+            Optional<StockMovement> dernierMouvement = stockMovementRepository
+                    .findTopByArticleIdOrderByDateMouvementDesc(articleId);
+            return dernierMouvement.map(StockMovement::getDateMouvement).orElse(null);
+        } catch (Exception e) {
+            log.error("Erreur lors de la récupération du dernier mouvement", e);
+            return null;
+        }
+    }
+
+    /**
+     * Vérifie si un article a du stock
+     */
+    public boolean hasStock(UUID articleId) {
+        return getStockDisponible(articleId) > 0;
+    }
+
+    /**
+     * Récupère le stock par article pour une liste d'articles
+     */
+    public Map<UUID, Map<String, Object>> getStockForArticles(List<UUID> articleIds) {
+        Map<UUID, Map<String, Object>> result = new HashMap<>();
+        
+        try {
+            List<Stock> allStocks = stockRepository.findByArticleIdIn(articleIds);
+            
+            // Grouper par article
+            Map<UUID, List<Stock>> stocksByArticle = new HashMap<>();
+            for (Stock stock : allStocks) {
+                stocksByArticle.computeIfAbsent(stock.getArticle().getId(), k -> new ArrayList<>())
+                        .add(stock);
+            }
+            
+            // Calculer les totaux pour chaque article
+            for (UUID articleId : articleIds) {
+                Map<String, Object> info = new HashMap<>();
+                List<Stock> stocks = stocksByArticle.get(articleId);
+                
+                if (stocks != null && !stocks.isEmpty()) {
+                    int quantiteTheorique = stocks.stream()
+                            .mapToInt(Stock::getQuantiteTheorique)
+                            .sum();
+                    
+                    int quantiteReservee = stocks.stream()
+                            .mapToInt(Stock::getQuantiteReservee)
+                            .sum();
+                    
+                    BigDecimal valeurStock = stocks.stream()
+                            .map(Stock::getValeurStockCump)
+                            .filter(Objects::nonNull)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    
+                    info.put("quantiteTheorique", quantiteTheorique);
+                    info.put("quantiteDisponible", quantiteTheorique - quantiteReservee);
+                    info.put("valeurStock", valeurStock);
+                    info.put("nombreDepots", stocks.size());
+                } else {
+                    info.put("quantiteTheorique", 0);
+                    info.put("quantiteDisponible", 0);
+                    info.put("valeurStock", BigDecimal.ZERO);
+                    info.put("nombreDepots", 0);
+                }
+                
+                result.put(articleId, info);
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de la récupération des stocks pour plusieurs articles", e);
+        }
+        
+        return result;
+    }
 }

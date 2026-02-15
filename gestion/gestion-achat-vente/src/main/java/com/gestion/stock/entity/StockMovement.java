@@ -80,6 +80,9 @@ public class StockMovement {
     
     private String motif;
     
+    @Column(name = "modifiable")
+    private Boolean modifiable = true;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private MovementStatus statut = MovementStatus.VALIDE;

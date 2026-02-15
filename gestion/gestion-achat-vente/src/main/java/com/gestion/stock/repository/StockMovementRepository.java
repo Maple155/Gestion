@@ -292,21 +292,68 @@ public interface StockMovementRepository
                      @Param("dateDebut") LocalDateTime dateDebut,
                      @Param("dateFin") LocalDateTime dateFin);
 
-    @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
-           "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
-           "ORDER BY m.dateMouvement DESC")
-    List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetween(
-            @Param("articleId") UUID articleId,
-            @Param("depotId") UUID depotId,
-            @Param("debut") LocalDateTime debut,
-            @Param("fin") LocalDateTime fin);
-    
-            @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
-            "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
-            "ORDER BY m.dateMouvement DESC")
-     List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetweenOrderByDateMouvementDesc(
-             @Param("articleId") UUID articleId,
-             @Param("depotId") UUID depotId,
-             @Param("debut") LocalDateTime debut,
-             @Param("fin") LocalDateTime fin);
+       @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
+                     "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
+                     "ORDER BY m.dateMouvement DESC")
+       List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetween(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("debut") LocalDateTime debut,
+                     @Param("fin") LocalDateTime fin);
+
+       @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId AND " +
+                     "m.depot.id = :depotId AND m.dateMouvement BETWEEN :debut AND :fin " +
+                     "ORDER BY m.dateMouvement DESC")
+       List<StockMovement> findByArticleIdAndDepotIdAndDateMouvementBetweenOrderByDateMouvementDesc(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId,
+                     @Param("debut") LocalDateTime debut,
+                     @Param("fin") LocalDateTime fin);
+
+       // Compter les entrées des 30 derniers jours
+       @Query("SELECT COALESCE(SUM(m.quantite), 0) FROM StockMovement m " +
+                     "WHERE m.article.id = :articleId " +
+                     "AND m.type.sens = 'ENTREE' " +
+                     "AND m.dateMouvement >= :date")
+       Long countEntreesPeriod(@Param("articleId") UUID articleId, @Param("date") LocalDateTime date);
+
+       // Compter les sorties des 30 derniers jours
+       @Query("SELECT COALESCE(SUM(m.quantite), 0) FROM StockMovement m " +
+                     "WHERE m.article.id = :articleId " +
+                     "AND m.type.sens = 'SORTIE' " +
+                     "AND m.dateMouvement >= :date")
+       Long countSortiesPeriod(@Param("articleId") UUID articleId, @Param("date") LocalDateTime date);
+
+       // Récupérer l'historique d'un article sur X jours
+       @Query("SELECT m FROM StockMovement m WHERE m.article.id = :articleId " +
+                     "AND m.dateMouvement >= :date ORDER BY m.dateMouvement DESC")
+       List<StockMovement> getHistoriqueArticle(@Param("articleId") UUID articleId, @Param("date") LocalDateTime date);
+
+       // Récupérer les mouvements par dépôt
+       @Query("SELECT m FROM StockMovement m WHERE m.depot.id = :depotId ORDER BY m.dateMouvement DESC")
+       Page<StockMovement> findByDepotId(@Param("depotId") UUID depotId, Pageable pageable);
+
+       // Récupérer les mouvements par type
+       @Query("SELECT m FROM StockMovement m WHERE m.type.id = :typeId ORDER BY m.dateMouvement DESC")
+       Page<StockMovement> findByTypeMouvementId(@Param("typeId") UUID typeId, Pageable pageable);
+
+       // Statistiques de mouvements par période
+       @Query("SELECT DATE(m.dateMouvement), COUNT(m), SUM(m.quantite) " +
+                     "FROM StockMovement m " +
+                     "WHERE m.article.id = :articleId " +
+                     "AND m.dateMouvement BETWEEN :startDate AND :endDate " +
+                     "GROUP BY DATE(m.dateMouvement) " +
+                     "ORDER BY DATE(m.dateMouvement)")
+       List<Object[]> getMouvementStatsByDay(@Param("articleId") UUID articleId,
+                     @Param("startDate") LocalDateTime startDate,
+                     @Param("endDate") LocalDateTime endDate);
+
+       // Vérifier si un mouvement peut être annulé
+       @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM StockMovement m " +
+                     "WHERE m.id = :mouvementId AND m.modifiable = true")
+       boolean isMouvementModifiable(@Param("mouvementId") UUID mouvementId);
+
+       // Récupérer les mouvements en attente de validation
+       @Query("SELECT m FROM StockMovement m WHERE m.statut = 'BROUILLON' ORDER BY m.dateMouvement DESC")
+       List<StockMovement> findMouvementsEnAttente();
 }

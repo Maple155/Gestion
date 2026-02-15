@@ -468,4 +468,6 @@ public class ArticleService {
     // return stockMovementRepository.findRecentMovementsByArticleId(articleId,
     // since);
     // }
+
+
 }

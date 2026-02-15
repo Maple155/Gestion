@@ -320,17 +320,63 @@ public interface LotRepository extends JpaRepository<Lot, UUID>, JpaSpecificatio
                      @Param("dateLimite") LocalDate dateLimite,
                      Pageable pageable);
 
-    @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
-           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
-           "ORDER BY l.dateReception ASC")
-    List<Lot> findByArticleIdAndDepotOrderByDateReceptionAsc(
-            @Param("articleId") UUID articleId, 
-            @Param("depotId") UUID depotId);
-    
-    @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
-           "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
-           "ORDER BY l.datePeremption ASC NULLS LAST")
-    List<Lot> findByArticleIdAndDepotOrderByDatePeremptionAsc(
-            @Param("articleId") UUID articleId, 
-            @Param("depotId") UUID depotId);
+       @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
+                     "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findByArticleIdAndDepotOrderByDateReceptionAsc(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId);
+
+       @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId AND " +
+                     "l.emplacement.zone.depot.id = :depotId AND l.statut = 'DISPONIBLE' AND l.quantiteActuelle > 0 " +
+                     "ORDER BY l.datePeremption ASC NULLS LAST")
+       List<Lot> findByArticleIdAndDepotOrderByDatePeremptionAsc(
+                     @Param("articleId") UUID articleId,
+                     @Param("depotId") UUID depotId);
+
+       //
+
+       // Récupérer un lot par son numéro
+       Optional<Lot> findByNumeroLot(String numeroLot);
+
+       // Récupérer les lots par statut
+       List<Lot> findByStatut(String statut);
+
+       // Récupérer les lots proches de la péremption
+       @Query("SELECT l FROM Lot l WHERE l.datePeremption BETWEEN :start AND :end AND l.quantiteActuelle > 0 ORDER BY l.datePeremption ASC")
+       List<Lot> findLotsProchesPeremption(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
+       // Récupérer les lots périmés
+       @Query("SELECT l FROM Lot l WHERE l.datePeremption < :date AND l.quantiteActuelle > 0")
+       List<Lot> findLotsPerimes(@Param("date") LocalDate date);
+
+       // Récupérer les lots disponibles par article pour sortie FIFO
+       @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId " +
+                     "AND l.quantiteActuelle > 0 " +
+                     "AND l.statut = 'DISPONIBLE' " +
+                     "ORDER BY l.dateReception ASC")
+       List<Lot> findLotsDisponiblesFIFO(@Param("articleId") UUID articleId);
+
+       // Récupérer les lots disponibles par article pour sortie FEFO
+       @Query("SELECT l FROM Lot l WHERE l.article.id = :articleId " +
+                     "AND l.quantiteActuelle > 0 " +
+                     "AND l.statut = 'DISPONIBLE' " +
+                     "AND l.datePeremption IS NOT NULL " +
+                     "ORDER BY l.datePeremption ASC")
+       List<Lot> findLotsDisponiblesFEFO(@Param("articleId") UUID articleId);
+
+       // Récupérer les lots d'un emplacement
+       List<Lot> findByEmplacementId(UUID emplacementId);
+
+       // Compter les lots par statut
+       @Query("SELECT l.statut, COUNT(l) FROM Lot l GROUP BY l.statut")
+       List<Object[]> countLotsByStatut();
+
+       // // Récupérer les lots avec leurs mouvements
+       // @Query("SELECT l FROM Lot l LEFT JOIN FETCH l.mouvements WHERE l.id = :id")
+       // Optional<Lot> findByIdWithMouvements(@Param("id") UUID id);
+
+       // Récupérer la quantité totale par article
+       @Query("SELECT SUM(l.quantiteActuelle) FROM Lot l WHERE l.article.id = :articleId")
+       Long getQuantiteTotaleByArticle(@Param("articleId") UUID articleId);
 }
