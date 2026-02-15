@@ -9,4 +9,5 @@ import com.gestion.vente.entity.CommandeClient;
 
 public interface CommandeClientRepository extends JpaRepository<CommandeClient, UUID> {
     List<CommandeClient> findAllByOrderByDateCommandeDesc();
+    boolean existsByDevisId(UUID devisId);
 }

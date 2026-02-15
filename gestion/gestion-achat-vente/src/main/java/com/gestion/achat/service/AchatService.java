@@ -2,6 +2,7 @@ package com.gestion.achat.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 import com.gestion.achat.entity.*;
 import com.gestion.achat.enums.*;
 import com.gestion.achat.repository.*;
+import com.gestion.vente.entity.BacklogStockVente;
+import com.gestion.vente.repository.BacklogStockVenteRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ public class AchatService {
     private final BonCommandeRepository bcRepo;
     private final BonReceptionRepository brRepo;
     private final FactureAchatRepository factureRepo;
+    private final BacklogStockVenteRepository backlogRepository;
 
     // Étape 1 : Sélectionner le moins cher
     public Proforma selectionnerMeilleureOffre(UUID demandeAchatId) {
@@ -70,6 +74,15 @@ public class AchatService {
             // stockService.augmenterStock(bc.getProforma().getDemandeAchat().getProduitId(), 
             //                             bc.getProforma().getDemandeAchat().getQuantiteDemandee());
             bc.getProforma().getDemandeAchat().setStatut(StatutDemande.TERMINEE);
+
+            UUID demandeAchatId = bc.getProforma().getDemandeAchat().getId();
+            List<BacklogStockVente> backlogs = backlogRepository.findByDemandeAchatIdAndStatut(demandeAchatId, "EN_ATTENTE");
+            for (BacklogStockVente backlog : backlogs) {
+                backlog.setStatut("RESOLU");
+                String existing = backlog.getNotes() != null ? backlog.getNotes() + "\n" : "";
+                backlog.setNotes(existing + "Réception achat: " + bc.getReferenceBc());
+            }
+            backlogRepository.saveAll(backlogs);
         }
         
         return brRepo.save(br);
