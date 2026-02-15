@@ -10,8 +10,8 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                 <h3 class="font-bold text-slate-700">Anomalies détectées</h3>
-                <span class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black" 
-                      th:text="${mismatches.size() + ' ERREUR(S)'}">0 ERREURS</span>
+                    <span class="bg-rose-100 text-rose-600 px-3 py-1 rounded-full text-[10px] font-black" 
+                        th:text="${(mismatches != null ? mismatches.size() : 0) + ' ERREUR(S)'}">0 ERREURS</span>
             </div>
             
             <table class="w-full text-left">
@@ -24,7 +24,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    <tr th:each="m : ${mismatches}" class="group hover:bg-rose-50/20 transition-colors">
+                    <tr th:if="${mismatches != null}" th:each="m : ${mismatches}" class="group hover:bg-rose-50/20 transition-colors">
                         <td class="px-6 py-4 font-mono text-xs text-slate-600" th:text="${m.numeroFacture}">-</td>
                         <td class="px-6 py-4 text-sm text-slate-700 font-medium" th:text="${m.referenceBc}">-</td>
                         <td class="px-6 py-4">
@@ -35,7 +35,7 @@
                         </td>
                         <td class="px-6 py-4 text-right font-bold text-slate-900" th:text="${#numbers.formatCurrency(m.montant)}">0</td>
                     </tr>
-                    <tr th:if="${mismatches.empty}">
+                    <tr th:if="${mismatches == null || mismatches.empty}">
                         <td colspan="4" class="px-6 py-12 text-center text-slate-400 italic">
                             <i data-lucide="check-circle" class="w-12 h-12 mx-auto mb-4 opacity-20 text-emerald-500"></i>
                             <p>Aucune anomalie détectée dans le flux d'achat.</p>
