@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,12 +29,15 @@ import com.gestion.achat.enums.StatutFinance;
 import com.gestion.achat.repository.BonCommandeRepository;
 import com.gestion.achat.repository.BonReceptionRepository;
 import com.gestion.achat.repository.FactureAchatRepository;
+import com.gestion.stock.entity.Article;
+import com.gestion.stock.entity.Stock;
 import com.gestion.stock.repository.ArticleRepository;
 import com.gestion.stock.repository.StockRepository;
 import com.gestion.stock.service.ValorisationService;
 import com.gestion.vente.entity.AvoirClient;
 import com.gestion.vente.entity.FactureVente;
 import com.gestion.vente.entity.LigneFactureVente;
+import com.gestion.vente.entity.PaiementClient;
 import com.gestion.vente.enums.StatutAvoir;
 import com.gestion.vente.repository.AvoirClientRepository;
 import com.gestion.vente.repository.FactureVenteRepository;
@@ -76,27 +80,80 @@ public class FinanceController {
     public String dashboardDaf(Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
 
-        List<MismatchItem> mismatches = buildMismatchList();
-        model.addAttribute("mismatchCount", mismatches.size());
-        model.addAttribute("mismatches", mismatches);
-
-        BigDecimal comptable = getValeurStockComptable();
-        BigDecimal operationnelle = getValeurStockOperationnelle();
-        model.addAttribute("valeurComptable", comptable);
-        model.addAttribute("valeurOperationnelle", operationnelle);
-        model.addAttribute("ecartStock", operationnelle.subtract(comptable));
-
+        // --- 1. PERFORMANCE COMMERCIALE (NET D'AVOIRS) ---
         AvoirTotals avoirs = computeAvoirsTotals();
-        MarginKpi margin = computeMargeFacture(avoirs.avoirHt);
-        model.addAttribute("margeTotale", margin.margeTotale);
-        model.addAttribute("caTotal", margin.chiffreAffaires);
-        model.addAttribute("tauxMarge", margin.tauxMarge);
+        MarginKpi margin = computeMargeFacture(avoirs.avoirHt());
+        model.addAttribute("caTotal", margin.chiffreAffaires());
+        model.addAttribute("margeTotale", margin.margeTotale());
+        model.addAttribute("tauxMarge", margin.tauxMarge());
 
-        model.addAttribute("activePage", "finance-daf");
+        // --- 2. AUDIT OPÉRATIONNEL (RISQUES LOGISTIQUES & QUALITÉ) ---
+        List<BonCommande> tousLesBC = bonCommandeRepository.findAll();
+        List<BonReception> toutesReceptions = bonReceptionRepository.findAll();
+        LocalDate today = LocalDate.now();
+
+        // Litiges Retard (Date passée, aucune réception)
+        List<BonCommande> retards = tousLesBC.stream()
+                .filter(bc -> bc.getDateLivraisonEstimee() != null && bc.getDateLivraisonEstimee().isBefore(today)
+                        && !hasReception(bc, toutesReceptions))
+                .toList();
+
+        // Litiges Qualité (Non conforme)
+        List<BonReception> nonConformes = toutesReceptions.stream()
+                .filter(br -> !br.isConforme())
+                .toList();
+
+        BigDecimal valeurRetards = retards.stream().map(BonCommande::getMontantTotalTtc).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal valeurQualite = nonConformes.stream().map(br -> br.getBonCommande().getMontantTotalTtc()).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("nbRetards", retards.size());
+        model.addAttribute("valeurRetards", valeurRetards);
+        model.addAttribute("nbQualite", nonConformes.size());
+        model.addAttribute("valeurQualite", valeurQualite);
+
+        // --- 3. RECOUVREMENT RÉEL (FACTURATION VS ENCAISSEMENT) ---
+        List<FactureVente> facturesVente = factureVenteRepository.findAll();
+        List<PaiementClient> paiements = paiementClientRepository.findAll();
+
+        Map<UUID, BigDecimal> encaissementsMap = paiements.stream()
+                .collect(Collectors.groupingBy(p -> p.getFacture().getId(),
+                        Collectors.reducing(BigDecimal.ZERO, PaiementClient::getMontant, BigDecimal::add)));
+
+        Map<String, BigDecimal> balanceClient = new HashMap<>();
+        BigDecimal totalResteARecouvrer = BigDecimal.ZERO;
+
+        for (FactureVente f : facturesVente) {
+            BigDecimal ttc = (f.getTotalTtc() != null) ? f.getTotalTtc() : BigDecimal.ZERO;
+            BigDecimal dejaPaye = encaissementsMap.getOrDefault(f.getId(), BigDecimal.ZERO);
+            BigDecimal resteDu = ttc.subtract(dejaPaye);
+
+            if (resteDu.compareTo(BigDecimal.ZERO) > 0) {
+                String clientNom = (f.getClient() != null) ? f.getClient().getNom() : "Client Inconnu";
+                balanceClient.merge(clientNom, resteDu, BigDecimal::add);
+                totalResteARecouvrer = totalResteARecouvrer.add(resteDu);
+            }
+        }
+
+        Map<String, BigDecimal> topDebiteurs = balanceClient.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .limit(5)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+        model.addAttribute("topDebiteurs", topDebiteurs);
+        model.addAttribute("totalResteARecouvrer", totalResteARecouvrer);
+
+        // --- 4. ANOMALIES COMPTABLES (MISMATCHES) ---
+        List<MismatchItem> mismatches = buildMismatchList();
+        model.addAttribute("mismatches", mismatches);
+        model.addAttribute("mismatchCount", mismatches.size());
+
+        // --- 5. STOCKS & INFOS GÉNÉRALES ---
+        model.addAttribute("valeurOperationnelle", getValeurStockOperationnelle());
         model.addAttribute("dateJour", LocalDate.now());
+        model.addAttribute("activePage", "finance-daf");
+
         return "finance/daf-dashboard";
     }
-
     @GetMapping("/fournisseurs")
     public String dashboardFournisseurs(Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
@@ -163,20 +220,35 @@ public class FinanceController {
     public String dashboardTresorerie(Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
 
-        // Encaissements : Somme des paiements clients reçus
+        // 1. CASH RÉEL (Ce qui est déjà encaissé / décaissé)
         BigDecimal encaissements = paiementClientRepository.findAll().stream()
                 .map(p -> p.getMontant() != null ? p.getMontant() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Décaissements : Somme des factures d'achat marquées comme payées
         BigDecimal decaissements = factureAchatRepository.findAll().stream()
                 .filter(FactureAchat::isEstPayee)
                 .map(f -> f.getMontantTotalTtc() != null ? f.getMontantTotalTtc() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // 2. PRÉVISIONS (Factures de vente émises - déjà payé)
+        BigDecimal totalFactureVenteTtc = factureVenteRepository.findAll().stream()
+                .map(f -> f.getTotalTtc() != null ? f.getTotalTtc() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Le "Reste à encaisser" est le Revenu Potentiel
+        BigDecimal resteAEncaisser = totalFactureVenteTtc.subtract(encaissements).max(BigDecimal.ZERO);
+
+        // 3. DONNÉES POUR LA COURBE (Prévisions sur 6 mois)
+        MonthlySeries series = buildMonthlySeries(6);
+
         model.addAttribute("encaissements", encaissements);
         model.addAttribute("decaissements", decaissements);
         model.addAttribute("cashEstime", encaissements.subtract(decaissements));
+        model.addAttribute("revenuPotentiel", resteAEncaisser);
+        model.addAttribute("tresorerieProjetee", encaissements.subtract(decaissements).add(resteAEncaisser));
+        
+        model.addAttribute("chartLabels", series.labels);
+        model.addAttribute("chartDataCA", series.ca); // Vos revenus par mois (émis)
         model.addAttribute("activePage", "finance-tresorerie");
 
         return "finance/tresorerie-dashboard";
@@ -235,20 +307,95 @@ public class FinanceController {
     @GetMapping("/stock")
     public String dashboardStock(Model model, HttpSession session) {
         requireRole(session, "ADMIN", "DAF", "FINANCE");
-        model.addAttribute("valeurComptable", getValeurStockComptable());
+
+        List<Stock> tousLesStocks = stockRepository.findAll();
+        List<StockDetailsDto> alertesDetails = new ArrayList<>();
+        BigDecimal depenseTotale = BigDecimal.ZERO;
+
+        for (Stock s : tousLesStocks) {
+            Article art = s.getArticle();
+            if (art == null) continue;
+
+            // Calcul du besoin pour atteindre le stock max
+            int qteActuelle = s.getQuantiteTheorique() != null ? s.getQuantiteTheorique() : 0;
+            int stockSecu = art.getStockSecurite() != null ? art.getStockSecurite() : 0;
+            
+            // On ne cible que ce qui est sous le seuil de sécurité
+            if (qteActuelle <= stockSecu) {
+                int aCommander = Math.max(0, art.getStockMaximum() - qteActuelle);
+                BigDecimal coutStandard = art.getCoutStandard() != null ? art.getCoutStandard() : BigDecimal.ZERO;
+                BigDecimal coutLigne = coutStandard.multiply(BigDecimal.valueOf(aCommander));
+                
+                depenseTotale = depenseTotale.add(coutLigne);
+
+                // Simulation de criticité (Exemple: si stock actuel < 20% du seuil de secu)
+                String niveauUrgence = (qteActuelle <= stockSecu * 0.2) ? "CRITIQUE" : "ALERTE";
+
+                alertesDetails.add(new StockDetailsDto(
+                    art.getCodeArticle(),
+                    art.getLibelle(),
+                    qteActuelle,
+                    stockSecu,
+                    aCommander,
+                    coutLigne,
+                    niveauUrgence
+                ));
+            }
+        }
+
+        // Tri par coût décroissant (le DAF veut voir les plus grosses dépenses en premier)
+        alertesDetails.sort((a, b) -> b.coutPrevu().compareTo(a.coutPrevu()));
+
         model.addAttribute("valeurOperationnelle", getValeurStockOperationnelle());
-        model.addAttribute("activePage", "finance-stock");
+        model.addAttribute("alertes", alertesDetails);
+        model.addAttribute("depensePrevue", depenseTotale);
+        model.addAttribute("nbAlertes", alertesDetails.size());
+        
         return "finance/stock-dashboard";
     }
 
+    // Petit DTO interne pour structurer la vue
+    public record StockDetailsDto(
+        String code, String libelle, int actuel, int secu, 
+        int aCommander, BigDecimal coutPrevu, String urgence) {}
+
     @GetMapping("/audit")
-    public String audit(Model model, HttpSession session) {
-        requireRole(session, "ADMIN", "DAF", "FINANCE");
-        model.addAttribute("mismatches", buildMismatchList());
-        model.addAttribute("activePage", "finance-audit");
+    public String auditComplet(Model model) {
+        List<BonCommande> tousLesBC = bonCommandeRepository.findAll();
+        List<BonReception> toutesReceptions = bonReceptionRepository.findAll();
+        LocalDate today = LocalDate.now();
+
+        // 1. Calcul des Litiges de Retard (Sans réception après date prévue)
+        List<BonCommande> litigesRetard = tousLesBC.stream()
+            .filter(bc -> bc.getDateLivraisonEstimee() != null 
+                    && bc.getDateLivraisonEstimee().isBefore(today)
+                    && !hasReception(bc, toutesReceptions)) // Méthode utilitaire pour vérifier si un BR existe
+            .toList();
+
+        // 2. Calcul des Litiges Qualité (Réceptionnés mais non conformes)
+        List<BonReception> litigesQualite = toutesReceptions.stream()
+            .filter(br -> !br.isConforme())
+            .toList();
+
+        // 3. Statistiques Financières
+        BigDecimal valeurRetards = litigesRetard.stream()
+            .map(BonCommande::getMontantTotalTtc).reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        BigDecimal valeurNonConforme = litigesQualite.stream()
+            .map(br -> br.getBonCommande().getMontantTotalTtc()).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("litigesRetard", litigesRetard);
+        model.addAttribute("litigesQualite", litigesQualite);
+        model.addAttribute("totalLitiges", valeurRetards.add(valeurNonConforme));
+        model.addAttribute("valeurRetards", valeurRetards);
+        model.addAttribute("valeurNonConforme", valeurNonConforme);
+        
         return "finance/audit-dashboard";
     }
-
+    private boolean hasReception(BonCommande bc, List<BonReception> toutesReceptions) {
+        return toutesReceptions.stream()
+                .anyMatch(br -> br.getBonCommande().getId().equals(bc.getId()));
+    }
     // --- MÉTHODES PRIVÉES DE CALCUL ---
 
     private List<MismatchItem> buildMismatchList() {
