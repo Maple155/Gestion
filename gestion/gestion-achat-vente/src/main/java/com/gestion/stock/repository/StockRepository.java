@@ -148,4 +148,30 @@ public interface StockRepository extends JpaRepository<Stock, UUID> {
     
         // Méthode pour compter les stocks par dépôt
         Long countByDepotId(UUID depotId);
+        @Modifying
+        @Transactional
+        @Query(value = """
+        INSERT INTO stocks (
+                id, article_id, depot_id, 
+                quantite_theorique, quantite_physique, quantite_reservee, 
+                valeur_stock_cump, date_dernier_mouvement, updated_at
+        )
+        VALUES (
+                gen_random_uuid(), :articleId, :depotId, 
+                :quantite, :quantite, 0, 
+                :valeurInitiale, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT (article_id, depot_id) 
+        DO UPDATE SET 
+                quantite_theorique = stocks.quantite_theorique + EXCLUDED.quantite_theorique,
+                quantite_physique = stocks.quantite_physique + EXCLUDED.quantite_physique,
+                date_dernier_mouvement = EXCLUDED.date_dernier_mouvement,
+                updated_at = EXCLUDED.updated_at
+        """, nativeQuery = true)
+        void upsertStockReception(
+        @Param("articleId") UUID articleId, 
+        @Param("depotId") UUID depotId, 
+        @Param("quantite") Integer quantite,
+        @Param("valeurInitiale") BigDecimal valeurInitiale
+        );
 }
