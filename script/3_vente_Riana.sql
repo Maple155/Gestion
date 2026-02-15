@@ -108,6 +108,7 @@ CREATE TABLE lignes_commandes_clients (
 CREATE TABLE backlog_stock_vente (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     devis_id UUID REFERENCES devis_vente(id),
+    demande_achat_id UUID REFERENCES demandes_achat(id),
     article_id UUID NOT NULL REFERENCES articles(id),
     quantite_demandee INTEGER NOT NULL,
     quantite_disponible INTEGER NOT NULL,
@@ -116,6 +117,7 @@ CREATE TABLE backlog_stock_vente (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- 4. Livraisons
 CREATE TABLE livraisons_clients (
