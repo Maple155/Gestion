@@ -10,6 +10,7 @@ import com.gestion.stock.repository.LotRepository;
 import com.gestion.stock.repository.SerieRepository;
 import com.gestion.stock.service.*;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -43,9 +44,17 @@ public class LotController {
     private final LotRepository lotRepository;
     private final SerieRepository serieRepository;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null)
+            return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+
     // ========== PAGE : Liste des lots ==========
     @GetMapping
-    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK', 'COMPTABLE', 'MANAGER')")
+    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK',
+    // 'COMPTABLE', 'MANAGER')")
     public String listLots(
             @RequestParam(required = false) String numeroLot,
             @RequestParam(required = false) UUID articleId,
@@ -60,7 +69,18 @@ public class LotController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "dateReception") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
+            HttpSession session,
             Model model) {
+
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        // Tous les rôles stock peuvent voir les lots
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER",
+                "MANAGER", "ADMIN", "COMPTABLE")) {
+            return "redirect:/access-denied";
+        }
 
         // Créer Pageable
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
@@ -121,7 +141,8 @@ public class LotController {
 
     // ========== PAGE : Détail d'un lot ==========
     @GetMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK', 'COMPTABLE', 'MANAGER')")
+    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK',
+    // 'COMPTABLE', 'MANAGER')")
     public String viewLot(@PathVariable UUID id, Model model) {
         Lot lot = lotService.getLotById(id);
 
@@ -149,7 +170,17 @@ public class LotController {
     // @PreAuthorize("hasRole('GESTIONNAIRE_STOCK')")
     public String showCreateForm(
             @RequestParam(required = false) UUID bonReceptionId,
+            HttpSession session,
             Model model) {
+
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        // Seuls GESTIONNAIRE, RESPONSABLE, MANAGER, ADMIN peuvent créer des lots
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
 
         LotDTO.CreateLotDTO lotDTO = new LotDTO.CreateLotDTO();
 
@@ -174,7 +205,17 @@ public class LotController {
     // @PreAuthorize("hasRole('GESTIONNAIRE_STOCK')")
     public String createLot(
             @ModelAttribute("lotDTO") LotDTO lotDTO,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
+
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Permission refusée");
+            return "redirect:/lots";
+        }
 
         try {
             Lot lot = lotService.createLot(lotDTO);
@@ -193,7 +234,16 @@ public class LotController {
     // ========== PAGE : Modifier un lot ==========
     @GetMapping("/{id}/modifier")
     // @PreAuthorize("hasRole('GESTIONNAIRE_STOCK')")
-    public String showEditForm(@PathVariable UUID id, Model model) {
+    public String showEditForm(@PathVariable UUID id, Model model, HttpSession session) {
+
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
+
         Lot lot = lotService.getLotById(id);
 
         // Convertir Lot en DTO pour le formulaire
@@ -236,12 +286,23 @@ public class LotController {
 
     // ========== PAGE : Alertes de péremption ==========
     @GetMapping("/alertes/peremption")
-    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK', 'MANAGER')")
+    // @PreAuthorize("hasAnyRole('GESTIONNAIRE_STOCK', 'RESPONSABLE_STOCK',
+    // 'MANAGER')")
     public String showPeremptionAlerts(
             @RequestParam(defaultValue = "30") int joursAlerte,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            HttpSession session,
             Model model) {
+
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        // GESTIONNAIRE, RESPONSABLE, MANAGER, ADMIN peuvent voir les alertes
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Lot> lotsProchePeremption = lotService.getLotsProchePeremption(joursAlerte, pageable);
@@ -322,9 +383,21 @@ public class LotController {
             @PathVariable UUID id,
             @RequestParam String nouveauStatut,
             @RequestParam(required = false) String motif,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         try {
+
+            if (session.getAttribute("userId") == null) {
+                return "redirect:/login";
+            }
+
+            // Seuls RESPONSABLE, MANAGER, ADMIN peuvent changer le statut
+            if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Permission refusée");
+                return "redirect:/lots/" + id;
+            }
+
             Lot lot = lotService.changerStatutLot(id, Lot.LotStatus.valueOf(nouveauStatut), motif);
 
             redirectAttributes.addFlashAttribute("successMessage",
@@ -443,9 +516,20 @@ public class LotController {
     public String supprimerLot(
             @PathVariable UUID id,
             @RequestParam String motif,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         try {
+            if (session.getAttribute("userId") == null) {
+                return "redirect:/login";
+            }
+    
+            // Seuls RESPONSABLE, MANAGER, ADMIN peuvent supprimer
+            if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Permission refusée");
+                return "redirect:/lots/" + id;
+            }
+
             Lot lot = lotRepository.findById(id).get();
 
             // Vérifier si le lot peut être supprimé
@@ -551,7 +635,7 @@ public class LotController {
         if (lotId != null) {
             serieDTO.setLot(lot1);
 
-            try {                
+            try {
                 Lot lot = lotService.getLotById(lotId);
                 serieDTO.setArticle(lot.getArticle());
             } catch (Exception e) {
@@ -608,7 +692,17 @@ public class LotController {
     // ========== PAGE : Transférer un lot ==========
     @GetMapping("/{id}/transferer")
     // @PreAuthorize("hasRole('GESTIONNAIRE_STOCK')")
-    public String showTransferForm(@PathVariable UUID id, Model model) {
+    public String showTransferForm(@PathVariable UUID id, Model model, HttpSession session, RedirectAttributes redirectAttributes) {
+        if (session.getAttribute("userId") == null) {
+            return "redirect:/login";
+        }
+
+        // GESTIONNAIRE, RESPONSABLE, MANAGER, ADMIN peuvent transférer
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Permission refusée");
+            return "redirect:/lots/" + id;
+        }
+
         Lot lot = lotService.getLotById(id);
 
         // Charger les emplacements disponibles
@@ -634,9 +728,20 @@ public class LotController {
             @RequestParam UUID nouvelEmplacementId,
             @RequestParam(required = false) Integer quantite,
             @RequestParam String motif,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         try {
+            if (session.getAttribute("userId") == null) {
+                return "redirect:/login";
+            }
+    
+            // GESTIONNAIRE, RESPONSABLE, MANAGER, ADMIN peuvent transférer
+            if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Permission refusée");
+                return "redirect:/lots/" + id;
+            }
+            
             Lot lot = lotService.transfererLot(id, nouvelEmplacementId, quantite, motif);
 
             redirectAttributes.addFlashAttribute("successMessage",

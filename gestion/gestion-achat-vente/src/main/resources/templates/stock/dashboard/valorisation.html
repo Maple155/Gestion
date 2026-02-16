@@ -127,29 +127,29 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 Ar'}">
-                                1.250.000 Ar
+                                th:text="${detailFifo != null and detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 €'}">
+                                1.250.000 €
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
                                     <span>Articles:</span>
-                                    <span class="font-bold" th:text="${detailFifo != null ? detailFifo['nombreArticles'] : 0}">45</span>
+                                    <span class="font-bold" th:text="${detailFifo != null and detailFifo['nombreArticles'] != null ? detailFifo['nombreArticles'] : 0}">45</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Lots actifs:</span>
-                                    <span class="font-bold" th:text="${detailFifo != null ? detailFifo['nombreLots'] : 0}">120</span>
+                                    <span class="font-bold" th:text="${detailFifo != null and detailFifo['nombreLots'] != null ? detailFifo['nombreLots'] : 0}">120</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Coût moyen:</span>
                                     <span class="font-bold text-emerald-600"
-                                          th:text="${detailFifo != null && detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
-                                        25,50 Ar
+                                          th:text="${detailFifo != null and detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
+                                        25,50 €
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-
+                
                     <!-- FEFO -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div class="bg-amber-600 px-6 py-4 text-white">
@@ -159,30 +159,30 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 Ar'}">
-                                50.000 Ar
+                                th:text="${detailFefo != null and detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 €'}">
+                                50.000 €
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
                                     <span>Articles périssables:</span>
-                                    <span class="font-bold" th:text="${detailFefo != null ? detailFefo['nombreArticles'] : 0}">12</span>
+                                    <span class="font-bold" th:text="${detailFefo != null and detailFefo['nombreArticles'] != null ? detailFefo['nombreArticles'] : 0}">12</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Lots < 30 jours:</span>
                                     <span class="font-bold text-rose-600" 
-                                          th:text="${detailFefo != null ? detailFefo['lotsProchePeremption'] : 0}">8</span>
+                                          th:text="${detailFefo != null and detailFefo['lotsProchePeremption'] != null ? detailFefo['lotsProchePeremption'] : 0}">8</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Risque péremption:</span>
                                     <span class="font-bold text-amber-600"
-                                          th:text="${detailFefo != null && detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
-                                        4.500 Ar
+                                          th:text="${detailFefo != null and detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
+                                        4.500 €
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-
+                
                     <!-- CUMP -->
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div class="bg-cyan-600 px-6 py-4 text-white">
@@ -192,26 +192,28 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 Ar'}">
-                                1.200.000 Ar
+                                th:text="${detailCump != null and detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 €'}">
+                                1.200.000 €
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
                                     <span>Articles:</span>
-                                    <span class="font-bold" th:text="${detailCump != null ? detailCump['nombreArticles'] : 0}">1.177</span>
+                                    <span class="font-bold" th:text="${detailCump != null and detailCump['nombreArticles'] != null ? detailCump['nombreArticles'] : 0}">1.177</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Écart moyen:</span>
-                                    <span th:class="${detailCump != null && detailCump['ecartMoyen'] != null && detailCump['ecartMoyen'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
+                                    <span th:if="${detailCump != null and detailCump['ecartMoyen'] != null}"
+                                          th:class="${detailCump['ecartMoyen'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
                                           class="font-bold"
-                                          th:text="${detailCump != null && detailCump['ecartMoyen'] != null ? detailCump['ecartMoyen'] + '%' : 'N/A'}">
+                                          th:text="${detailCump['ecartMoyen'] + '%'}">
                                         1,2%
                                     </span>
+                                    <span th:if="${detailCump == null or detailCump['ecartMoyen'] == null}" class="font-bold">N/A</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span>Dernière mise à jour:</span>
                                     <span class="font-bold"
-                                          th:text="${detailCump != null && detailCump['dateMaj'] != null ? #temporals.format(detailCump['dateMaj'], 'dd/MM HH:mm') : 'N/A'}">
+                                          th:text="${detailCump != null and detailCump['dateMaj'] != null ? #temporals.format(detailCump['dateMaj'], 'dd/MM HH:mm') : 'N/A'}">
                                         15/03 14:30
                                     </span>
                                 </div>
@@ -318,7 +320,6 @@
                     </div>
                 </div>
 
-                <!-- Comparaison Graphique -->
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
                     <div class="px-6 py-4 border-b border-slate-100">
                         <h5 class="text-lg font-bold text-slate-800 flex items-center">
@@ -330,35 +331,7 @@
                             <div class="lg:col-span-2">
                                 <canvas id="comparaisonChart" height="100"></canvas>
                             </div>
-                            <div>
-                                <h6 class="text-sm font-bold text-slate-700 mb-4">Impact sur la Marge</h6>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                        <span class="text-sm text-slate-600">Coût Moyen Sorties FIFO</span>
-                                        <span class="font-bold text-slate-800"
-                                              th:text="${valorisation != null && valorisation['coutSortiesFifo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFifo']) : 'N/A'}">
-                                            22,50 Ar
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                                        <span class="text-sm text-slate-600">Coût Moyen Sorties FEFO</span>
-                                        <span class="font-bold text-slate-800"
-                                              th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
-                                            24,30 Ar
-                                        </span>
-                                </div>
-                                    <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                        <span class="text-sm font-bold text-blue-700">Différence</span>
-                                        <span th:class="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0} ? 'text-rose-600' : 'text-emerald-600'"
-                                            class="font-bold text-lg">
-                                          <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0}">+</span>
-                                          <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
-                                              +1,80 Ar
-                                          </span>
-                                      </span>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
@@ -522,15 +495,16 @@
         let typeChartActuel = 'cout';
         let clotureActuelleId = null;
 
-        // Graphique de comparaison
+        /*<![CDATA[*/
+        // Graphique de comparaison avec gestion null
         const comparaisonData = {
             labels: ["FIFO", "FEFO", "CUMP"],
             datasets: [{
                 label: "Valeur Stock",
                 data: [
-                    /*[[${valorisation != null && valorisation['valeurFifo'] != null ? valorisation['valeurFifo'] : 0}]]*/,
-                    /*[[${valorisation != null && valorisation['valeurFefo'] != null ? valorisation['valeurFefo'] : 0}]]*/,
-                    /*[[${valorisation != null && valorisation['valeurCump'] != null ? valorisation['valeurCump'] : 0}]]*/
+                    /*[[${valorisation != null and valorisation['valeurFifo'] != null ? valorisation['valeurFifo'] : 0}]]*/,
+                    /*[[${valorisation != null and valorisation['valeurFefo'] != null ? valorisation['valeurFefo'] : 0}]]*/,
+                    /*[[${valorisation != null and valorisation['valeurCump'] != null ? valorisation['valeurCump'] : 0}]]*/
                 ],
                 backgroundColor: [
                     "rgba(40, 167, 69, 0.7)",
@@ -1175,55 +1149,51 @@ function mettreAJourHistoriqueChart(data) {
             });
     }
 
-    // Initialisation au chargement de la page
     window.onload = function() {
-        // Graphique comparatif
-        const ctx = document.getElementById("comparaisonChart").getContext("2d");
-        comparaisonChart = new Chart(ctx, {
-            type: "bar",
-            data: comparaisonData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: "rgba(0,0,0,0.05)"
+        try {
+            // Graphique comparatif
+            const ctx = document.getElementById("comparaisonChart");
+            if (ctx) {
+                comparaisonChart = new Chart(ctx.getContext("2d"), {
+                    type: "bar",
+                    data: comparaisonData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: "rgba(0,0,0,0.05)" },
+                                ticks: {
+                                    callback: function(value) {
+                                        return new Intl.NumberFormat("fr-FR", {
+                                            style: "currency",
+                                            currency: "EUR",
+                                            notation: "compact",
+                                        }).format(value);
+                                    }
+                                }
+                            },
+                            x: { grid: { color: "rgba(0,0,0,0.05)" } }
                         },
-                        ticks: {
-                            callback: function(value) {
-                                return new Intl.NumberFormat("fr-FR", {
-                                    style: "currency",
-                                    currency: "MGA",
-                                    notation: "compact",
-                                }).format(value);
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: "rgba(0,0,0,0.05)"
-                        }
+                        plugins: { legend: { display: false } }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
+                });
             }
-        });
 
-        // Charger toutes les données
-        chargerTableauDetail();
-        chargerStatistiquesClotures();
-        chargerListeClotures();
-        chargerHistoriqueCout();
-        
-        // Remplir les options d'années dans le modal
-        initialiserFormCloture();
+            // Charger toutes les données
+            chargerTableauDetail();
+            chargerStatistiquesClotures();
+            chargerListeClotures();
+            chargerHistoriqueCout();
+            
+            // Remplir les options d'années dans le modal
+            initialiserFormCloture();
+        } catch (error) {
+            console.error('Erreur initialisation:', error);
+        }
     };
+    /*]]>*/
 
     // Fermer les modals en cliquant à l'extérieur
     window.onclick = function(event) {

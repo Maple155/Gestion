@@ -32,6 +32,12 @@ public class InventaireController {
 
     private final InventaireService inventaireService;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+
     /**
      * Liste paginée des inventaires avec filtres
      */
@@ -54,6 +60,11 @@ public class InventaireController {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+        "MANAGER", "ADMIN", "COMPTABLE")) {
+            return "redirect:/access-denied";
         }
 
         UUID userId = UUID.fromString(session.getAttribute("userId").toString());
@@ -120,6 +131,11 @@ public class InventaireController {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            model.addAttribute("error", "Vous n'avez pas les permissions nécessaires");
+            return "redirect:/stock/inventaires/liste";
         }
 
         UUID userId = UUID.fromString(session.getAttribute("userId").toString());
@@ -396,6 +412,11 @@ public class InventaireController {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+        "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
+
         UUID userId = UUID.fromString(session.getAttribute("userId").toString());
 
         // Récupérer l'inventaire
@@ -450,6 +471,14 @@ public class InventaireController {
 
         try {
             UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
+
+            if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+            "MANAGER", "ADMIN")) {
+            response.put("success", false);
+            response.put("message", "Permission refusée");
+            return response;
+            }
+
             String ligneId = data.get("ligneId");
             Integer quantite = Integer.parseInt(data.get("quantite"));
             boolean estRecomptage = Boolean.parseBoolean(data.get("estRecomptage"));
@@ -543,6 +572,11 @@ public class InventaireController {
 
         try {
             UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
+
+            if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/inventaires/liste";
+            }
 
             LigneInventaire ligne = inventaireService.validerLigne(
                     UUID.fromString(ligneId),
@@ -668,6 +702,13 @@ public class InventaireController {
 
         try {
             UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
+            
+            if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Permission refusée. Seuls les responsables peuvent clôturer un inventaire");
+                return "redirect:/stock/inventaires/details/" + id;
+            }
+
             String userRole = session.getAttribute("userRole") != null ? session.getAttribute("userRole").toString()
                     : "UTILISATEUR";
 
@@ -705,6 +746,13 @@ public class InventaireController {
 
         try {
             UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
+            
+            if (!hasAnyRole(session, "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Permission refusée. Seuls les managers et administrateurs peuvent annuler un inventaire");
+                return "redirect:/stock/inventaires/details/" + id;
+            }
+
             String userRole = session.getAttribute("userRole") != null ? session.getAttribute("userRole").toString()
                     : "UTILISATEUR";
 

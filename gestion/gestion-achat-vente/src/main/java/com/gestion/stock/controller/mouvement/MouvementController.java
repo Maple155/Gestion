@@ -1,9 +1,6 @@
 // MouvementController.java
 package com.gestion.stock.controller.mouvement;
 
-import com.gestion.stock.entity.Article;
-import com.gestion.stock.entity.Lot;
-import com.gestion.stock.entity.MovementType;
 import com.gestion.stock.service.*;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +38,12 @@ public class MouvementController {
     private final DepotService depotService;
     private final LotService lotService;
     private final StockMovementService stockMovementService;
+
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
 
     @GetMapping("/all")
     public String getAll(Model model){
@@ -74,6 +78,11 @@ public String detailMouvement(@PathVariable UUID id, Model model) {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+        "MANAGER", "ADMIN", "COMPTABLE", "DAF")) {
+            return "redirect:/access-denied";
+        }
+    
         UUID typeMouvementUuid = null;
         UUID articleUuid = null;
         UUID depotUuid = null;
@@ -143,6 +152,11 @@ public String detailMouvement(@PathVariable UUID id, Model model) {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+        "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
+    
         List<Article> articles = articleService.getArticlesActifs();
         log.info("=== DEBUG ARTICLES ===");
         log.info("Nombre d'articles: {}", articles.size());
@@ -199,6 +213,11 @@ public String detailMouvement(@PathVariable UUID id, Model model) {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+        "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
         }
 
         // Types de mouvement de sortie
@@ -322,6 +341,12 @@ public String detailMouvement(@PathVariable UUID id, Model model) {
 
         try {
             UUID utilisateurUuid = (UUID) session.getAttribute("userId");
+
+            if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/mouvements/details/" + id;
+            }
+            
             mouvementService.annulerMouvement(UUID.fromString(id), motif, utilisateurUuid);
 
             redirectAttributes.addFlashAttribute("success",

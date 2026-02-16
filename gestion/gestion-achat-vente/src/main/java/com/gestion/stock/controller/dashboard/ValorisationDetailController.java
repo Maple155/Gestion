@@ -31,6 +31,12 @@ public class ValorisationDetailController {
     private final DepotRepository depotRepository;
     private final ArticleRepository articleRepository;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+
     /**
      * Page principale de valorisation détaillée
      */
@@ -40,6 +46,11 @@ public class ValorisationDetailController {
             return "redirect:/login";
         }
 
+            // Seuls COMPTABLE, DAF, MANAGER, ADMIN peuvent voir la valorisation détaillée
+    if (!hasAnyRole(session, "COMPTABLE", "DAF", "MANAGER", "ADMIN", "RESPONSABLE_STOCK")) {
+        return "redirect:/access-denied";
+    }
+    
         try {
             // Charger la liste des dépôts pour les filtres
             List<Depot> depots = depotRepository.findAllByActifTrue();

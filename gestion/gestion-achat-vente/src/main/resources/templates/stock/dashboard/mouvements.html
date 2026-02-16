@@ -41,7 +41,6 @@
 
             <!-- Main Content Area -->
             <main class="p-8">
-                <!-- KPI Mouvements -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <!-- Entrées -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
@@ -49,68 +48,72 @@
                             <div>
                                 <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Entrées</div>
                                 <div class="text-3xl font-bold text-emerald-600" 
-                                     th:text="${stats.totalEntrees}">0</div>
+                                     th:text="${stats != null and stats.totalEntrees != null ? stats.totalEntrees : '0'}">0</div>
                             </div>
                             <i class="bi bi-box-arrow-in-down text-emerald-200 text-3xl"></i>
                         </div>
                         <div class="text-sm text-slate-600">
                             <i class="bi bi-currency-euro mr-1"></i>
-                            <span th:text="${stats.valeurEntrees != null ? #numbers.formatCurrency(stats.valeurEntrees) : 'N/A'}">
+                            <span th:text="${stats != null and stats.valeurEntrees != null ? #numbers.formatCurrency(stats.valeurEntrees) : '0 €'}">
                                 N/A
                             </span>
                         </div>
                     </div>
-
+                
                     <!-- Sorties -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sorties</div>
                                 <div class="text-3xl font-bold text-rose-600" 
-                                     th:text="${stats.totalSorties}">980</div>
+                                     th:text="${stats != null and stats.totalSorties != null ? stats.totalSorties : '0'}">980</div>
                             </div>
                             <i class="bi bi-box-arrow-up text-rose-200 text-3xl"></i>
                         </div>
                         <div class="text-sm text-slate-600">
                             <i class="bi bi-currency-euro mr-1"></i>
-                            <span th:text="${stats.valeurSorties != null ? #numbers.formatCurrency(stats.valeurSorties) : 'N/A'}">
-                                98.000 Ar
+                            <span th:text="${stats != null and stats.valeurSorties != null ? #numbers.formatCurrency(stats.valeurSorties) : '0 €'}">
+                                98.000 €
                             </span>
                         </div>
                     </div>
-
+                
                     <!-- Solde Quantité -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Solde Quantité</div>
                                 <div class="text-3xl font-bold text-blue-600" 
-                                     th:text="${stats.soldeQuantite}">+270</div>
+                                     th:text="${stats != null and stats.soldeQuantite != null ? stats.soldeQuantite : '0'}">+270</div>
                             </div>
                             <i class="bi bi-arrow-left-right text-blue-200 text-3xl"></i>
                         </div>
-                        <div th:class="${stats.soldeValeur != null && stats.soldeValeur >= 0} ? 'text-emerald-600' : 'text-rose-600'" 
+                        <div th:if="${stats != null and stats.soldeValeur != null}" 
+                             th:class="${stats.soldeValeur >= 0} ? 'text-emerald-600' : 'text-rose-600'" 
                              class="text-sm font-bold">
                             <i th:if="${stats.soldeValeur >= 0}" class="bi bi-arrow-up mr-1"></i>
                             <i th:if="${stats.soldeValeur < 0}" class="bi bi-arrow-down mr-1"></i>
-                            <span th:text="${stats.soldeValeur != null ? #numbers.formatCurrency(stats.soldeValeur) : 'N/A'}">
-                                +27.000 Ar
+                            <span th:text="${#numbers.formatCurrency(stats.soldeValeur)}">
+                                +27.000 €
                             </span>
                         </div>
+                        <div th:if="${stats == null or stats.soldeValeur == null}" class="text-sm text-slate-500">
+                            Non disponible
+                        </div>
                     </div>
-
+                
                     <!-- Mouvements/Jour -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div>
                                 <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Mouvements/jour</div>
                                 <div class="text-3xl font-bold text-amber-600" 
-                                     th:text="${stats.moyenneJournaliere}">45</div>
+                                     th:text="${stats != null and stats.moyenneJournaliere != null ? stats.moyenneJournaliere : '0'}">45</div>
                             </div>
                             <i class="bi bi-graph-up text-amber-200 text-3xl"></i>
                         </div>
                         <div class="text-sm text-slate-600">
-                            Pic: <span th:text="${stats.picJournalier}" class="font-bold">78</span> mouvements
+                            Pic: <span th:text="${stats != null and stats.picJournalier != null ? stats.picJournalier : '0'}" class="font-bold">78</span> mouvements
                         </div>
                     </div>
                 </div>
@@ -148,8 +151,9 @@
                         <h5 class="text-lg font-bold text-slate-800 flex items-center">
                             <i class="bi bi-table mr-2"></i> Derniers Mouvements
                             <span class="ml-2 bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded-full" 
-                                  th:text="${mouvements.size()}">50</span>
+                            th:text="${mouvements != null ? mouvements.size() : 0}">50</span>
                         </h5>
+                                
                         <div class="flex space-x-2">
                             <button onclick="filtrerMouvements('all')" 
                                     class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all">
@@ -180,48 +184,52 @@
                                 </tr>
                             </thead>
                             <tbody id="mouvementsTable" class="divide-y divide-slate-100">
-                                <tr th:each="mvt : ${mouvements}" 
-                                    th:data-sens="${mvt.type != null ? mvt.type.sens : ''}"
+                                <tr th:each="mvt : ${mouvements != null ? mouvements : {}}" 
+                                    th:data-sens="${mvt.type != null and mvt.type.sens != null ? mvt.type.sens : ''}"
                                     class="hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4">
-                                        <a th:href="@{'/stock/mouvements/details/' + ${mvt.id}}"
+                                        <a th:if="${mvt.id != null}"
+                                           th:href="@{'/stock/mouvements/details/' + ${mvt.id}}"
                                            class="font-mono text-blue-600 hover:text-blue-800 font-bold" 
-                                           th:text="${mvt.reference}">MVT-2024-000123</a>
+                                           th:text="${mvt.reference != null ? mvt.reference : 'MVT-' + mvt.id}">MVT-2024-000123</a>
+                                        <span th:if="${mvt.id == null}">-</span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span th:text="${mvt.type != null ? mvt.type.libelle : ''}" 
+                                        <span th:text="${mvt.type != null and mvt.type.libelle != null ? mvt.type.libelle : ''}" 
                                               class="font-medium">Réception</span>
                                         <div class="text-xs text-slate-500 mt-1">
-                                              <span th:if="${mvt.bonReception != null}" 
-                                                  th:text="${mvt.bonReception.bonCommande != null ? mvt.bonReception.bonCommande.referenceBc : ''}">BC-2024-001</span>
-                                              <span th:if="${mvt.bonCommande != null}" 
-                                                  th:text="${mvt.bonCommande.referenceBc}">BC-2024-001</span>
+                                            <span th:if="${mvt.bonReception != null and mvt.bonReception.bonCommande != null}" 
+                                                  th:text="${mvt.bonReception.bonCommande.referenceBc != null ? mvt.bonReception.bonCommande.referenceBc : ''}">BC-2024-001</span>
+                                            <span th:if="${mvt.bonCommande != null}" 
+                                                  th:text="${mvt.bonCommande.referenceBc != null ? mvt.bonCommande.referenceBc : ''}">BC-2024-001</span>
                                             <span th:if="${mvt.transfert != null}" 
-                                                  th:text="${mvt.transfert.reference}">TRF-2024-001</span>
+                                                  th:text="${mvt.transfert.reference != null ? mvt.transfert.reference : ''}">TRF-2024-001</span>
                                             <span th:if="${mvt.inventaire != null}" 
-                                                  th:text="${mvt.inventaire.reference}">INV-2024-001</span>
+                                                  th:text="${mvt.inventaire.reference != null ? mvt.inventaire.reference : ''}">INV-2024-001</span>
                                             <span th:if="${mvt.bonReception == null and mvt.bonCommande == null and mvt.transfert == null and mvt.inventaire == null}">-</span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <a th:href="@{'/stock/articles/' + ${mvt.article.id}}"
+                                        <a th:if="${mvt.article != null and mvt.article.id != null}"
+                                           th:href="@{'/stock/articles/' + ${mvt.article.id}}"
                                            class="font-bold text-slate-800 hover:text-blue-600">
-                                            <span th:text="${mvt.article.codeArticle}">ART-001</span>
+                                            <span th:text="${mvt.article.codeArticle != null ? mvt.article.codeArticle : ''}">ART-001</span>
                                         </a>
+                                        <span th:if="${mvt.article == null or mvt.article.id == null}">-</span>
                                         <div class="text-xs text-slate-500 mt-1" 
-                                             th:text="${mvt.article.libelle}">Laptop Pro</div>
-                                        <div th:if="${mvt.lot != null}" 
+                                             th:text="${mvt.article != null and mvt.article.libelle != null ? mvt.article.libelle : ''}">Laptop Pro</div>
+                                        <div th:if="${mvt.lot != null and mvt.lot.numeroLot != null}" 
                                              class="inline-block mt-1 bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10px] font-mono">
                                             <i class="bi bi-tag mr-1"></i>
                                             <span th:text="${mvt.lot.numeroLot}">LOT-001</span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 font-bold" th:text="${mvt.quantite}">100</td>
+                                    <td class="px-6 py-4 font-bold" th:text="${mvt.quantite != null ? mvt.quantite : '0'}">100</td>
                                     <td class="px-6 py-4 font-bold text-slate-800" 
                                         th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : '-'}">
                                         2.500 Ar
                                     </td>
-                                    <td class="px-6 py-4" th:text="${mvt.depot != null ? mvt.depot.code : ''}">DEP-CENTRAL</td>
+                                    <td class="px-6 py-4" th:text="${mvt.depot != null and mvt.depot.code != null ? mvt.depot.code : ''}">DEP-CENTRAL</td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-slate-600" 
                                              th:text="${mvt.dateMouvement != null ? #temporals.format(mvt.dateMouvement, 'dd/MM HH:mm') : ''}">
@@ -230,7 +238,12 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-xs font-mono text-slate-500" 
-                                             th:text="${mvt.utilisateurId}">3333...3333</div>
+                                             th:text="${mvt.utilisateurId != null ? mvt.utilisateurId : ''}">3333...3333</div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${mouvements == null or mouvements.empty}">
+                                    <td colspan="8" class="px-6 py-8 text-center text-slate-500">
+                                        Aucun mouvement trouvé
                                     </td>
                                 </tr>
                             </tbody>
@@ -242,9 +255,9 @@
     </div>
 
     <script th:inline="javascript">
-        // Initialiser les icônes
+        /*<![CDATA[*/
         lucide.createIcons();
-
+    
         // Données pour les graphiques
         const evolutionData = {
             labels: [],
@@ -262,7 +275,7 @@
                 fill: true
             }]
         };
-
+    
         const repartitionData = {
             labels: [],
             datasets: [{
@@ -274,81 +287,79 @@
                 borderWidth: 0
             }]
         };
-
+    
         window.onload = function() {
-            // Initialiser les données de répartition
-            const repartition = JSON.parse('[[${repartitionType}]]');
-            repartitionData.labels = Object.keys(repartition);
-            repartitionData.datasets[0].data = Object.values(repartition);
-
-            // Graphique évolution journalière
-            const ctx1 = document.getElementById('evolutionJournaliereChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'line',
-                data: evolutionData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Nombre de mouvements'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
+            try {
+                // Initialiser les données de répartition
+                const repartitionRaw = '[[${repartitionType}]]';
+                const repartition = JSON.parse(repartitionRaw || '{}');
+                repartitionData.labels = Object.keys(repartition).length > 0 ? Object.keys(repartition) : ['Aucune donnée'];
+                repartitionData.datasets[0].data = Object.keys(repartition).length > 0 ? Object.values(repartition) : [1];
+    
+                // Graphique évolution journalière
+                const ctx1 = document.getElementById('evolutionJournaliereChart');
+                if (ctx1) {
+                    new Chart(ctx1.getContext('2d'), {
+                        type: 'line',
+                        data: evolutionData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(0,0,0,0.05)' },
+                                    title: { display: true, text: 'Nombre de mouvements' }
+                                },
+                                x: { grid: { color: 'rgba(0,0,0,0.05)' } }
                             }
                         }
-                    }
+                    });
                 }
-            });
-
-            // Graphique répartition
-            const ctx2 = document.getElementById('repartitionTypeChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'doughnut',
-                data: repartitionData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                font: {
-                                    size: 10
+    
+                // Graphique répartition
+                const ctx2 = document.getElementById('repartitionTypeChart');
+                if (ctx2) {
+                    new Chart(ctx2.getContext('2d'), {
+                        type: 'doughnut',
+                        data: repartitionData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 20, font: { size: 10 } }
                                 }
                             }
                         }
-                    }
+                    });
                 }
-            });
-
-            // Charger les données journalières
-            chargerDonneesJournalieres();
+    
+                // Charger les données journalières
+                chargerDonneesJournalieres();
+            } catch (error) {
+                console.error('Erreur initialisation graphiques:', error);
+            }
         };
-
+    
         function chargerDonneesJournalieres() {
-            fetch('/main/dashboard/api/mouvements/journalier?jours=' + [[${jours}]])
+            fetch('/main/dashboard/api/mouvements/journalier?jours=' + [[${jours != null ? jours : 30}]])
                 .then(response => response.json())
                 .then(data => {
-                    evolutionData.labels = data.labels;
-                    evolutionData.datasets[0].data = data.entrees;
-                    evolutionData.datasets[1].data = data.sorties;
-                    
-                    // Mettre à jour le graphique
-                    Chart.getChart('evolutionJournaliereChart').update();
+                    if (data) {
+                        evolutionData.labels = data.labels || [];
+                        evolutionData.datasets[0].data = data.entrees || [];
+                        evolutionData.datasets[1].data = data.sorties || [];
+                        
+                        // Mettre à jour le graphique
+                        const chart = Chart.getChart('evolutionJournaliereChart');
+                        if (chart) chart.update();
+                    }
                 })
                 .catch(error => console.error('Erreur chargement données:', error));
         }
-
+    
         function filtrerMouvements(sens) {
             const rows = document.querySelectorAll('#mouvementsTable tr');
             rows.forEach(row => {
@@ -359,6 +370,7 @@
                 }
             });
         }
+        /*]]>*/
     </script>
 </body>
 </html>

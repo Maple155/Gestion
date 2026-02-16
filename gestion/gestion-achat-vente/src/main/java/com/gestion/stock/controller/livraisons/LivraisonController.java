@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,12 @@ public class LivraisonController {
     private final ReservationStockRepository reservationStockRepository;
     private final DepotRepository depotRepository;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+    
     @GetMapping("/liste")
     public String listeLivraisons(Model model,
             HttpSession session,
@@ -49,6 +56,11 @@ public class LivraisonController {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+        "MANAGER", "ADMIN")) {
+        return "redirect:/access-denied";
         }
 
         LocalDate debut = dateDebut != null ? LocalDate.parse(dateDebut) : LocalDate.now().minusDays(30);
@@ -86,6 +98,11 @@ public class LivraisonController {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+        "MANAGER", "ADMIN")) {
+        return "redirect:/access-denied";
         }
 
         // Obtenir les réservations actives
@@ -231,6 +248,11 @@ public class LivraisonController {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+        "MANAGER", "ADMIN")) {
+        return "redirect:/access-denied";
+        }
+        
         try {
             // Récupérer les réservations à préparer
             List<ReservationStock> reservations = reservationStockRepository.findByStatut(

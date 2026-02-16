@@ -45,6 +45,12 @@ public class ArticleController {
     private final StockMovementRepository stockMovementRepository;
     private final ArticleRepository articleRepository;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+
     /**
      * Liste des articles avec recherche et filtres
      */
@@ -64,6 +70,10 @@ public class ArticleController {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+        "MANAGER", "ADMIN", "COMPTABLE", "DAF")) {
+            return "redirect:/access-denied";
+        }
         // Configurer la pagination
         Sort.Direction direction = "desc".equalsIgnoreCase(ordre) ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, tri));
@@ -175,6 +185,11 @@ public class ArticleController {
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
+        if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            redirectAttributes.addFlashAttribute("error", "Permission refusée");
+            return "redirect:/stock/articles/liste";
+        }
+
         try {
             articleService.toggleActifArticle(UUID.fromString(id));
             redirectAttributes.addFlashAttribute("success",
@@ -224,6 +239,10 @@ public class ArticleController {
     public String formulaireNouvelArticle(Model model, HttpSession session) {
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
         }
 
         try {
@@ -325,6 +344,11 @@ public class ArticleController {
         UUID utilisateurId = (UUID) session.getAttribute("userId");
         if (utilisateurId == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            redirectAttributes.addFlashAttribute("error", "Permission refusée");
+            return "redirect:/stock/articles/liste";
         }
 
         try {
