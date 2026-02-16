@@ -28,6 +28,12 @@ public class TransfertController {
     private final ArticleService articleService;
     private final LotService lotService;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+
     @GetMapping("/all")
     public String getAll(Model model){
         model.addAttribute("transferts", transfertService.getAll());
@@ -66,6 +72,11 @@ public class TransfertController {
             return "redirect:/login";
         }
 
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+        "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
+        }
+    
         UUID depotSourceUuid = null;
         UUID depotDestinationUuid = null;
         
@@ -155,6 +166,10 @@ public class TransfertController {
 
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+            return "redirect:/access-denied";
         }
 
         // Liste des dépôts actifs
@@ -269,6 +284,12 @@ public class TransfertController {
 
         try {
             UUID utilisateurId = (UUID) session.getAttribute("userId");
+
+            if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/transferts/details/" + id;
+            }
+
             Transfert transfert = transfertService.validerTransfert(
                     UUID.fromString(id), utilisateurId);
 
@@ -294,6 +315,13 @@ public class TransfertController {
 
         try {
             UUID utilisateurId = (UUID) session.getAttribute("userId");
+
+            if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+            "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/transferts/details/" + id;
+            }
+        
             Transfert transfert = transfertService.expedierTransfert(
                     UUID.fromString(id), utilisateurId);
 
@@ -319,6 +347,13 @@ public class TransfertController {
 
         try {
             UUID utilisateurId = (UUID) session.getAttribute("userId");
+
+            if (!hasAnyRole(session, "MAGASINIER", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", 
+            "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/transferts/details/" + id;
+            }
+
             Transfert transfert = transfertService.receptionnerTransfert(
                     UUID.fromString(id), utilisateurId);
 
@@ -408,6 +443,12 @@ public class TransfertController {
 
         try {
             UUID utilisateurId = (UUID) session.getAttribute("userId");
+
+            if (!hasAnyRole(session, "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                redirectAttributes.addFlashAttribute("error", "Permission refusée");
+                return "redirect:/stock/transferts/details/" + id;
+            }
+            
             Transfert transfert = transfertService.annulerTransfert(
                     UUID.fromString(id), motifAnnulation, utilisateurId);
 
