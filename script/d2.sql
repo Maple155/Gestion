@@ -4,12 +4,12 @@
 -- Note: Si problèmes d'encodage, exécutez: SET client_encoding = 'UTF8';
 
 -- 1. Table des utilisateurs
-INSERT INTO utilisateurs (id, username, email, password, nom, prenom, role, telephone, poste, service) VALUES
-('11111111-1111-1111-1111-111111111111', 'admin', 'admin@entreprise.com', 'admin', 'Dupont', 'Jean', 'ADMIN', '+33 1 23 45 67 89', 'Administrateur systeme', 'IT'),
-('22222222-2222-2222-2222-222222222222', 'manager', 'manager@entreprise.com', 'manager', 'Martin', 'Sophie', 'MANAGER', '+33 1 23 45 67 90', 'Responsable logistique', 'Logistique'),
-('33333333-3333-3333-3333-333333333333', 'stock1', 'stock1@entreprise.com', 'stock1', 'Dubois', 'Pierre', 'RESPONSABLE_STOCK', '+33 1 23 45 67 91', 'Responsable stock', 'Logistique'),
-('44444444-4444-4444-4444-444444444444', 'stock2', 'stock2@entreprise.com', 'stock2', 'Leroy', 'Marie', 'RESPONSABLE_STOCK', '+33 1 23 45 67 92', 'Magasinier', 'Logistique'),
-('55555555-5555-5555-5555-555555555555', 'compta', 'compta@entreprise.com', 'compta', 'Moreau', 'Thomas', 'COMPTABLE', '+33 1 23 45 67 93', 'Comptable', 'Finance');
+INSERT INTO utilisateurs (username, email, password, nom, prenom, role, telephone, poste, service) VALUES
+-- ( 'admin', 'admin@entreprise.com', 'admin', 'Dupont', 'Jean', 'ADMIN', '+33 1 23 45 67 89', 'Administrateur systeme', 'IT'),
+( 'manager', 'manager@entreprise.com', 'manager', 'Martin', 'Sophie', 'MANAGER', '+33 1 23 45 67 90', 'Responsable logistique', 'Logistique'),
+( 'stock1', 'stock1@entreprise.com', 'stock1', 'Dubois', 'Pierre', 'RESPONSABLE_STOCK', '+33 1 23 45 67 91', 'Responsable stock', 'Logistique'),
+( 'stock2', 'stock2@entreprise.com', 'stock2', 'Leroy', 'Marie', 'RESPONSABLE_STOCK', '+33 1 23 45 67 92', 'Magasinier', 'Logistique'),
+( 'compta', 'compta@entreprise.com', 'compta', 'Moreau', 'Thomas', 'COMPTABLE', '+33 1 23 45 67 93', 'Comptable', 'Finance');
 
 -- 2. Table des categories d'articles
 INSERT INTO categories_articles (id, code, libelle, description, methode_valorisation) VALUES

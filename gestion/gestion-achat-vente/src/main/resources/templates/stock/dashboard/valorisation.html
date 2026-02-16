@@ -520,7 +520,7 @@
         function formatMonetaire(valeur) {
             return new Intl.NumberFormat("fr-FR", {
                 style: "currency",
-                currency: "EUR",
+                currency: "MGA",
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(valeur);
@@ -914,7 +914,7 @@ function mettreAJourHistoriqueChart(data) {
     if (typeChartActuel === 'cout') {
         labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
         datasets = [{
-            label: 'Coût Unitaire Moyen (€)',
+            label: 'Coût Unitaire Moyen (Ar)',
             data: data.map(item => item.coutMoyen || 0), // Déjà correct
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -924,7 +924,7 @@ function mettreAJourHistoriqueChart(data) {
     } else if (typeChartActuel === 'valeur') {
         labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
         datasets = [{
-            label: 'Valeur Stock Totale (€)',
+            label: 'Valeur Stock Totale (Ar)',
             data: data.map(item => item.valeurTotale || 0), // Correction ici
             borderColor: '#10b981',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -963,7 +963,7 @@ function mettreAJourHistoriqueChart(data) {
                             if (typeChartActuel === 'cout' || typeChartActuel === 'valeur') {
                                 return new Intl.NumberFormat("fr-FR", {
                                     style: "currency",
-                                    currency: "EUR",
+                                    currency: "MGA",
                                     notation: "compact",
                                 }).format(value);
                             }
@@ -1095,7 +1095,7 @@ function mettreAJourHistoriqueChart(data) {
                         const formatMonetaire = (valeur) => {
                             return new Intl.NumberFormat("fr-FR", {
                                 style: "currency",
-                                currency: "EUR",
+                                currency: "MGA",
                                 minimumFractionDigits: 2,
                             }).format(valeur);
                         };

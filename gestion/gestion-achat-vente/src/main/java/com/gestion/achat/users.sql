@@ -35,4 +35,4 @@ VALUES
 
 INSERT INTO utilisateurs (id, username, email, password, nom, prenom, role, service, poste, actif)
 VALUES 
-(gen_random_uuid(), 'Randy', 'randy@finance.com', 'huhu', 'Robinson', 'Randy', 'FINANCE', 'finance', 'Administrateur financier', TRUE);
+(gen_random_uuid(), 'finance', 'randy@finance.com', 'finance', 'Robinson', 'Randy', 'FINANCE', 'finance', 'Administrateur financier', TRUE);

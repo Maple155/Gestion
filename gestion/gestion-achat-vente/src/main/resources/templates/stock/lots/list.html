@@ -525,13 +525,13 @@
                   <td>
                     <span
                       class="fw-semibold"
-                      th:text="${#numbers.formatDecimal(lot.coutUnitaire, 0, 'COMMA', 2, 'POINT')} + ' €'"
+                      th:text="${#numbers.formatDecimal(lot.coutUnitaire, 0, 'COMMA', 2, 'POINT')} + ' Ar'"
                     >
                     </span>
                     <br />
                     <small class="text-muted">
                       [[${#numbers.formatDecimal(lot.coutUnitaire *
-                      lot.quantiteActuelle, 0, 'COMMA', 2, 'POINT')}]] €
+                      lot.quantiteActuelle, 0, 'COMMA', 2, 'POINT')}]] Ar
                     </small>
                   </td>
 

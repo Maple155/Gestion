@@ -222,7 +222,7 @@
                     >
                       [[${inventaire.valeurEcartTotal != null ?
                       #numbers.formatDecimal(inventaire.valeurEcartTotal, 1, 2)
-                      : '0,00'}]] €
+                      : '0,00'}]] Ar
                     </div>
                   </div>
                 </div>
@@ -509,13 +509,13 @@
                         <span
                           th:if="${ligne.ecartValeur != null and ligne.ecartValeur != 0}"
                           th:class="${ligne.ecartValeur > 0} ? 'text-success' : 'text-danger'"
-                          th:text="${#numbers.formatDecimal(ligne.ecartValeur, 1, 2) + ' €'}"
+                          th:text="${#numbers.formatDecimal(ligne.ecartValeur, 1, 2) + ' Ar'}"
                         >
                         </span>
                         <span
                           th:if="${ligne.ecartValeur == null or ligne.ecartValeur == 0}"
                           class="text-muted"
-                          >0 €</span
+                          >0 Ar</span
                         >
                       </td>
                       <td>
@@ -691,7 +691,7 @@
                       <td class="text-end">
                         <span
                           th:class="${ajustement.valeurAjustement > 0} ? 'text-success' : 'text-danger'"
-                          th:text="${#numbers.formatDecimal(ajustement.valeurAjustement, 1, 2) + ' €'}"
+                          th:text="${#numbers.formatDecimal(ajustement.valeurAjustement, 1, 2) + ' Ar'}"
                         >
                         </span>
                       </td>
@@ -728,14 +728,14 @@
                           <td>Valeur théorique totale :</td>
                           <td class="text-end fw-bold">
                             [[${#numbers.formatDecimal(valeurTotaleTheorique, 1,
-                            2)}]] €
+                            2)}]] Ar
                           </td>
                         </tr>
                         <tr>
                           <td>Valeur comptée totale :</td>
                           <td class="text-end fw-bold">
                             [[${#numbers.formatDecimal(valeurTotaleComptee, 1,
-                            2)}]] €
+                            2)}]] Ar
                           </td>
                         </tr>
                         <tr>
@@ -744,7 +744,7 @@
                             th:class="${valeurTotaleEcart != null and valeurTotaleEcart > 0} ? 'text-danger text-end fw-bold' : 'text-success text-end fw-bold'"
                           >
                             [[${#numbers.formatDecimal(valeurTotaleEcart, 1,
-                            2)}]] €
+                            2)}]] Ar
                           </td>
                         </tr>
                         <tr>

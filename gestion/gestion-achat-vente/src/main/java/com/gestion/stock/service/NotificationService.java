@@ -186,7 +186,7 @@ public class NotificationService {
                 }
             }
             
-            message.append("\nValeur totale: ").append(valeurTotale).append(" €");
+            message.append("\nValeur totale: ").append(valeurTotale).append(" Ar");
             
             envoyerNotification(NotificationType.STOCK_OBSOLETE, message.toString(), 
                               responsables, Map.of("stocks", stocksObsolètes, "valeur", valeurTotale));

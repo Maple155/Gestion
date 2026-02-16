@@ -118,7 +118,7 @@ ON CONFLICT (code_article) DO NOTHING;
 -- Dépôt: DEP-CENTRAL (dddddddd-0001-0001-0001-000000000001)
 -- Emplacement: B-01-01-01 qui est dans Zone-B qui est dans DEP-CENTRAL
 
--- LOT 1 : 100 unités à 10€ (le plus ancien - sera utilisé en premier en FIFO)
+-- LOT 1 : 100 unités à 10Ar (le plus ancien - sera utilisé en premier en FIFO)
 INSERT INTO lots (id, numero_lot, article_id, quantite_initiale, quantite_actuelle, 
                   date_fabrication, date_reception, cout_unitaire, statut, emplacement_id) VALUES
 ('20000000-0001-0001-0001-000000000001', 'LOT-FIFO-001-A', 
@@ -131,7 +131,7 @@ ON CONFLICT (numero_lot, article_id) DO UPDATE SET
     statut = EXCLUDED.statut,
     emplacement_id = EXCLUDED.emplacement_id;
 
--- LOT 2 : 80 unités à 12€ (intermédiaire)
+-- LOT 2 : 80 unités à 12Ar (intermédiaire)
 INSERT INTO lots (id, numero_lot, article_id, quantite_initiale, quantite_actuelle, 
                   date_fabrication, date_reception, cout_unitaire, statut, emplacement_id) VALUES
 ('20000000-0001-0001-0001-000000000002', 'LOT-FIFO-001-B', 
@@ -144,7 +144,7 @@ ON CONFLICT (numero_lot, article_id) DO UPDATE SET
     statut = EXCLUDED.statut,
     emplacement_id = EXCLUDED.emplacement_id;
 
--- LOT 3 : 50 unités à 15€ (le plus récent)
+-- LOT 3 : 50 unités à 15Ar (le plus récent)
 INSERT INTO lots (id, numero_lot, article_id, quantite_initiale, quantite_actuelle, 
                   date_fabrication, date_reception, cout_unitaire, statut, emplacement_id) VALUES
 ('20000000-0001-0001-0001-000000000003', 'LOT-FIFO-001-C', 
@@ -158,7 +158,7 @@ ON CONFLICT (numero_lot, article_id) DO UPDATE SET
     emplacement_id = EXCLUDED.emplacement_id;
 
 -- === LOTS POUR ARTICLE CUMP (ART-CUMP-001) ===
--- LOT 1 : 200 unités à 2€
+-- LOT 1 : 200 unités à 2Ar
 INSERT INTO lots (id, numero_lot, article_id, quantite_initiale, quantite_actuelle, 
                   date_fabrication, date_reception, cout_unitaire, statut, emplacement_id) VALUES
 ('20000000-0001-0001-0001-000000000004', 'LOT-CUMP-001-A', 
@@ -171,7 +171,7 @@ ON CONFLICT (numero_lot, article_id) DO UPDATE SET
     statut = EXCLUDED.statut,
     emplacement_id = EXCLUDED.emplacement_id;
 
--- LOT 2 : 100 unités à 2.50€
+-- LOT 2 : 100 unités à 2.50Ar
 INSERT INTO lots (id, numero_lot, article_id, quantite_initiale, quantite_actuelle, 
                   date_fabrication, date_reception, cout_unitaire, statut, emplacement_id) VALUES
 ('20000000-0001-0001-0001-000000000005', 'LOT-CUMP-001-B', 
@@ -233,7 +233,7 @@ ON CONFLICT (numero_lot, article_id) DO UPDATE SET
 
 -- Stock FIFO article dans dépôt central
 -- Total: 100 + 80 + 50 = 230 unités
--- Valeur CUMP: (100*10 + 80*12 + 50*15) / 230 = (1000+960+750)/230 = 2710/230 = 11.78€
+-- Valeur CUMP: (100*10 + 80*12 + 50*15) / 230 = (1000+960+750)/230 = 2710/230 = 11.78Ar
 INSERT INTO stocks (id, article_id, depot_id, quantite_physique, quantite_theorique, 
                     quantite_reservee, valeur_stock_cump, date_dernier_mouvement) VALUES
 ('30000000-0001-0001-0001-000000000001', 
@@ -248,7 +248,7 @@ ON CONFLICT (article_id, depot_id) DO UPDATE SET
 
 -- Stock CUMP article dans dépôt central
 -- Total: 200 + 100 = 300 unités
--- Valeur CUMP: (200*2 + 100*2.5) / 300 = (400+250)/300 = 650/300 = 2.17€
+-- Valeur CUMP: (200*2 + 100*2.5) / 300 = (400+250)/300 = 650/300 = 2.17Ar
 INSERT INTO stocks (id, article_id, depot_id, quantite_physique, quantite_theorique, 
                     quantite_reservee, valeur_stock_cump, date_dernier_mouvement) VALUES
 ('30000000-0001-0001-0001-000000000002', 
@@ -263,7 +263,7 @@ ON CONFLICT (article_id, depot_id) DO UPDATE SET
 
 -- Stock FEFO article dans dépôt frais
 -- Total: 150 + 100 + 80 = 330 unités
--- Valeur: (150*1.5 + 100*1.6 + 80*1.7) = 225+160+136 = 521€
+-- Valeur: (150*1.5 + 100*1.6 + 80*1.7) = 225+160+136 = 521Ar
 INSERT INTO stocks (id, article_id, depot_id, quantite_physique, quantite_theorique, 
                     quantite_reservee, valeur_stock_cump, date_dernier_mouvement) VALUES
 ('30000000-0001-0001-0001-000000000003', 

@@ -223,11 +223,11 @@
                                         <td>
                                             <span th:if="${inv.valeurEcartTotal != null and inv.valeurEcartTotal > 0}" 
                                                   class="text-danger fw-bold">
-                                                [[${#numbers.formatDecimal(inv.valeurEcartTotal, 1, 2)}]] €
+                                                [[${#numbers.formatDecimal(inv.valeurEcartTotal, 1, 2)}]] Ar
                                             </span>
                                             <span th:if="${inv.valeurEcartTotal == null or inv.valeurEcartTotal == 0}" 
                                                   class="text-success">
-                                                0 €
+                                                0 Ar
                                             </span>
                                         </td>
                                         <td>

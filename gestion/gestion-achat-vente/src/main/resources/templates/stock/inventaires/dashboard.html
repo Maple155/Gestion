@@ -216,8 +216,8 @@
                         <div class="kpi-card bg-warning bg-opacity-10">
                             <div class="kpi-value text-warning" 
                                  th:text="${statsGlobales != null && statsGlobales['valeurEcartMois'] != null ? 
-                                   (statsGlobales['valeurEcartMois'] + ' €') : '0 €'}">
-                                0 €
+                                   (statsGlobales['valeurEcartMois'] + ' Ar') : '0 Ar'}">
+                                0 Ar
                             </div>
                             <div class="kpi-label">Écart total</div>
                             <div class="mt-2">
@@ -303,7 +303,7 @@
                                                     <td class="text-end">
                                                         <span th:class="${ecart['valeurEcart'] != null and ecart['valeurEcart'] > 0} ? 'text-success' : 'text-danger'"
                                                               th:text="${ecart['valeurEcart'] != null ? 
-                                                                #numbers.formatDecimal(ecart['valeurEcart'], 1, 2) + ' €' : '0,00 €'}">
+                                                                #numbers.formatDecimal(ecart['valeurEcart'], 1, 2) + ' Ar' : '0,00 Ar'}">
                                                         </span>
                                                     </td>
                                                     <td>

@@ -185,7 +185,7 @@ public class ClotureService {
 
             final ClotureMensuelle clotureFinalisee = clotureRepository.save(cloture);
 
-            log.info("Clôture {} terminée avec succès. Valeur totale: {} €",
+            log.info("Clôture {} terminée avec succès. Valeur totale: {} Ar",
                     cloture.getPeriodeFormat(), valeurTotaleStock);
 
             // 8. Générer les rapports (asynchrone)
@@ -289,7 +289,7 @@ public class ClotureService {
                     BigDecimal pourcentageEcart = ecart.divide(valeurPrecedente, 4, RoundingMode.HALF_UP)
                             .multiply(BigDecimal.valueOf(100));
 
-                    log.info("Écart de valorisation: {} € ({}%) entre {} et {}",
+                    log.info("Écart de valorisation: {} Ar ({}%) entre {} et {}",
                             ecart, pourcentageEcart, previous.getPeriodeFormat(),
                             dateCloture.format(FORMATTER_MOIS));
 

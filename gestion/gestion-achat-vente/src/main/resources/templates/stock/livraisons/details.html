@@ -160,11 +160,11 @@
                                                 <tbody>
                                                     <tr>
                                                         <td th:text="${#numbers.formatDecimal(livraison.coutUnitaire, 0, 'COMMA', 2, 'POINT')}">
-                                                            25,50 €
+                                                            25,50 Ar
                                                         </td>
                                                         <td th:text="${livraison.quantite}">100</td>
                                                         <td th:text="${#numbers.formatDecimal(livraison.valeurMouvement, 0, 'COMMA', 2, 'POINT')}">
-                                                            2.550,00 €
+                                                            2.550,00 Ar
                                                         </td>
                                                         <td>
                                                             <span th:text="${livraison.article.methodeValorisation}">CUMP</span>
@@ -233,7 +233,7 @@
                                         </p>
                                         <p><span class="info-label">Coût unitaire lot:</span> 
                                             <span th:text="${#numbers.formatDecimal(livraison.lot.coutUnitaire, 0, 'COMMA', 2, 'POINT')}">
-                                                25,50 €
+                                                25,50 Ar
                                             </span>
                                         </p>
                                         <p th:if="${livraison.lot.emplacement}">

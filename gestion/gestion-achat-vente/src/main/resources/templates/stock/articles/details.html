@@ -108,7 +108,7 @@
                 <div class="stat-card">
                     <div class="stat-value" 
                          th:text="${details.valeurStock != null ? #numbers.formatCurrency(details.valeurStock) : 'N/A'}">
-                        2.500 €
+                        2.500 Ar
                     </div>
                     <div class="stat-label">Valeur stock</div>
                     <small class="text-muted" th:text="${article.methodeValorisation}">FEFO</small>
@@ -226,13 +226,13 @@
                                 <dt class="col-sm-4">Coût standard</dt>
                                 <dd class="col-sm-8" 
                                     th:text="${article.coutStandard != null ? #numbers.formatCurrency(article.coutStandard) : 'Non défini'}">
-                                    1.20 €
+                                    1.20 Ar
                                 </dd>
                                 
                                 <dt class="col-sm-4">Prix vente HT</dt>
                                 <dd class="col-sm-8" 
                                     th:text="${article.prixVenteHt != null ? #numbers.formatCurrency(article.prixVenteHt) : 'Non défini'}">
-                                    1.80 €
+                                    1.80 Ar
                                 </dd>
                                 
                                 <dt class="col-sm-4">TVA</dt>
@@ -383,10 +383,10 @@
                                     </div>
                                 </td>
                                 <td th:text="${stock.coutUnitaireMoyen != null ? #numbers.formatCurrency(stock.coutUnitaireMoyen) : 'N/A'}">
-                                    1.15 €
+                                    1.15 Ar
                                 </td>
                                 <td th:text="${stock.valeurStockCump != null ? #numbers.formatCurrency(stock.valeurStockCump) : 'N/A'}">
-                                    230.00 €
+                                    230.00 Ar
                                 </td>
                                 <td>
                                     <small th:if="${stock.dateDernierMouvement}"
@@ -495,7 +495,7 @@
                                     </span>
                                 </td>
                                 <td th:text="${lot.coutUnitaire != null ? #numbers.formatCurrency(lot.coutUnitaire) : 'N/A'}">
-                                    1.15 €
+                                    1.15 Ar
                                 </td>
                                 <td>
                                     <span th:class="'badge lot-status-' + ${lot.statut ?: 'INCONNU'}"
@@ -592,7 +592,7 @@
                                     <br>
                                     <small class="text-muted">
                                         Quantité: <span th:text="${mvt.quantite ?: 0}">100</span> | 
-                                        Valeur: <span th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : 'N/A'}">115.00 €</span>
+                                        Valeur: <span th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : 'N/A'}">115.00 Ar</span>
                                         <br>
                                         Dépôt: <span th:text="${mvt.depot?.nom ?: 'N/A'}">Entrepôt Central</span>
                                         <span th:if="${mvt.lot != null}" class="ms-2">

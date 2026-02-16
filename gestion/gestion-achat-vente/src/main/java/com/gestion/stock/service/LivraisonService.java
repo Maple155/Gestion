@@ -117,14 +117,14 @@ public class LivraisonService {
         reservation.setStatut(ReservationStock.ReservationStatus.PRELEVEE);
         reservationStockRepository.save(reservation);
 
-        stockRepository.decrementerQuantiteTheorique(
-                reservation.getArticle().getId(),
-                reservation.getDepot().getId(),
-                quantiteALivrer);
-        stockRepository.decrementerQuantiteReservee(
-                reservation.getArticle().getId(),
-                reservation.getDepot().getId(),
-                quantiteALivrer);
+        // stockRepository.decrementerQuantiteTheorique(
+        //         reservation.getArticle().getId(),
+        //         reservation.getDepot().getId(),
+        //         quantiteALivrer);
+        // stockRepository.decrementerQuantiteReservee(
+        //         reservation.getArticle().getId(),
+        //         reservation.getDepot().getId(),
+        //         quantiteALivrer);
 
         // Mettre à jour la quantité du lot
         if (lot != null) {

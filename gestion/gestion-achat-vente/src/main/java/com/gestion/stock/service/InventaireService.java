@@ -511,7 +511,7 @@ public class InventaireService {
         if (ligne.getEcartValeur() == null) {
             return false;
         }
-        // Double validation si écart > 5000€
+        // Double validation si écart > 5000Ar
         return ligne.getEcartValeur().abs().compareTo(new BigDecimal("5000")) > 0;
     }
 

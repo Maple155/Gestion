@@ -500,7 +500,7 @@ public class InventaireController {
                 BigDecimal valeurEcart = ligne.getEcartValeur() != null ? ligne.getEcartValeur().abs()
                         : BigDecimal.ZERO;
 
-                // Règle métier : si écart > 10% ou valeur > 1000€ → recomptage
+                // Règle métier : si écart > 10% ou valeur > 1000Ar → recomptage
                 if (Math.abs(ligne.getEcart()) > ligne.getQuantiteTheorique() * 0.1 ||
                         valeurEcart.compareTo(new BigDecimal("1000")) > 0) {
                     necessiteRecomptage = true;
@@ -672,7 +672,7 @@ public class InventaireController {
             UUID inventaireId = inventaireService.getInventaireIdByLigneId(UUID.fromString(ligneId));
 
             redirectAttributes.addFlashAttribute("success",
-                    "Ajustement créé (valeur: " + ajustement.getValeurAjustement() + " €)");
+                    "Ajustement créé (valeur: " + ajustement.getValeurAjustement() + " Ar)");
 
             return "redirect:/stock/inventaires/details/" + inventaireId;
 

@@ -254,7 +254,7 @@
                                     <div class="h3 text-primary">
                                         <span th:text="${mouvement['coutUnitaire'] != null ? #numbers.formatDecimal(mouvement['coutUnitaire'], 0, 4) : '0.0000'}"></span>
                                     </div>
-                                    <small class="text-muted">€ / unité</small>
+                                    <small class="text-muted">Ar / unité</small>
                                 </div>
                             </div>
                             
@@ -262,7 +262,7 @@
                                 <div class="text-center p-3 border rounded bg-light">
                                     <div class="text-muted mb-1">Valeur totale</div>
                                     <div class="h3 text-dark">
-                                        <span th:text="${mouvement['valeurMouvement'] != null ? #numbers.formatDecimal(mouvement['valeurMouvement'], 0, 2) : '0.00'}"></span> €
+                                        <span th:text="${mouvement['valeurMouvement'] != null ? #numbers.formatDecimal(mouvement['valeurMouvement'], 0, 2) : '0.00'}"></span> Ar
                                     </div>
                                     <small class="text-muted">Montant HT</small>
                                 </div>

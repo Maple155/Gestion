@@ -163,7 +163,7 @@
                                     <tfoot>
                                         <tr>
                                             <td colspan="6" class="text-end"><strong>Total général :</strong></td>
-                                            <td id="total-general" class="text-end">0.00 €</td>
+                                            <td id="total-general" class="text-end">0.00 Ar</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
@@ -353,7 +353,7 @@
                 body.innerHTML = '';
                 noLignes.style.display = 'block';
                 count.textContent = '0';
-                totalGeneral.textContent = '0.00 €';
+                totalGeneral.textContent = '0.00 Ar';
                 return;
             }
             
@@ -392,8 +392,8 @@
                                    style="width: 80px;">
                         </td>
                         <td>${ligne.uniteMesure}</td>
-                        <td class="text-end">${ligne.coutUnitaire.toFixed(2)} €</td>
-                        <td class="text-end">${ligneTotal.toFixed(2)} €</td>
+                        <td class="text-end">${ligne.coutUnitaire.toFixed(2)} Ar</td>
+                        <td class="text-end">${ligneTotal.toFixed(2)} Ar</td>
                         <td>
                             <button type="button" class="btn btn-sm btn-outline-danger" 
                                     onclick="removeLigne(${index})">
@@ -405,7 +405,7 @@
             });
             
             body.innerHTML = html;
-            totalGeneral.textContent = total.toFixed(2) + ' €';
+            totalGeneral.textContent = total.toFixed(2) + ' Ar';
         }
         
         // Mettre à jour la quantité d'une ligne
@@ -494,7 +494,7 @@
                                         <small>Quantité: ${lot.quantiteActuelle} unités</small>
                                     </div>
                                     <div class="text-end">
-                                        <div>${lot.coutUnitaire.toFixed(2)} €</div>
+                                        <div>${lot.coutUnitaire.toFixed(2)} Ar</div>
                                         <small class="text-muted">${lot.statut}</small>
                                     </div>
                                 </div>
