@@ -94,14 +94,6 @@
             Série: <span th:text="${serie.numeroSerie}"></span>
           </h1>
         </div>
-        <div class="btn-group">
-          <a
-            th:href="@{/lots/series/{id}/modifier(id=${serie.id})}"
-            class="btn btn-outline-primary"
-          >
-            <i class="bi bi-pencil"></i> Modifier
-          </a>
-        </div>
       </div>
 
       <!-- Messages flash -->
@@ -345,113 +337,6 @@
               <div class="qr-code-container mb-3">
                 <!-- QR Code généré via JavaScript -->
                 <div id="qrcode"></div>
-              </div>
-              <div class="btn-group w-100">
-                <button
-                  class="btn btn-outline-primary"
-                  onclick="imprimerEtiquette()"
-                >
-                  <i class="bi bi-printer"></i> Imprimer l'étiquette
-                </button>
-                <button
-                  class="btn btn-outline-info"
-                  onclick="telechargerQRCode()"
-                >
-                  <i class="bi bi-download"></i> Télécharger QR Code
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Actions rapides -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">
-                <i class="bi bi-lightning-charge"></i> Actions
-              </h5>
-            </div>
-            <div class="card-body">
-              <div class="d-grid gap-2">
-                <!-- Changer de statut -->
-                <div class="dropdown">
-                  <button
-                    class="btn btn-outline-secondary w-100 dropdown-toggle"
-                    type="button"
-                    data-bs-toggle="dropdown"
-                  >
-                    <i class="bi bi-arrow-repeat"></i> Changer le statut
-                  </button>
-                  <ul class="dropdown-menu w-100">
-                    <li th:each="statut : ${statutsSerie}">
-                      <form
-                        th:action="@{/lots/series/{id}/changer-statut(id=${serie.id})}"
-                        method="post"
-                        class="dropdown-item p-0"
-                      >
-                        <input
-                          type="hidden"
-                          name="nouveauStatut"
-                          th:value="${statut}"
-                        />
-                        <button
-                          type="submit"
-                          class="btn btn-link text-decoration-none w-100 text-start px-3 py-2"
-                          th:classappend="${serie.statut == statut} ? 'disabled text-muted' : ''"
-                        >
-                          <span th:text="${statut}"></span>
-                        </button>
-                      </form>
-                    </li>
-                  </ul>
-                </div>
-
-                <!-- Transférer -->
-                <!-- <a
-                  th:href="@{/lots/{id}/transferer(id=${serie.id})}"
-                  class="btn btn-outline-primary"
-                >
-                  <i class="bi bi-arrow-left-right"></i> Transférer
-                  l'emplacement
-                </a> -->
-
-                <!-- Vendre -->
-                <button
-                  th:if="${serie.statut == 'EN_STOCK'}"
-                  class="btn btn-outline-success"
-                  data-bs-toggle="modal"
-                  data-bs-target="#vendreModal"
-                >
-                  <i class="bi bi-cart-check"></i> Marquer comme vendu
-                </button>
-
-                <!-- Retour -->
-                <button
-                  th:if="${serie.statut == 'VENDU'}"
-                  class="btn btn-outline-warning"
-                  data-bs-toggle="modal"
-                  data-bs-target="#retourModal"
-                >
-                  <i class="bi bi-arrow-counterclockwise"></i> Retour client
-                </button>
-
-                <!-- SAV -->
-                <button
-                  th:if="${serie.statut == 'EN_STOCK' or serie.statut == 'VENDU'}"
-                  class="btn btn-outline-info"
-                  data-bs-toggle="modal"
-                  data-bs-target="#savModal"
-                >
-                  <i class="bi bi-tools"></i> Envoyer en SAV
-                </button>
-
-                <!-- Rebut -->
-                <button
-                  class="btn btn-outline-danger"
-                  data-bs-toggle="modal"
-                  data-bs-target="#rebutModal"
-                >
-                  <i class="bi bi-trash"></i> Mettre au rebut
-                </button>
               </div>
             </div>
           </div>
