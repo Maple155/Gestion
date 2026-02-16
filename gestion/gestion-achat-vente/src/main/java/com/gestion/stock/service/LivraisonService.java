@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,6 +29,7 @@ public class LivraisonService {
     private final ReservationStockRepository reservationStockRepository;
     private final LotRepository lotRepository;
     private final MovementTypeRepository movementTypeRepository;
+    private final SequenceGeneratorService sequenceService;
 
     /**
      * Créer une sortie de stock depuis une réservation
@@ -165,7 +167,8 @@ public class LivraisonService {
         BigDecimal coutUnitaire = lot != null ? lot.getCoutUnitaire() : stock.getCoutUnitaireMoyen();
 
         StockMovement mouvement = StockMovement.builder()
-                .reference(genererReferenceMouvement())
+                .reference("MVT-" + LocalDate.now().getYear() +
+                                String.format("-%06d", sequenceService.getNextMovementSequence()))
                 .type(typeSortie)
                 .article(stock.getArticle())
                 .depot(stock.getDepot())
