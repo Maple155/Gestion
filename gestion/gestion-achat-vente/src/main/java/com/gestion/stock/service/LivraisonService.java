@@ -94,7 +94,8 @@ public class LivraisonService {
         BigDecimal coutUnitaire = lot != null ? lot.getCoutUnitaire() : stock.getCoutUnitaireMoyen();
 
         StockMovement mouvement = StockMovement.builder()
-                .reference(genererReferenceMouvement())
+                .reference(("MVT-" + LocalDate.now().getYear() +
+                                String.format("-%06d", sequenceService.getNextMovementSequence())))
                 .type(typeSortie)
                 .article(reservation.getArticle())
                 .depot(reservation.getDepot())
