@@ -46,6 +46,17 @@ public class DashboardController {
     private final UtilisateurRepository utilisateurRepository;
     private final StockRepository stockRepository;
 
+    private boolean hasAnyRole(HttpSession session, String... roles) {
+        String userRole = (String) session.getAttribute("userRole");
+        if (userRole == null) return false;
+        return Arrays.asList(roles).contains(userRole);
+    }
+    
+    private boolean hasRole(HttpSession session, String role) {
+        String userRole = (String) session.getAttribute("userRole");
+        return userRole != null && userRole.equals(role);
+    }
+
     /**
      * Dashboard principal - Vue d'ensemble (EXISTANT)
      */
@@ -56,31 +67,38 @@ public class DashboardController {
                 return "redirect:/login";
             }
 
+            if (!hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MAGASINIER", 
+            "MANAGER", "ADMIN", "COMPTABLE", "DAF")) {
+                return "redirect:/access-denied";
+            }
+
             UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
 
             // 1. KPI globaux
             Map<String, Object> kpis = reportingService.getDashboardKPIs();
             model.addAttribute("kpis", kpis);
 
-            // 2. Valorisation FIFO/FEFO/CUMP
-            Map<String, Object> valorisation = valorisationService.getSyntheseValorisation();
-            model.addAttribute("valorisation", valorisation);
-
-            // 3. Évolution valeur stock (12 mois)
-            List<Map<String, Object>> evolution = reportingService.getEvolutionValeurStock(12);
-            model.addAttribute("evolution", evolution);
-
-            // 4. Top 10 articles par valeur
-            List<Map<String, Object>> topArticles = valorisationService.getTopArticlesParValeur(10);
-            model.addAttribute("topArticles", topArticles);
+            if (hasAnyRole(session, "COMPTABLE", "DAF", "MANAGER", "ADMIN", "GESTIONNAIRE_STOCK")) {
+                Map<String, Object> valorisation = valorisationService.getSyntheseValorisation();
+                model.addAttribute("valorisation", valorisation);
+                
+                // Évolution valeur stock
+                List<Map<String, Object>> evolution = reportingService.getEvolutionValeurStock(12);
+                model.addAttribute("evolution", evolution);
+                
+                // Top articles par valeur
+                List<Map<String, Object>> topArticles = valorisationService.getTopArticlesParValeur(10);
+                model.addAttribute("topArticles", topArticles);
+            }
 
             // 5. Alertes urgentes
             Map<String, Object> alertes = reportingService.getAlertes();
             model.addAttribute("alertes", alertes);
 
-            // 6. Statistiques des lots
-            Map<String, Object> statsLots = lotService.getStatistiquesLots(null);
-            model.addAttribute("statsLots", statsLots);
+            if (hasAnyRole(session, "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "MANAGER", "ADMIN")) {
+                Map<String, Object> statsLots = lotService.getStatistiquesLots(null);
+                model.addAttribute("statsLots", statsLots);
+            }
 
             // 7. Inventaires en cours
             List<Inventaire> inventairesEnCours = inventaireService.getInventairesEnCours();
@@ -124,6 +142,10 @@ public class DashboardController {
     public String dashboardValorisation(Model model, HttpSession session) {
         if (session.getAttribute("userId") == null) {
             return "redirect:/login";
+        }
+
+        if (!hasAnyRole(session, "COMPTABLE", "DAF", "MANAGER", "ADMIN", "GESTIONNAIRE_STOCK")) {
+            return "redirect:/access-denied";
         }
 
         UUID utilisateurId = UUID.fromString(session.getAttribute("userId").toString());
