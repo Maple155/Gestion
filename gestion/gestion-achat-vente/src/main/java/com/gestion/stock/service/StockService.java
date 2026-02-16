@@ -100,7 +100,7 @@ public class StockService {
                 StockMovement mouvementSauvegarde = stockMovementRepository.save(mouvement);
 
                 // 10. Mettre à jour le stock théorique
-                mettreAJourStockTheorique(article.getId(), depot.getId(), quantite, true);
+                // mettreAJourStockTheorique(article.getId(), depot.getId(), quantite, true);
 
                 // 11. Recalculer le CUMP
                 recalculerCUMP(article.getId(), depot.getId(), coutUnitaire, quantite);
