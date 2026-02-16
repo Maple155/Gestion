@@ -235,7 +235,7 @@
                                     Solde Valeur
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    [[${#numbers.formatDecimal(stats.soldeValeur, 0, 2)}]] €
+                                    [[${#numbers.formatDecimal(stats.soldeValeur, 0, 2)}]] Ar
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -325,10 +325,10 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    [[${#numbers.formatDecimal(mvt.coutUnitaire, 0, 4)}]] €
+                                    [[${#numbers.formatDecimal(mvt.coutUnitaire, 0, 4)}]] Ar
                                 </td>
                                 <td class="text-end">
-                                    <strong>[[${#numbers.formatDecimal(mvt.valeurMouvement, 0, 2)}]] €</strong>
+                                    <strong>[[${#numbers.formatDecimal(mvt.valeurMouvement, 0, 2)}]] Ar</strong>
                                 </td>
                                 <td>
                                     <span th:if="${mvt.lot}" class="badge bg-info">[[${mvt.lot}]]</span>

@@ -127,8 +127,8 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 €'}">
-                                1.250.000 €
+                                th:text="${detailFifo != null && detailFifo['valeurTotale'] != null ? #numbers.formatCurrency(detailFifo['valeurTotale']) : '0 Ar'}">
+                                1.250.000 Ar
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
@@ -143,7 +143,7 @@
                                     <span>Coût moyen:</span>
                                     <span class="font-bold text-emerald-600"
                                           th:text="${detailFifo != null && detailFifo['coutMoyen'] != null ? #numbers.formatCurrency(detailFifo['coutMoyen']) : '-'}">
-                                        25,50 €
+                                        25,50 Ar
                                     </span>
                                 </div>
                             </div>
@@ -159,8 +159,8 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 €'}">
-                                50.000 €
+                                th:text="${detailFefo != null && detailFefo['valeurTotale'] != null ? #numbers.formatCurrency(detailFefo['valeurTotale']) : '0 Ar'}">
+                                50.000 Ar
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
@@ -176,7 +176,7 @@
                                     <span>Risque péremption:</span>
                                     <span class="font-bold text-amber-600"
                                           th:text="${detailFefo != null && detailFefo['valeurRisque'] != null ? #numbers.formatCurrency(detailFefo['valeurRisque']) : '-'}">
-                                        4.500 €
+                                        4.500 Ar
                                     </span>
                                 </div>
                             </div>
@@ -192,8 +192,8 @@
                         </div>
                         <div class="p-6">
                             <h3 class="text-2xl font-bold text-slate-800 mb-4"
-                                th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 €'}">
-                                1.200.000 €
+                                th:text="${detailCump != null && detailCump['valeurTotale'] != null ? #numbers.formatCurrency(detailCump['valeurTotale']) : '0 Ar'}">
+                                1.200.000 Ar
                             </h3>
                             <div class="space-y-2 text-sm text-slate-600">
                                 <div class="flex justify-between">
@@ -337,14 +337,14 @@
                                         <span class="text-sm text-slate-600">Coût Moyen Sorties FIFO</span>
                                         <span class="font-bold text-slate-800"
                                               th:text="${valorisation != null && valorisation['coutSortiesFifo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFifo']) : 'N/A'}">
-                                            22,50 €
+                                            22,50 Ar
                                         </span>
                                     </div>
                                     <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                                         <span class="text-sm text-slate-600">Coût Moyen Sorties FEFO</span>
                                         <span class="font-bold text-slate-800"
                                               th:text="${valorisation != null && valorisation['coutSortiesFefo'] != null ? #numbers.formatCurrency(valorisation['coutSortiesFefo']) : 'N/A'}">
-                                            24,30 €
+                                            24,30 Ar
                                         </span>
                                 </div>
                                     <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -353,7 +353,7 @@
                                             class="font-bold text-lg">
                                           <span th:if="${valorisation != null && valorisation['differenceCout'] != null && valorisation['differenceCout'] > 0}">+</span>
                                           <span th:text="${valorisation != null && valorisation['differenceCout'] != null ? #numbers.formatCurrency(valorisation['differenceCout']) : 'N/A'}">
-                                              +1,80 €
+                                              +1,80 Ar
                                           </span>
                                       </span>
                                     </div>
@@ -546,7 +546,7 @@
         function formatMonetaire(valeur) {
             return new Intl.NumberFormat("fr-FR", {
                 style: "currency",
-                currency: "EUR",
+                currency: "MGA",
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(valeur);
@@ -940,7 +940,7 @@ function mettreAJourHistoriqueChart(data) {
     if (typeChartActuel === 'cout') {
         labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
         datasets = [{
-            label: 'Coût Unitaire Moyen (€)',
+            label: 'Coût Unitaire Moyen (Ar)',
             data: data.map(item => item.coutMoyen || 0), // Déjà correct
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -950,7 +950,7 @@ function mettreAJourHistoriqueChart(data) {
     } else if (typeChartActuel === 'valeur') {
         labels = data.map(item => formatMoisAnnee(item.mois, item.annee));
         datasets = [{
-            label: 'Valeur Stock Totale (€)',
+            label: 'Valeur Stock Totale (Ar)',
             data: data.map(item => item.valeurTotale || 0), // Correction ici
             borderColor: '#10b981',
             backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -989,7 +989,7 @@ function mettreAJourHistoriqueChart(data) {
                             if (typeChartActuel === 'cout' || typeChartActuel === 'valeur') {
                                 return new Intl.NumberFormat("fr-FR", {
                                     style: "currency",
-                                    currency: "EUR",
+                                    currency: "MGA",
                                     notation: "compact",
                                 }).format(value);
                             }
@@ -1121,7 +1121,7 @@ function mettreAJourHistoriqueChart(data) {
                         const formatMonetaire = (valeur) => {
                             return new Intl.NumberFormat("fr-FR", {
                                 style: "currency",
-                                currency: "EUR",
+                                currency: "MGA",
                                 minimumFractionDigits: 2,
                             }).format(valeur);
                         };
@@ -1195,7 +1195,7 @@ function mettreAJourHistoriqueChart(data) {
                             callback: function(value) {
                                 return new Intl.NumberFormat("fr-FR", {
                                     style: "currency",
-                                    currency: "EUR",
+                                    currency: "MGA",
                                     notation: "compact",
                                 }).format(value);
                             }

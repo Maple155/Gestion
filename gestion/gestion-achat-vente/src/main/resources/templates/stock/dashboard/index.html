@@ -99,7 +99,7 @@
                       class="kpi-value text-primary"
                       th:text="${#numbers.formatCurrency(kpis.valeurStockTotal)}"
                     >
-                      2.500.000 €
+                      2.500.000 Ar
                     </div>
                     <div class="kpi-label">Valeur Stock Total</div>
                   </div>
@@ -219,7 +219,7 @@
                           class="text-success"
                           th:text="${#numbers.formatCurrency(valorisation.valeurFifo)}"
                         >
-                          1.250.000 €
+                          1.250.000 Ar
                         </h4>
                         <div class="progress mb-2" style="height: 10px">
                           <div
@@ -250,7 +250,7 @@
                           class="text-warning"
                           th:text="${#numbers.formatCurrency(valorisation.valeurFefo)}"
                         >
-                          50.000 €
+                          50.000 Ar
                         </h4>
                         <div class="progress mb-2" style="height: 10px">
                           <div
@@ -281,7 +281,7 @@
                           class="text-info"
                           th:text="${#numbers.formatCurrency(valorisation.valeurCump)}"
                         >
-                          1.200.000 €
+                          1.200.000 Ar
                         </h4>
                         <div class="progress mb-2" style="height: 10px">
                           <div
@@ -344,7 +344,7 @@
                       <span
                         th:text="${#numbers.formatCurrency(alertes.valeurRisqueFefo)}"
                       >
-                        12.500 €
+                        12.500 Ar
                       </span>
                     </small>
                     <a href="/stock/lots/alertes" class="stretched-link"></a>
@@ -377,7 +377,7 @@
                       <span
                         th:text="${#numbers.formatCurrency(alertes.valeurSurstock)}"
                       >
-                        85.000 €
+                        85.000 Ar
                       </span>
                     </small>
                     <a
@@ -566,7 +566,7 @@
                           <span
                             th:text="${#numbers.formatCurrency(article.valeur)}"
                           >
-                            22.500 €
+                            22.500 Ar
                           </span>
                         </span>
                         <br />
@@ -622,7 +622,7 @@
                   callback: function (value) {
                     return new Intl.NumberFormat("fr-FR", {
                       style: "currency",
-                      currency: "EUR",
+                      currency: "MGA",
                       minimumFractionDigits: 0,
                     }).format(value);
                   },
@@ -635,7 +635,7 @@
                   label: function (context) {
                     return new Intl.NumberFormat("fr-FR", {
                       style: "currency",
-                      currency: "EUR",
+                      currency: "MGA",
                     }).format(context.raw);
                   },
                 },
@@ -653,7 +653,7 @@
             document.querySelector('[data-kpi="valeurStock"]').textContent =
               new Intl.NumberFormat("fr-FR", {
                 style: "currency",
-                currency: "EUR",
+                currency: "MGA",
               }).format(data.valeurStockTotal);
             // ... autres mises à jour
           });
@@ -739,7 +739,7 @@ function updateStocksTable(stocks) {
       // Formater la valeur monétaire
       const valeurFormattee = new Intl.NumberFormat('fr-FR', {
           style: 'currency',
-          currency: 'EUR'
+          currency: 'MGA'
       }).format(stock.valeurStockCump);
       
       row.innerHTML = `

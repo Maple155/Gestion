@@ -28,7 +28,7 @@
                 <div class="p-6 flex-1 space-y-4">
                     <div class="flex justify-between items-baseline">
                         <span class="text-slate-500 text-sm">Prix Unitaire HT</span>
-                        <span class="text-2xl font-black text-slate-900" th:text="${#numbers.formatDecimal(p.prixUnitaireHt, 1, 2) + ' €'}">0.00</span>
+                        <span class="text-2xl font-black text-slate-900" th:text="${#numbers.formatDecimal(p.prixUnitaireHt, 1, 2) + ' Ar'}">0.00</span>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -42,7 +42,7 @@
                     <div class="pt-4 border-t border-slate-50">
                         <p class="text-xs text-slate-400 mb-2 uppercase font-bold tracking-widest">Calcul Total (TTC)</p>
                         <div class="text-lg font-bold text-blue-600" 
-                             th:text="${#numbers.formatDecimal(p.prixUnitaireHt * demande.quantiteDemandee * (1 + p.tvaPourcentage/100), 1, 2) + ' €'}">
+                             th:text="${#numbers.formatDecimal(p.prixUnitaireHt * demande.quantiteDemandee * (1 + p.tvaPourcentage/100), 1, 2) + ' Ar'}">
                         </div>
                     </div>
                 </div>
@@ -126,7 +126,7 @@
                         </div>
                         <div class="p-4 bg-blue-50 rounded-xl border border-blue-100">
                             <label class="text-[10px] font-bold uppercase text-blue-400">Prix Unitaire HT</label>
-                            <p class="text-xl font-black text-blue-700">${p.prixUnitaireHt.toFixed(2)} €</p>
+                            <p class="text-xl font-black text-blue-700">${p.prixUnitaireHt.toFixed(2)} Ar</p>
                         </div>
                         <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
                             <label class="text-[10px] font-bold uppercase text-slate-400">Délai</label>

@@ -74,7 +74,7 @@
                         <div class="text-sm text-slate-600">
                             <i class="bi bi-currency-euro mr-1"></i>
                             <span th:text="${stats.valeurSorties != null ? #numbers.formatCurrency(stats.valeurSorties) : 'N/A'}">
-                                98.000 €
+                                98.000 Ar
                             </span>
                         </div>
                     </div>
@@ -94,7 +94,7 @@
                             <i th:if="${stats.soldeValeur >= 0}" class="bi bi-arrow-up mr-1"></i>
                             <i th:if="${stats.soldeValeur < 0}" class="bi bi-arrow-down mr-1"></i>
                             <span th:text="${stats.soldeValeur != null ? #numbers.formatCurrency(stats.soldeValeur) : 'N/A'}">
-                                +27.000 €
+                                +27.000 Ar
                             </span>
                         </div>
                     </div>
@@ -219,7 +219,7 @@
                                     <td class="px-6 py-4 font-bold" th:text="${mvt.quantite}">100</td>
                                     <td class="px-6 py-4 font-bold text-slate-800" 
                                         th:text="${mvt.valeurMouvement != null ? #numbers.formatCurrency(mvt.valeurMouvement) : '-'}">
-                                        2.500 €
+                                        2.500 Ar
                                     </td>
                                     <td class="px-6 py-4" th:text="${mvt.depot != null ? mvt.depot.code : ''}">DEP-CENTRAL</td>
                                     <td class="px-6 py-4">

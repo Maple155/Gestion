@@ -72,7 +72,8 @@ public class SessionInterceptor implements HandlerInterceptor {
                     userRole.equals("DAF") ||
                     userRole.equals("DG") ||
                     userRole.equals("GESTIONNAIRE_STOCK") || // Inclus car ils voient les BR
-                    userRole.equals("RESPONSABLE_STOCK");
+                    userRole.equals("RESPONSABLE_STOCK") ||
+                    userRole.equals("COMPTABLE");
         }
 
         // --- MODULE STOCK (Inchangé) ---

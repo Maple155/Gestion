@@ -98,7 +98,7 @@ public class LoginController {
             case "FINANCE":
             case "COMPTABLE":
                 // Le comptable arrive sur la gestion des BC à valider et Factures
-                return "redirect:/finance/fournisseurs";
+                return "redirect:/achats/dashboard";
 
             case "RESPONSABLE_ACHATS":
             case "ACHETEUR":

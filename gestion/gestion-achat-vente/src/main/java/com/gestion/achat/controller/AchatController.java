@@ -66,14 +66,14 @@ public class AchatController {
     @PostMapping("/selectionner-offre/{daId}")
     public ResponseEntity<Proforma> selectionner(@PathVariable UUID daId, HttpSession session) {
         // Seul l'ACHETEUR peut sélectionner l'offre après négociation
-        checkAuth(session, "ADMIN", "ACHETEUR");
+        checkAuth(session, "ADMIN", "ACHETEUR","RESPONSABLE_ACHATS");
         return ResponseEntity.ok(achatService.selectionnerMeilleureOffre(daId));
     }
 
     @PostMapping("/bons-commande/generer/{proformaId}")
     public ResponseEntity<BonCommande> genererBC(@PathVariable UUID proformaId, HttpSession session) {
         // Rôle ACHETEUR : transformation DA -> BC
-        checkAuth(session, "ADMIN", "ACHETEUR");
+        checkAuth(session, "ADMIN", "ACHETEUR","RESPONSABLE_ACHATS");
         return ResponseEntity.status(HttpStatus.CREATED).body(achatService.genererBonCommande(proformaId));
     }
 
@@ -96,7 +96,7 @@ public class AchatController {
     @PostMapping("/bons-commande/{bcId}/recevoir")
     public ResponseEntity<BonReception> recevoir(@PathVariable UUID bcId, @RequestParam boolean conforme, HttpSession session) {
         // Magasiniers
-        checkAuth(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK");
+        checkAuth(session, "ADMIN", "GESTIONNAIRE_STOCK", "RESPONSABLE_STOCK", "ACHETEUR","RESPONSABLE_ACHATS");
         BonReception br = achatService.enregistrerReception(bcId, conforme, "");
         stockService.creerEntreeStockFromReception(br.getId(), UUID.fromString(session.getAttribute("userId").toString()));
         return ResponseEntity.ok(br);
@@ -104,7 +104,7 @@ public class AchatController {
     @PostMapping("/bons-commande/{bcId}/facturer")
     public ResponseEntity<FactureAchat> facturer(@PathVariable UUID bcId, @RequestParam String numFacture, HttpSession session) {
         // Rôle COMPTABLE ou DAF pour rapprochement 3-way match
-        checkAuth(session, "ADMIN", "COMPTABLE", "DAF");
+        checkAuth(session, "ADMIN", "COMPTABLE", "DAF","RESPONSABLE_ACHATS");
         return ResponseEntity.ok(achatService.enregistrerFacture(bcId, numFacture, LocalDate.now()));
     }
     @PostMapping("/proformas")
@@ -153,7 +153,7 @@ public class AchatController {
     @PostMapping("/factures")
     public ResponseEntity<FactureAchat> creerFacture(@RequestBody FactureAchat facture, HttpSession session) {
         // 1. Vérification des droits (Comptable ou DAF)
-        checkAuth(session, "ADMIN", "COMPTABLE", "DAF");
+        checkAuth(session, "ADMIN", "COMPTABLE", "DAF","RESPONSABLE_ACHATS");
         
         // 2. Sécurité : Une facture neuve n'est JAMAIS payée à la création dans ce flux
         facture.setEstPayee(false);

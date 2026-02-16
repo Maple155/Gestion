@@ -11,7 +11,7 @@
             <div class="bg-slate-900 px-6 py-3 rounded-xl shadow-lg border border-slate-700">
                 <p class="text-[10px] text-slate-400 font-bold uppercase mb-1 tracking-widest">Cash Disponible</p>
                 <p class="text-xl font-black text-emerald-400" 
-                   th:text="${#numbers.formatDecimal(soldeDisponible, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</p>
+                   th:text="${#numbers.formatDecimal(soldeDisponible, 1, 'WHITESPACE', 2, 'COMMA') + ' Ar'}">0 Ar</p>
             </div>
         </div>
 
@@ -53,7 +53,7 @@
                                 <td class="px-6 py-4 font-mono text-indigo-600 font-bold" th:text="${bc.referenceBc}">BC-000</td>
                                 <td class="px-6 py-4 text-slate-700 font-medium" th:text="${bc.proforma != null && bc.proforma.fournisseur != null ? bc.proforma.fournisseur.nom : '---'}">Fournisseur</td>
                                 <td class="px-6 py-4 font-bold text-slate-900" 
-                                    th:text="${#numbers.formatDecimal(bc.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</td>
+                                    th:text="${#numbers.formatDecimal(bc.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' Ar'}">0 Ar</td>
                                 <td class="px-6 py-4 text-right">
                                     <form th:action="@{/finance/fournisseurs/valider-bc/{id}(id=${bc.id})}" method="post">
                                         <button type="submit" class="bg-slate-800 text-white text-[10px] font-black px-4 py-2 rounded shadow hover:bg-black transition-all">VALIDER</button>
@@ -108,7 +108,7 @@
                                     <div class="text-[10px] text-slate-400" 
                                          th:text="${f.dateFacture != null ? #temporals.format(f.dateFacture, 'dd/MM/yyyy') : 'Sans date'}">Date</div>
                                 </td>
-                                <td class="px-6 py-4 font-black" th:text="${#numbers.formatDecimal(f.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' €'}">0 €</td>
+                                <td class="px-6 py-4 font-black" th:text="${#numbers.formatDecimal(f.montantTotalTtc, 1, 'WHITESPACE', 2, 'COMMA') + ' Ar'}">0 Ar</td>
                                 <td class="px-6 py-4">
                                     <span th:if="${soldeDisponible >= f.montantTotalTtc}" class="text-emerald-500 text-[9px] font-black uppercase bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Prêt</span>
                                     <span th:if="${soldeDisponible < f.montantTotalTtc}" class="text-rose-400 text-[9px] font-black uppercase bg-rose-50 px-2 py-0.5 rounded border border-rose-100 italic">Attente</span>

@@ -22,7 +22,7 @@
                 <div>
                     <p class="text-emerald-600 text-[10px] font-black uppercase tracking-widest">Total Payé</p>
                     <p class="text-2xl font-black text-emerald-900" id="stat-paye" 
-                       th:text="${#numbers.formatCurrency(montantPaye ?: 0)}">0 €</p>
+                       th:text="${#numbers.formatCurrency(montantPaye ?: 0)}">0 Ar</p>
                 </div>
             </div>
             <div class="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center shadow-sm">
@@ -32,7 +32,7 @@
                 <div>
                     <p class="text-rose-600 text-[10px] font-black uppercase tracking-widest">Reste à régler</p>
                     <p class="text-2xl font-black text-rose-900" id="stat-reste" 
-                       th:text="${#numbers.formatCurrency(montantRestant ?: 0)}">0 €</p>
+                       th:text="${#numbers.formatCurrency(montantRestant ?: 0)}">0 Ar</p>
                 </div>
             </div>
         </div>
@@ -120,7 +120,7 @@
                                     <option th:each="bc : ${bcsDisponibles}" 
                                             th:value="${bc.id}" 
                                             th:data-montant="${bc.montantTotalTtc}"
-                                            th:text="${bc.referenceBc + ' | ' + bc.proforma.fournisseur.nom + ' (' + bc.montantTotalTtc + ' €)'}">
+                                            th:text="${bc.referenceBc + ' | ' + bc.proforma.fournisseur.nom + ' (' + bc.montantTotalTtc + ' Ar)'}">
                                     </option>
                                 </select>
                             </div>
@@ -141,7 +141,7 @@
                                     <input type="number" step="0.01" id="ins-montant" name="montantTotalTtc" readonly 
                                            class="w-full bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 text-lg font-black text-slate-500 cursor-not-allowed outline-none"
                                            placeholder="0.00">
-                                    <span class="absolute right-5 top-4 font-black text-slate-400">€</span>
+                                    <span class="absolute right-5 top-4 font-black text-slate-400">Ar</span>
                                 </div>
                                 <p class="mt-2 text-[10px] text-slate-400 italic">Le montant est verrouillé sur la base du Bon de Commande sélectionné.</p>
                             </div>
@@ -218,8 +218,8 @@
                     } else row.style.display = "none";
                 });
 
-                document.getElementById('stat-paye').innerText = totalPaye.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
-                document.getElementById('stat-reste').innerText = totalReste.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
+                document.getElementById('stat-paye').innerText = totalPaye.toLocaleString('fr-FR') + ' Ar';
+                document.getElementById('stat-reste').innerText = totalReste.toLocaleString('fr-FR') + ' Ar';
             }
 
             function resetFiltresFacture() {
@@ -271,7 +271,7 @@
                     document.getElementById('f-modal-date').innerText = "Reçue le: " + dto.dateFacture;
                     document.getElementById('f-modal-fournisseur').innerText = dto.fournisseurNom;
                     document.getElementById('f-modal-bc').innerText = dto.referenceBc;
-                    document.getElementById('f-modal-total').innerText = dto.montantTotal.toLocaleString('fr-FR', {style: 'currency', currency: 'EUR'});
+                    document.getElementById('f-modal-total').innerText = dto.montantTotal.toLocaleString('fr-FR') + ' Ar';
                     
                     const badge = document.getElementById('f-modal-statut');
                     badge.innerText = dto.estPayee ? "Facture Payée" : "En attente de règlement";

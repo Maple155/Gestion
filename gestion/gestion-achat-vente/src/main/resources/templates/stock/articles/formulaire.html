@@ -352,7 +352,7 @@
                                                     <td th:text="${stock.quantiteTheorique}">200</td>
                                                     <td th:text="${stock.quantiteReservee}">50</td>
                                                     <td th:text="${stock.quantiteDisponible}">150</td>
-                                                    <td th:text="${#numbers.formatCurrency(stock.valeurStockCump)}">230.00 €</td>
+                                                    <td th:text="${#numbers.formatCurrency(stock.valeurStockCump)}">230.00 Ar</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -383,7 +383,7 @@
                                     <div class="mb-3">
                                         <label for="coutStandard" class="form-label">Coût standard (HT)</label>
                                         <div class="input-group">
-                                            <span class="input-group-text">€</span>
+                                            <span class="input-group-text">Ar</span>
                                             <input type="number" class="form-control" id="coutStandard" 
                                                    name="coutStandard" min="0" step="0.0001"
                                                    th:value="${article != null and article.coutStandard != null ? article.coutStandard : ''}">
@@ -396,7 +396,7 @@
                                     <div class="mb-3">
                                         <label for="prixVenteHt" class="form-label">Prix de vente HT</label>
                                         <div class="input-group">
-                                            <span class="input-group-text">€</span>
+                                            <span class="input-group-text">Ar</span>
                                             <input type="number" class="form-control" id="prixVenteHt" 
                                                    name="prixVenteHt" min="0" step="0.01"
                                                    th:value="${article != null and article.prixVenteHt != null ? article.prixVenteHt : ''}">
@@ -416,7 +416,7 @@
                                     <div class="mb-3" th:if="${article != null and article.prixVenteHt != null}">
                                         <label class="form-label">Prix de vente TTC</label>
                                         <div class="input-group">
-                                            <span class="input-group-text">€</span>
+                                            <span class="input-group-text">Ar</span>
                                             <input type="text" class="form-control" disabled
                                                    th:value="${#numbers.formatCurrency(article.prixVenteHt * (1 + (article.tvaPourcentage/100)))}">
                                         </div>
@@ -698,7 +698,7 @@
                 if (ttcField.length) {
                     ttcField.val(new Intl.NumberFormat('fr-FR', { 
                         style: 'currency', 
-                        currency: 'EUR' 
+                        currency: 'MGA' 
                     }).format(prixTtc));
                 }
             });
